@@ -5,3 +5,4 @@ __pycache__
 /docker/.cachebust
 *.egg-info
 *.log
+/server/node_modules

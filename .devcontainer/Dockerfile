@@ -43,5 +43,7 @@ RUN cat /tmp/.bashrc >> ~/.bashrc
 # Install nanome-lib
 RUN pip install nanome
 
+RUN apt-get install -y npm
+
 ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
 CMD [ "sleep", "infinity" ]
