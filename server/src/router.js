@@ -4,6 +4,15 @@ const task = require('@/services/task')
 const asyncWrap = require('@/utils/async-wrap')
 
 router.post(
+  '/init',
+  asyncWrap(async (req, res) => {
+    let { dockerfile } = req.fields
+    const data = await task.init(dockerfile)
+    return res.success({data})
+  })
+)
+
+router.post(
   '/',
   asyncWrap(async (req, res) => {
     let files = req.files

@@ -11,6 +11,24 @@ const { HTTPError } = require('@/utils/error')
 
 TASKS_DIR = ospath.join('/tmp', 'tasks')
 
+$local = { image: ''}
+
+exports.init = async dockerfile => {
+  // only initialize once
+  if (!$local.image) {
+    dockerfilePath = ospath.join(TASKS_DIR, 'Dockerfile')
+    fs.writeFileSync(dockerfilePath, dockerfile)
+    const image = 'dockerfile'
+
+    let { _, stderr: buildErr } = await exec(`docker build -t ${image} -f ${dockerfilePath} .`)
+    if (buildErr) {
+      throw new HTTPError(400, 'Could not build docker image')
+    }
+
+    $local.image = image
+  }
+}
+
 exports.run = async (flags, image, command, inputFiles) => {
   // create a new task
   const taskID = shortid.generate()
@@ -28,7 +46,7 @@ exports.run = async (flags, image, command, inputFiles) => {
   flags = flags.replace('{{files}}', taskPath)
 
   // get stdout, stderr
-  const fds = await exec(`docker run --rm ${flags} ${image} ${command}`)
+  const fds = await exec(`docker run ${flags} ${image} ${command}`).catch(e=>{throw new HTTPError(500, 'Could not run command:', e)})
 
   // delete input files
   for (const inputPath of inputPaths) {
