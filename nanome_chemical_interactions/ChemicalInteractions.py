@@ -104,10 +104,13 @@ class ChemicalInteractions(nanome.PluginInstance):
         residues = {residue.serial: residue for residue in complex.residues}
         # cplx/res/atm/itrns:c     r      a        i
         interactions = {}
-        for m in re.finditer(r'(\w+)/(\d+)/([\w\d]+)(\w+)/(\d+)/([\w\d]+)([\t01]+)', interaction_data):
+        for m in re.finditer(r'(\w+)/(\d+)/([\w\d]+)\t(\w+)/(\d+)/([\w\d]+)([\t01]+)', interaction_data):
             # add interaction terms to atoms by residue
-            _, res1, a1, _, res2, a2, i = m.groups()
+            _, r1, a1, _, r2, a2, i = m.groups()
             terms = list(filter(lambda e: e is not '', i.split('\t')))
+            atom1 = [atom for atom in residues[int(r1)].atoms if atom.name == a1].pop()
+            atom2 = [atom for atom in residues[int(r2)].atoms if atom.name == a2].pop()
+            # create interactions
         Logs.debug(interactions)
 
 def main():
