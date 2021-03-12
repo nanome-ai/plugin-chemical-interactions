@@ -1,5 +1,6 @@
 from functools import partial
 import nanome
+from nanome.api.shapes import Line, Anchor
 from nanome.util import Logs
 from os import path
 import re
@@ -102,15 +103,22 @@ class ChemicalInteractions(nanome.PluginInstance):
 
     def parse_data(self, interaction_data, complex):
         residues = {residue.serial: residue for residue in complex.residues}
-        # cplx/res/atm/itrns:c     r      a        i
         interactions = {}
+        # cplx/res/atm/intrxions:c1    r1     a1        c2    r2     a2        i
         for m in re.finditer(r'(\w+)/(\d+)/([\w\d]+)\t(\w+)/(\d+)/([\w\d]+)([\t01]+)', interaction_data):
             # add interaction terms to atoms by residue
             _, r1, a1, _, r2, a2, i = m.groups()
             terms = list(filter(lambda e: e is not '', i.split('\t')))
             atom1 = [atom for atom in residues[int(r1)].atoms if atom.name == a1].pop()
             atom2 = [atom for atom in residues[int(r2)].atoms if atom.name == a2].pop()
-            # create interactions
+            anchor1, anchor2 = Anchor(), Anchor()
+            anchor1.anchor_type = anchor2.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
+            anchor1.target, anchor2.target = atom1.index, atom2.index
+            # create interactions (lines)
+            line = Line()
+            line.thickness = random.uniform(0.5, 2.0)
+            line.anchors = [anchor1, anchor2]
+            line.upload(lambda success: Logs.debug('woo!'))
         Logs.debug(interactions)
 
 def main():
