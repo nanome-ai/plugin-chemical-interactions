@@ -1,7 +1,5 @@
 # Thank you harryjubb for this beautiful tool
-
 import os
-import sys
 
 from Bio.PDB import PDBParser
 from Bio.PDB import NeighborSearch
