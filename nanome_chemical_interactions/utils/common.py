@@ -1,19 +1,5 @@
 # Thank you harryjubb for this beautiful tool
 
-# for receptor_residue in model.get_residues():
-# if receptor_residue.resname != 'HOH'
-# for atom in receptor_residue.child_list
-# serial=atom.serial_number
-# atom_name=atom.name
-# resname=receptor_residue.resname
-# chain_id=receptor_residue.get_parent().id
-# resnum=receptor_residue.get_id()[1]
-# icode=receptor_residue.get_id()[2]
-# x,y,z=atom.coord
-# tfac=atom.bfactor
-# element=atom.element
-# residue.get_full_id()
-
 import os
 import sys
 
@@ -71,9 +57,6 @@ def ligands(pdb_tempfile):
 
 	# GET NON-POLYPEPTIDE HETEROATOM RESIDUES
 	heteroresidues = [r for r in model.get_residues() if 'H_' in r.get_full_id()[3][0] and r not in polypeptide_residues]
-	# for residue in model.get_residues():
-	# 	if 'H_' in residue.get_full_id()[3][0] and residue not in polypeptide_residues:
-	# 		heteroresidues.append(residue)
 
 	# DISCARD COVALENTLY BOUND RESIDUES
 	ns = NeighborSearch(list(model.get_atoms()))
