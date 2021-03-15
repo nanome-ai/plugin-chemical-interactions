@@ -30,7 +30,6 @@ class ChemicalInteractions(nanome.PluginInstance):
         
         self.index_to_complex = {}
         self.complex_indices = set()
-        self.ligand_names = set()
         self.residue = ''
         self.command_template = 'python arpeggio.py /run/{{complex}}.pdb -s RESNAME:{{residue}} -v'
 
@@ -65,17 +64,24 @@ class ChemicalInteractions(nanome.PluginInstance):
         self.request_complex_list(self.display_complexes)
 
     def toggle_complex(self, btn_complex):
-        self.ligand_names = []
-        for item in (set(self.ls_complexes.items) - {btn_complex.ln}):
-            item.get_content().selected = False
+        # clear ligand list
+        self.ls_ligands.items = []
+
+        # toggle the complex
         btn_complex.selected = not btn_complex.selected
 
+        # deselect everything else
+        for item in (set(self.ls_complexes.items) - {btn_complex.ln}):
+            item.get_content().selected = False
+
+        # modify state
         if btn_complex.selected:
             self.complex_indices.add(btn_complex.complex_index)
-            # display ligands
             self.request_complexes([btn_complex.complex_index], self.display_ligands)
         else:
             self.complex_indices.discard(btn_complex.complex_index)
+
+        # update ui
         self.update_content(self.ls_complexes)
         self.update_content(self.ls_ligands)
 
@@ -93,12 +99,16 @@ class ChemicalInteractions(nanome.PluginInstance):
         else:
             self.residue = ''
 
-        # tell nanome
+        # update ui
         self.update_content(self.ls_ligands)
 
     def display_complexes(self, complexes):
+        # clear ui and state
         self.ls_complexes.items = []
+        self.ls_ligands.items = []
         self.index_to_complex = {}
+
+        # populate ui and state
         for complex in complexes:
             self.index_to_complex[complex.index] = complex
             ln_complex = nanome.ui.LayoutNode()
@@ -107,12 +117,19 @@ class ChemicalInteractions(nanome.PluginInstance):
             btn_complex.ln = ln_complex
             btn_complex.register_pressed_callback(self.toggle_complex)
             self.ls_complexes.items.append(ln_complex)
+        
+        # update ui
         self.update_content(self.ls_complexes)
 
     def display_ligands(self, complex):
         complex = complex[0]
+
+        # clear ligands list
+        self.ls_ligands.items = []
+        
         # update the complex map for the actual request
         self.index_to_complex[complex.index] = complex
+
         # populate ligand list
         complex.io.to_pdb(self.pdb_file.name, PDBOPTIONS)
         ligs = ligands(self.pdb_file)
@@ -123,6 +140,8 @@ class ChemicalInteractions(nanome.PluginInstance):
             btn_ligand.ln = ln_ligand
             btn_ligand.register_pressed_callback(self.toggle_ligand)
             self.ls_ligands.items.append(ln_ligand)
+        
+        # update ui
         self.update_content(self.ls_ligands)
     
     def get_complexes(self, callback, btn=None):
@@ -130,6 +149,8 @@ class ChemicalInteractions(nanome.PluginInstance):
 
     def get_interactions(self, complexes):
         selected_complex_indices = [c.get_content().complex_index for c in self.ls_complexes.items if c.get_content().selected]
+
+        # validation
         if len(selected_complex_indices):
             complex = self.index_to_complex.get(selected_complex_indices[0])
         else:
@@ -140,22 +161,23 @@ class ChemicalInteractions(nanome.PluginInstance):
             self.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a ligand")
             return
         
-        # adjust the docker command for the chosen complex and residue
+        # create the request data
         command = self.command_template.replace('{{complex}}', complex.name).replace('{{residue}}', self.residue)
         data = {'flags': FLAGS, 'image': IMAGE, 'command': command}
 
-        # write the chosen complex to file
+        # create the request files
         pdb_path = path.join(self.temp_dir.name, complex.name)
         complex.io.to_pdb(pdb_path, PDBOPTIONS)
         with open(pdb_path, 'r') as pdb_stream:
             pdb_contents = pdb_stream.read()
         files = {f'{complex.name}.pdb': pdb_contents}
 
-        # make the request with the command and file
+        # make the request with the data and file
         res = requests.post('http://localhost:80/', data=data, files=files)
         if not res.json()['success']:
-            self.send_notification(NotificationTypes.error, res.json())
+            self.send_notification(NotificationTypes.error, res.json()['error']['message'])
             return
+
         interaction_data = ''.join([str(chr(c)) for c in res.json()['data']['files'][f'{complex.name}.contacts']['data']])
         self.parse_and_upload(interaction_data, complex)
     
