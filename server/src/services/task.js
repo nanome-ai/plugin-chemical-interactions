@@ -46,7 +46,10 @@ exports.run = async (flags, image, command, inputFiles) => {
   flags = flags.replace('{{files}}', taskPath)
 
   // get stdout, stderr
-  const fds = await exec(`docker run ${flags} ${image} ${command}`).catch(e=>{throw new HTTPError(500, 'Could not run command:', e)})
+  const fds = await exec(`docker run ${flags} ${image} ${command}`).catch(e =>
+  {
+    throw new HTTPError(500, 'Could not run command:', e)
+  })
 
   // delete input files
   for (const inputPath of inputPaths) {
