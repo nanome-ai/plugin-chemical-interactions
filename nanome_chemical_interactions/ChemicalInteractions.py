@@ -1,13 +1,13 @@
 from functools import partial
-import nanome
-from nanome.api.shapes import Line, Anchor
-from nanome.util import Logs
-from nanome.util.enums import NotificationTypes
 from os import path
 import re
 import requests
 import tempfile
 
+import nanome
+from nanome.api.shapes import Line, Anchor
+from nanome.util import Logs
+from nanome.util.enums import NotificationTypes
 from .utils.common import ligands
 
 BASE_PATH = path.dirname(path.realpath(__file__))
@@ -16,12 +16,13 @@ MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
-IMAGE = 'dockerfile'
-FLAGS = r'-v "{{files}}":/run -u `id -u`:`id -g`'
+# IMAGE = 'dockerfile'
+# FLAGS = r'-v "{{files}}":/run -u `id -u`:`id -g`'
 
-f = open(path.join(path.dirname(__file__), 'Dockerfile'), 'r')
-requests.post('http://localhost:80/init', data={'dockerfile': f.read()})
-f.close()
+# f = open(path.join(path.dirname(__file__), 'Dockerfile'), 'r')
+# requests.post('http://localhost:80/init', data={'dockerfile': f.read()})
+# f.close()
+
 
 
 class ChemicalInteractions(nanome.PluginInstance):

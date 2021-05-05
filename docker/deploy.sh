@@ -5,8 +5,10 @@ if [ -n "$(docker ps -aqf name=nanome-chemical-interactions)" ]; then
     docker rm -f nanome-chemical-interactions
 fi
 
-docker run -d \
---name nanome-chemical-interactions \
---restart unless-stopped \
--e ARGS="$*" \
-nanome-chemical-interactions
+# docker run -d \
+# --name nanome-chemical-interactions \
+# --restart unless-stopped \
+# -e ARGS="$*" \
+# nanome-chemical-interactions
+
+docker-compose up

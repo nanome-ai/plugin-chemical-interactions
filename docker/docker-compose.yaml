@@ -5,6 +5,9 @@ services:
     build:
       context: ../
       dockerfile: docker/Dockerfile
+    environment:
+      HOST: ${HOST:-plugins.nanome.ai}
+      PORT: ${PORT:-9999}
   server:
     build:
       context: ../
