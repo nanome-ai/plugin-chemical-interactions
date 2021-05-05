@@ -5,9 +5,10 @@ ENV ARGS=''
 # TODO: install dependencies here
 
 ARG CACHEBUST
-RUN pip install nanome
 
 COPY . /app
 WORKDIR /app
+
+RUN pip install -r requirements.txt
 
 CMD python run.py ${ARGS}

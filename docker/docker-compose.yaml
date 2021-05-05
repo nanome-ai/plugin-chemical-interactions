@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  plugin:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+  server:
+    build:
+      context: ../
+      dockerfile: nanome_chemical_interactions/Dockerfile
