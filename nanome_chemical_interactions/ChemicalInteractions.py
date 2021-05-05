@@ -23,32 +23,33 @@ f = open(path.join(path.dirname(__file__), 'Dockerfile'), 'r')
 requests.post('http://localhost:80/init', data={'dockerfile': f.read()})
 f.close()
 
+
 class ChemicalInteractions(nanome.PluginInstance):
     def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
-        
+
         self.index_to_complex = {}
         self.complex_indices = set()
         self.residue = ''
         self.command_template = 'python arpeggio.py /run/{{complex}}.pdb -s RESNAME:{{residue}} -v'
 
         self.interaction_types = {
-        'clash': nanome.util.Color.Red(),
-        'covalent': nanome.util.Color.Black(),
-        'vdw_clash': nanome.util.Color.from_int(127 << 24 | 0 << 16 | 0 << 8 | 255),
-        'vdw': nanome.util.Color.from_int(0 << 24 | 200 << 16 | 20 << 8 | 255),
-        'proximal': nanome.util.Color.from_int(0 << 24 | 139 << 16 | 139 << 8 | 255),
-        'hbond': nanome.util.Color.Yellow(),
-        'weak_hbond': nanome.util.Color.from_int(255 << 24 | 255 << 16 | 224 << 8 | 255),
-        'xbond': nanome.util.Color.from_int(151 << 24 | 251 << 16 | 152 << 8 | 255),
-        'ionic': nanome.util.Color.from_int(12 << 24 | 0 << 16 | 255 << 8 | 255),
-        'metal_complex': nanome.util.Color.from_int(30 << 24 | 30 << 16 | 30 << 8 | 255),
-        'aromatic': nanome.util.Color.from_int(63 << 24 | 63 << 16 | 63 << 8 | 255),
-        'hydrophobic': nanome.util.Color.from_int(0 << 24 | 0 << 16 | 255 << 8 | 200),
-        'carbonyl': nanome.util.Color.from_int(12 << 24 | 12 << 16 | 12 << 8 | 255),
-        'polar': nanome.util.Color.Grey(),
-        'weak_polar': nanome.util.Color.from_int(0 << 24 | 0 << 16 | 127 << 8 | 255),
+            'clash': nanome.util.Color.Red(),
+            'covalent': nanome.util.Color.Black(),
+            'vdw_clash': nanome.util.Color.from_int(127 << 24 | 0 << 16 | 0 << 8 | 255),
+            'vdw': nanome.util.Color.from_int(0 << 24 | 200 << 16 | 20 << 8 | 255),
+            'proximal': nanome.util.Color.from_int(0 << 24 | 139 << 16 | 139 << 8 | 255),
+            'hbond': nanome.util.Color.Yellow(),
+            'weak_hbond': nanome.util.Color.from_int(255 << 24 | 255 << 16 | 224 << 8 | 255),
+            'xbond': nanome.util.Color.from_int(151 << 24 | 251 << 16 | 152 << 8 | 255),
+            'ionic': nanome.util.Color.from_int(12 << 24 | 0 << 16 | 255 << 8 | 255),
+            'metal_complex': nanome.util.Color.from_int(30 << 24 | 30 << 16 | 30 << 8 | 255),
+            'aromatic': nanome.util.Color.from_int(63 << 24 | 63 << 16 | 63 << 8 | 255),
+            'hydrophobic': nanome.util.Color.from_int(0 << 24 | 0 << 16 | 255 << 8 | 200),
+            'carbonyl': nanome.util.Color.from_int(12 << 24 | 12 << 16 | 12 << 8 | 255),
+            'polar': nanome.util.Color.Grey(),
+            'weak_polar': nanome.util.Color.from_int(0 << 24 | 0 << 16 | 127 << 8 | 255),
         }
 
         self._menu = nanome.ui.Menu.io.from_json(MENU_PATH)
@@ -117,7 +118,7 @@ class ChemicalInteractions(nanome.PluginInstance):
             btn_complex.ln = ln_complex
             btn_complex.register_pressed_callback(self.toggle_complex)
             self.ls_complexes.items.append(ln_complex)
-        
+
         # update ui
         self.update_content(self.ls_complexes)
 
@@ -126,7 +127,7 @@ class ChemicalInteractions(nanome.PluginInstance):
 
         # clear ligands list
         self.ls_ligands.items = []
-        
+
         # update the complex map for the actual request
         self.index_to_complex[complex.index] = complex
 
@@ -140,10 +141,10 @@ class ChemicalInteractions(nanome.PluginInstance):
             btn_ligand.ln = ln_ligand
             btn_ligand.register_pressed_callback(self.toggle_ligand)
             self.ls_ligands.items.append(ln_ligand)
-        
+
         # update ui
         self.update_content(self.ls_ligands)
-    
+
     def get_complexes(self, callback, btn=None):
         self.request_complexes([item.get_content().complex_index for item in self.ls_complexes.items], callback)
 
@@ -156,11 +157,11 @@ class ChemicalInteractions(nanome.PluginInstance):
         else:
             self.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a complex")
             return
-        
+
         if not self.residue:
             self.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a ligand")
             return
-        
+
         # create the request data
         command = self.command_template.replace('{{complex}}', complex.name).replace('{{residue}}', self.residue)
         data = {'flags': FLAGS, 'image': IMAGE, 'command': command}
@@ -180,7 +181,7 @@ class ChemicalInteractions(nanome.PluginInstance):
 
         interaction_data = ''.join([str(chr(c)) for c in res.json()['data']['files'][f'{complex.name}.contacts']['data']])
         self.parse_and_upload(interaction_data, complex)
-    
+
     def parse_and_upload(self, interaction_data, complex):
         residues = {residue.serial: residue for residue in complex.residues}
         interactions = {}
@@ -193,7 +194,7 @@ class ChemicalInteractions(nanome.PluginInstance):
             atom2 = [atom for atom in residues[int(r2)].atoms if atom.name == a2].pop()
             # create interactions (lines)
             line = Line()
-            colors = [k for i,k in enumerate(self.interaction_types.keys()) if terms[i] == '1']
+            colors = [k for i, k in enumerate(self.interaction_types.keys()) if terms[i] == '1']
             line.color = self.interaction_types[colors[0]]
             line.thickness = 0.1
             line.dash_length = 0.25
@@ -203,10 +204,12 @@ class ChemicalInteractions(nanome.PluginInstance):
             line.upload()
         Logs.debug(interactions)
 
+
 def main():
     plugin = nanome.Plugin('Chemical Interactions', 'A plugin to display various types of interatomic contacts between small- and macromolecules', 'other', False)
     plugin.set_plugin_class(ChemicalInteractions)
     plugin.run()
+
 
 if __name__ == '__main__':
     main()
