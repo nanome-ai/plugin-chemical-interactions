@@ -8,6 +8,8 @@ services:
     environment:
       HOST: ${HOST:-plugins.nanome.ai}
       PORT: ${PORT:-9999}
+    volumes:
+      - "../:/app"
   server:
     build:
       context: ../
