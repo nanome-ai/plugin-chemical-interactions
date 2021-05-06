@@ -13,4 +13,4 @@ services:
   server:
     build:
       context: ../
-      dockerfile: nanome_chemical_interactions/Dockerfile
+      dockerfile: server/Dockerfile
