@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  plugin:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      HOST: ${HOST:-plugins.nanome.ai}
+      PORT: ${PORT:-9999}
+      INTERACTIONS_URL: http://server:8000
+    volumes:
+      - ".:/app"
+  
+  server:
+    build:
+      context: arpeggio-service
+      # dockerfile: arpeggio-service/Dockerfile
+    ports:
+      - 8000:8000
+    command: python app.py
+    
