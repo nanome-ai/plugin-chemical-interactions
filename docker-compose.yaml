@@ -18,5 +18,12 @@ services:
       # dockerfile: arpeggio-service/Dockerfile
     ports:
       - 8000:8000
+    environment:
+      FLASK_ENV: development
     command: python app.py
+    stdin_open: true
+    tty: true
+    volumes:
+      - "./arpeggio-service:/app"
+
     
