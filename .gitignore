@@ -5,4 +5,3 @@ __pycache__
 *.cachebust
 *.egg-info
 *.log
-/server/node_modules

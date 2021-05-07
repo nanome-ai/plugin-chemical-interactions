@@ -15,7 +15,6 @@ services:
   server:
     build:
       context: arpeggio-service
-      # dockerfile: arpeggio-service/Dockerfile
     ports:
       - 8000:8000
     environment:
