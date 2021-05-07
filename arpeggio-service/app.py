@@ -7,11 +7,8 @@ from flask import Flask, request, send_file
 app = Flask(__name__)
 
 
-@app.route('/')
+@app.route('/', methods=['POST'])
 def index():
-    cwd = os.getcwd()
-    print(cwd)
-    # os.chdir(cwd)
     input_file = request.files['input_file']
 
     temp_dir = tempfile.mkdtemp()
