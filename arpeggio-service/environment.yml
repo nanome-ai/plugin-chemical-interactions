@@ -1,0 +1,8 @@
+name: arpeggio
+channels:
+  - conda-forge
+dependencies:
+  - python=3.7.10
+  - flask
+  - openbabel
+  - biopython
