@@ -24,7 +24,6 @@ PDBOPTIONS.write_bonds = True
 # f.close()
 
 
-
 class ChemicalInteractions(nanome.PluginInstance):
     def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -207,7 +206,14 @@ class ChemicalInteractions(nanome.PluginInstance):
 
 
 def main():
-    plugin = nanome.Plugin('Chemical Interactions', 'A plugin to display various types of interatomic contacts between small- and macromolecules', 'other', False)
+    title = 'Chemical Interactions'
+    description = (
+        'A plugin to display various types of interatomic contacts '
+        'between small and macromolecules'
+    )
+    category = 'Analysis'
+    advanced_settings = False
+    plugin = nanome.Plugin( title, description, category, advanced_settings)
     plugin.set_plugin_class(ChemicalInteractions)
     plugin.run()
 

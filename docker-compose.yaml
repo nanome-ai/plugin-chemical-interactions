@@ -6,13 +6,12 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     environment:
-      HOST: ${HOST:-plugins.nanome.ai}
-      PORT: ${PORT:-9999}
-      INTERACTIONS_URL: http://server:8000
+      NTS_HOST: ${NTS_HOST:-nts-dev.nanome.ai}
+      NTS_PORT: ${NTS_PORT:-9999}
+      INTERACTIONS_URL: http://arpeggio:8000
     volumes:
       - ".:/app"
-  
-  server:
+  arpeggio:
     build:
       context: arpeggio-service
     ports:
