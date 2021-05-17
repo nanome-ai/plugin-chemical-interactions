@@ -5,7 +5,7 @@ import requests
 import tempfile
 
 import nanome
-from nanome.api.shapes import Line, Anchor
+# from nanome.api.shapes import Line, Anchor
 from nanome.util import Logs
 from nanome.util.enums import NotificationTypes
 from .utils.common import ligands
@@ -108,7 +108,6 @@ class ChemicalInteractions(nanome.PluginInstance):
         self.ls_complexes.items = []
         self.ls_ligands.items = []
         self.index_to_complex = {}
-
         # populate ui and state
         for complex in complexes:
             self.index_to_complex[complex.index] = complex
@@ -206,16 +205,16 @@ class ChemicalInteractions(nanome.PluginInstance):
 
 
 def main():
-    title = 'Chemical Interactions'
+    title = '000 Chemical Interactions'
     description = (
         'A plugin to display various types of interatomic contacts '
-        'between small and macromolecules'
+        'between small and macro molecules'
     )
     category = 'Analysis'
     advanced_settings = False
-    plugin = nanome.Plugin( title, description, category, advanced_settings)
+    plugin = nanome.Plugin(title, description, category, advanced_settings)
     plugin.set_plugin_class(ChemicalInteractions)
-    plugin.run()
+    plugin.run(host='nts-dev.nanome.ai', port=9999)
 
 
 if __name__ == '__main__':
