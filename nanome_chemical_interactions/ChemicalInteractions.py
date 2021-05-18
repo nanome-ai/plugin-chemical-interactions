@@ -1,11 +1,13 @@
 from functools import partial
+import os
 from os import path
 import re
+from Bio import PDB
 import requests
 import tempfile
 
 import nanome
-# from nanome.api.shapes import Line, Anchor
+from nanome.api.shapes import Line, Anchor
 from nanome.util import Logs
 from nanome.util.enums import NotificationTypes
 from .utils.common import ligands
@@ -16,13 +18,6 @@ MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
-# IMAGE = 'dockerfile'
-# FLAGS = r'-v "{{files}}":/run -u `id -u`:`id -g`'
-
-# f = open(path.join(path.dirname(__file__), 'Dockerfile'), 'r')
-# requests.post('http://localhost:80/init', data={'dockerfile': f.read()})
-# f.close()
-
 
 class ChemicalInteractions(nanome.PluginInstance):
     def start(self):
@@ -32,7 +27,6 @@ class ChemicalInteractions(nanome.PluginInstance):
         self.index_to_complex = {}
         self.complex_indices = set()
         self.residue = ''
-        self.command_template = 'python arpeggio.py /run/{{complex}}.pdb -s RESNAME:{{residue}} -v'
 
         self.interaction_types = {
             'clash': nanome.util.Color.Red(),
@@ -96,7 +90,7 @@ class ChemicalInteractions(nanome.PluginInstance):
 
         # modify state
         if btn_ligand.selected:
-            self.residue = btn_ligand.name
+            self.residue = btn_ligand.ligand
         else:
             self.residue = ''
 
@@ -136,7 +130,7 @@ class ChemicalInteractions(nanome.PluginInstance):
         for lig in ligs:
             ln_ligand = nanome.ui.LayoutNode()
             btn_ligand = ln_ligand.add_new_button(lig.resname)
-            btn_ligand.name = lig.resname
+            btn_ligand.ligand = lig
             btn_ligand.ln = ln_ligand
             btn_ligand.register_pressed_callback(self.toggle_ligand)
             self.ls_ligands.items.append(ln_ligand)
@@ -146,6 +140,14 @@ class ChemicalInteractions(nanome.PluginInstance):
 
     def get_complexes(self, callback, btn=None):
         self.request_complexes([item.get_content().complex_index for item in self.ls_complexes.items], callback)
+
+    @staticmethod
+    def get_atoms_for_chain(chain):
+        """Create string representation of residue accepted by Arpeggio Api.
+        
+        eg [/C/20/N]
+        """
+        pass
 
     def get_interactions(self, complexes):
         selected_complex_indices = [c.get_content().complex_index for c in self.ls_complexes.items if c.get_content().selected]
@@ -161,16 +163,24 @@ class ChemicalInteractions(nanome.PluginInstance):
             self.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a ligand")
             return
 
-        # create the request data
-        command = self.command_template.replace('{{complex}}', complex.name).replace('{{residue}}', self.residue)
-        data = {'flags': FLAGS, 'image': IMAGE, 'command': command}
-
         # create the request files
         pdb_path = path.join(self.temp_dir.name, complex.name)
         complex.io.to_pdb(pdb_path, PDBOPTIONS)
         with open(pdb_path, 'r') as pdb_stream:
             pdb_contents = pdb_stream.read()
         files = {f'{complex.name}.pdb': pdb_contents}
+        
+        atom_path_list = []
+        chain_name = self.residue.parent.id
+        residue_number = self.residue.id[1]
+        for atom in self.residue.get_atoms():
+            atom_name = atom.fullname.strip()
+            atom_path = f'{chain_name}/{residue_number}/{atom_name}'
+            atom_path_list.append(atom_path)
+
+        data = {
+            'atom_paths': atom_path_list
+        }
 
         # make the request with the data and file
         res = requests.post('http://localhost:80/', data=data, files=files)
@@ -214,7 +224,15 @@ def main():
     advanced_settings = False
     plugin = nanome.Plugin(title, description, category, advanced_settings)
     plugin.set_plugin_class(ChemicalInteractions)
-    plugin.run(host='nts-dev.nanome.ai', port=9999)
+
+    host = os.environ.get('NTS_HOST')
+    port = os.environ.get('NTS_PORT')
+    configs = {}
+    if host:
+        configs['host'] = host
+    if port:
+        configs['port'] = int(port)
+    plugin.run(**configs)
 
 
 if __name__ == '__main__':

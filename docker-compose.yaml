@@ -1,3 +1,5 @@
+# Optimized for debugging.
+
 version: "3.9"
 
 services:
@@ -9,8 +11,10 @@ services:
       NTS_HOST: ${NTS_HOST:-nts-dev.nanome.ai}
       NTS_PORT: ${NTS_PORT:-9999}
       INTERACTIONS_URL: http://arpeggio:8000
-    volumes:
-      - ".:/app"
+    stdin_open: true
+    tty: true
+    # volumes:
+    #   - ":/app"
   arpeggio:
     build:
       context: arpeggio-service
@@ -21,7 +25,7 @@ services:
     command: python app.py
     stdin_open: true
     tty: true
-    volumes:
-      - "./arpeggio-service:/app"
+    # volumes:
+    #   - "arpeggio-service:/app"
 
     
