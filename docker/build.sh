@@ -14,4 +14,3 @@ fi
 
 cachebust=`cat .cachebust`
 docker-compose build --build-arg CACHEBUST=$cachebust
-# docker build -f Dockerfile  -t nanome-chemical-interactions:latest ..
