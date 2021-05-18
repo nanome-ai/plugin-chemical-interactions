@@ -10,29 +10,33 @@ app = Flask(__name__)
 @app.route('/', methods=['POST'])
 def index():
     input_file = request.files['input_file']
+    import pdb;pdb.set_trace()
 
-    temp_dir = tempfile.mkdtemp()
-    output_dir = tempfile.mkdtemp()
-    temp_filepath = '{}/{}'.format(temp_dir, input_file.filename)
+    file_dir = '/var/output'
+    os.mkdir(file_dir)
+    temp_filepath = '{}/{}.pdb'.format(file_dir, input_file.filename)
     input_file.save(temp_filepath)
 
-    # Set up and run arpeggio command
-    # atom_paths = request.form['atom_paths'].split(',')
-    # flags = '-v '
-    # import pdb; pdb.set_trace()
-    # for a_path in atom_paths:
-    #     flags += '-s {} '.format(a_path)
+    os.system('python clean_pdb.py -if {}'.format(temp_filepath))
+    cleaned_file = '{}/input_file.clean.pdb'.format(file_dir)
 
-    flags = '-s RESNAME:FMM -v'
+    # Set up and run arpeggio command
+    atom_paths = request.form['atom_paths'].split(',')
+    flags = '-v '
+    for a_path in atom_paths:
+        flags += '-s {} '.format(a_path)
+
+    # flags = '-s RESNAME:FMM -v'
+    output_flag = '-op {}'.format(file_dir)
+    command = 'python /arpeggio/arpeggio.py {} {} {}'.format(cleaned_file, flags, output_flag)
     import pdb; pdb.set_trace()
-    output_flag = '-op {}'.format(output_dir) if output_dir else ''
-    command = 'python /arpeggio/arpeggio.py {} {} {}'.format(
-        temp_filepath, flags, output_flag)
+
     os.system(command)
 
+    import pdb; pdb.set_trace()
     # Zip output files, and send back to client
     file_list = os.listdir(temp_dir)
-    file_list.remove(input_file.filename)
+    # file_list.remove(input_file.filename)
     zipfile = shutil.make_archive('/tmp/{}'.format(input_file.filename), 'zip', temp_dir)
     return send_file(zipfile)
 
