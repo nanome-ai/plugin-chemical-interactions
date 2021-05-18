@@ -2,12 +2,12 @@ from functools import partial
 import os
 from os import path
 import re
-from Bio import PDB
+# from Bio import PDB
 import requests
 import tempfile
 
 import nanome
-from nanome.api.shapes import Line, Anchor
+from nanome.api.shapes import Line
 from nanome.util import Logs
 from nanome.util.enums import NotificationTypes
 from utils.common import ligands
@@ -141,14 +141,6 @@ class ChemicalInteractions(nanome.PluginInstance):
     def get_complexes(self, callback, btn=None):
         self.request_complexes([item.get_content().complex_index for item in self.ls_complexes.items], callback)
 
-    @staticmethod
-    def get_atoms_for_chain(chain):
-        """Create string representation of residue accepted by Arpeggio Api.
-        
-        eg [/C/20/N]
-        """
-        pass
-
     def get_interactions(self, complexes):
         selected_complex_indices = [c.get_content().complex_index for c in self.ls_complexes.items if c.get_content().selected]
 
@@ -169,7 +161,7 @@ class ChemicalInteractions(nanome.PluginInstance):
         with open(pdb_path, 'r') as pdb_stream:
             pdb_contents = pdb_stream.read()
         files = {'input_file': pdb_contents}
- 
+
         atom_path_list = []
         chain_name = self.residue.parent.id
         residue_number = self.residue.id[1]
@@ -179,13 +171,13 @@ class ChemicalInteractions(nanome.PluginInstance):
             atom_path_list.append(atom_path)
 
         data = {
-            'atom_paths': atom_path_list
+            'atom_paths': ','.join(atom_path_list)
         }
 
         # make the request with the data and file
         interactions_url = os.environ['INTERACTIONS_URL']
         res = requests.post(interactions_url, data=data, files=files)
-        
+
         if not res.json()['success']:
             self.send_notification(NotificationTypes.error, res.json()['error']['message'])
             return
@@ -200,7 +192,7 @@ class ChemicalInteractions(nanome.PluginInstance):
         for m in re.finditer(r'(\w+)/(\d+)/([\w\d]+)\t(\w+)/(\d+)/([\w\d]+)([\t01]+)', interaction_data):
             # add interaction terms to atoms by residue
             _, r1, a1, _, r2, a2, i = m.groups()
-            terms = list(filter(lambda e: e is not '', i.split('\t')))
+            terms = list(filter(lambda e: e != '', i.split('\t')))
             atom1 = [atom for atom in residues[int(r1)].atoms if atom.name == a1].pop()
             atom2 = [atom for atom in residues[int(r2)].atoms if atom.name == a2].pop()
             # create interactions (lines)

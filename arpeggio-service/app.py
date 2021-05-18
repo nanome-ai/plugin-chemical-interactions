@@ -12,12 +12,19 @@ def index():
     input_file = request.files['input_file']
 
     temp_dir = tempfile.mkdtemp()
+    output_dir = tempfile.mkdtemp()
     temp_filepath = '{}/{}'.format(temp_dir, input_file.filename)
     input_file.save(temp_filepath)
 
-    # Set up and runarpeggio command
-    output_dir = ''
+    # Set up and run arpeggio command
+    # atom_paths = request.form['atom_paths'].split(',')
+    # flags = '-v '
+    # import pdb; pdb.set_trace()
+    # for a_path in atom_paths:
+    #     flags += '-s {} '.format(a_path)
+
     flags = '-s RESNAME:FMM -v'
+    import pdb; pdb.set_trace()
     output_flag = '-op {}'.format(output_dir) if output_dir else ''
     command = 'python /arpeggio/arpeggio.py {} {} {}'.format(
         temp_filepath, flags, output_flag)
