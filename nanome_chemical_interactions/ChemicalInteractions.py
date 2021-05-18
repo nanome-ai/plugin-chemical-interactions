@@ -168,8 +168,8 @@ class ChemicalInteractions(nanome.PluginInstance):
         complex.io.to_pdb(pdb_path, PDBOPTIONS)
         with open(pdb_path, 'r') as pdb_stream:
             pdb_contents = pdb_stream.read()
-        files = {f'{complex.name}.pdb': pdb_contents}
-        
+        files = {'input_file': pdb_contents}
+ 
         atom_path_list = []
         chain_name = self.residue.parent.id
         residue_number = self.residue.id[1]
@@ -183,7 +183,9 @@ class ChemicalInteractions(nanome.PluginInstance):
         }
 
         # make the request with the data and file
-        res = requests.post('http://localhost:80/', data=data, files=files)
+        interactions_url = os.environ['INTERACTIONS_URL']
+        res = requests.post(interactions_url, data=data, files=files)
+        
         if not res.json()['success']:
             self.send_notification(NotificationTypes.error, res.json()['error']['message'])
             return

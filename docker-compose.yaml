@@ -6,7 +6,6 @@ services:
   plugin:
     build:
       context: nanome_chemical_interactions
-      dockerfile: Dockerfile
     environment:
       NTS_HOST: ${NTS_HOST:-nts-dev.nanome.ai}
       NTS_PORT: ${NTS_PORT:-9999}
