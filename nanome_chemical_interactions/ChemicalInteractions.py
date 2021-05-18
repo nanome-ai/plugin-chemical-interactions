@@ -10,7 +10,7 @@ import nanome
 from nanome.api.shapes import Line, Anchor
 from nanome.util import Logs
 from nanome.util.enums import NotificationTypes
-from .utils.common import ligands
+from utils.common import ligands
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
@@ -215,7 +215,7 @@ class ChemicalInteractions(nanome.PluginInstance):
 
 
 def main():
-    title = '000 Chemical Interactions'
+    title = 'Chemical Interactions'
     description = (
         'A plugin to display various types of interatomic contacts '
         'between small and macro molecules'

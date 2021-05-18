@@ -5,8 +5,8 @@ version: "3.9"
 services:
   plugin:
     build:
-      context: .
-      dockerfile: docker/Dockerfile
+      context: nanome_chemical_interactions
+      dockerfile: Dockerfile
     environment:
       NTS_HOST: ${NTS_HOST:-nts-dev.nanome.ai}
       NTS_PORT: ${NTS_PORT:-9999}
@@ -14,7 +14,7 @@ services:
     stdin_open: true
     tty: true
     # volumes:
-    #   - ":/app"
+    #   - "./nanome_chemical_interactions:/app"
   arpeggio:
     build:
       context: arpeggio-service

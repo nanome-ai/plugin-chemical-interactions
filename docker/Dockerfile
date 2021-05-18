@@ -8,4 +8,4 @@ COPY . /app
 WORKDIR /app
 RUN pip install -r requirements.txt
 
-CMD python run.py $ARGS -a $NTS_HOST -p $NTS_PORT -r -v
+CMD docker-compose up
