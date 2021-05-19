@@ -221,14 +221,16 @@ def main():
     plugin.set_plugin_class(ChemicalInteractions)
 
     host = os.environ.get('NTS_HOST')
-    port = os.environ.get('NTS_PORT')
-    configs = {}
-    if host:
-        configs['host'] = host
-    if port:
-        configs['port'] = int(port)
+    port = os.environ.get('NTS_PORT', 0)
+    configs = {
+        'host': host,
+        'port': int(port) if port else None
+    }
+    [configs.pop(key) for key, value in configs if not value]
     plugin.run(**configs)
 
 
 if __name__ == '__main__':
     main()
+
+
