@@ -2,9 +2,9 @@ from functools import partial
 import os
 from os import path
 import re
-# from Bio import PDB
 import requests
 import tempfile
+import shutil
 
 import nanome
 from nanome.api.shapes import Line
@@ -176,16 +176,26 @@ class ChemicalInteractions(nanome.PluginInstance):
 
         # make the request with the data and file
         interactions_url = os.environ['INTERACTIONS_URL']
-        res = requests.post(interactions_url, data=data, files=files)
+        response = requests.post(interactions_url, data=data, files=files)
 
-        if not res.status_code == 200:
+        if not response.status_code == 200:
             self.send_notification(NotificationTypes.error, 'Error =(')
             return
 
         self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction data retrieved!")
+
+        extract_dir = tempfile.mkdtemp()
+        zipfile = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+        with open(zipfile.name, 'wb') as f:
+            f.write(response.content)
+        
+        archive_format = "zip"
+        # Unpack the archive file 
+        shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         # interaction_data = ''.join([str(chr(c)) for c in res.json()['data']['files'][f'{complex.name}.contacts']['data']])
         # self.parse_and_upload(interaction_data, complex)
-
+        return
+    
     def parse_and_upload(self, interaction_data, complex):
         residues = {residue.serial: residue for residue in complex.residues}
         interactions = {}
@@ -232,5 +242,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
