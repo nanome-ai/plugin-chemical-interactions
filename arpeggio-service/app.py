@@ -8,7 +8,8 @@ app = Flask(__name__)
 
 @app.route('/', methods=['POST'])
 def index():
-    input_file = request.files['input_file']
+    file_key = 'input_file.pdb'
+    input_file = request.files[file_key]
     temp_dir = '/var/output'
 
     try:
@@ -24,7 +25,8 @@ def index():
     cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
     cleaned_filepath = '{}/{}'.format(temp_dir, cleaned_filename)
 
-    # Remove everything but the cleaned file
+    # Remove everything but the cleaned file,
+    # and rename to original filename
     for filename in os.listdir(temp_dir):
         if filename != cleaned_filename:
             os.remove('{}/{}'.format(temp_dir, filename))
@@ -34,11 +36,10 @@ def index():
 
     # Set up and run arpeggio command
     flags = '-v '
-    if 'atom_paths' in request.form:
-        atom_paths = request.form['atom_paths'].split(',')
-        for a_path in atom_paths:
-            flags += '-s {} '.format(a_path)
-
+    # if 'atom_paths' in request.form:
+    #     atom_paths = request.form['atom_paths'].split(',')
+    #     for a_path in atom_paths:
+    #         flags += '-s {} '.format(a_path)
     command = 'python /arpeggio/arpeggio.py {} {}'.format(cleaned_filepath, flags)
     os.system(command)
 

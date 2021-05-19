@@ -160,7 +160,7 @@ class ChemicalInteractions(nanome.PluginInstance):
         complex.io.to_pdb(pdb_path, PDBOPTIONS)
         with open(pdb_path, 'r') as pdb_stream:
             pdb_contents = pdb_stream.read()
-        files = {'input_file': pdb_contents}
+        files = {'input_file.pdb': pdb_contents}
 
         atom_path_list = []
         chain_name = self.residue.parent.id
