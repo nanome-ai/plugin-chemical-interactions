@@ -5,3 +5,4 @@ __pycache__
 *.cachebust
 *.egg-info
 *.log
+*.env*

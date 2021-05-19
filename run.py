@@ -1,4 +1,3 @@
-from nanome_chemical_interactions import ChemicalInteractions
+import os
 
-if __name__ == '__main__':
-    ChemicalInteractions.main()
+os.system('./docker/deploy.sh')

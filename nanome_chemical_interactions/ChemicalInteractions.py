@@ -178,8 +178,8 @@ class ChemicalInteractions(nanome.PluginInstance):
         interactions_url = os.environ['INTERACTIONS_URL']
         res = requests.post(interactions_url, data=data, files=files)
 
-        if not res.json()['success']:
-            self.send_notification(NotificationTypes.error, res.json()['error']['message'])
+        if not res.status_code == 200:
+            self.send_notification(NotificationTypes.error, 'Error =(')
             return
 
         interaction_data = ''.join([str(chr(c)) for c in res.json()['data']['files'][f'{complex.name}.contacts']['data']])
