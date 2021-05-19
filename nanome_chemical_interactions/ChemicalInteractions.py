@@ -182,8 +182,9 @@ class ChemicalInteractions(nanome.PluginInstance):
             self.send_notification(NotificationTypes.error, 'Error =(')
             return
 
-        interaction_data = ''.join([str(chr(c)) for c in res.json()['data']['files'][f'{complex.name}.contacts']['data']])
-        self.parse_and_upload(interaction_data, complex)
+        self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction data retrieved!")
+        # interaction_data = ''.join([str(chr(c)) for c in res.json()['data']['files'][f'{complex.name}.contacts']['data']])
+        # self.parse_and_upload(interaction_data, complex)
 
     def parse_and_upload(self, interaction_data, complex):
         residues = {residue.serial: residue for residue in complex.residues}

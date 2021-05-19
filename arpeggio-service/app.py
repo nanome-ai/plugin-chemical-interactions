@@ -43,8 +43,8 @@ def index():
     os.system(command)
 
     # Zip output files, and send back to client
-    file_list = os.listdir(temp_dir)
-    file_list.remove(cleaned_filename)
+    # file_list = os.listdir(temp_dir)
+    # file_list.remove(cleaned_filename)
     zipfile = shutil.make_archive('/tmp/{}'.format(input_filename), 'zip', temp_dir)
     shutil.rmtree(temp_dir)
     return send_file(zipfile)
