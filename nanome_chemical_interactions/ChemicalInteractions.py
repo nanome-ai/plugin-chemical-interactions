@@ -192,8 +192,12 @@ class ChemicalInteractions(nanome.PluginInstance):
         archive_format = "zip"
         # Unpack the archive file 
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
+        contacts_file = f'{extract_dir}/input_file.contacts'
+        contacts_data = ''
+        with open(contacts_file, 'r') as f:
+            contacts_data = f.read()
         # interaction_data = ''.join([str(chr(c)) for c in res.json()['data']['files'][f'{complex.name}.contacts']['data']])
-        # self.parse_and_upload(interaction_data, complex)
+        self.parse_and_upload(contacts_data, complex)
         return
     
     def parse_and_upload(self, interaction_data, complex):
