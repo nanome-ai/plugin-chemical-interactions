@@ -1,6 +1,6 @@
 import os
 import nanome
-from .ChemicalInteractions import ChemicalInteractions
+import ChemicalInteractions
 
 
 def main():
@@ -12,7 +12,7 @@ def main():
     category = 'Analysis'
     advanced_settings = False
     plugin = nanome.Plugin(title, description, category, advanced_settings)
-    plugin.set_plugin_class(ChemicalInteractions)
+    plugin.set_plugin_class(ChemicalInteractions.ChemicalInteractions)
 
     host = os.environ.get('NTS_HOST')
     port = os.environ.get('NTS_PORT') or 0

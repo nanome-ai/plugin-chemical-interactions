@@ -10,7 +10,7 @@ import nanome
 from nanome.api.shapes import Line
 from nanome.util import Logs
 from nanome.util.enums import NotificationTypes
-from .utils import ligands
+import utils
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
@@ -126,7 +126,7 @@ class ChemicalInteractions(nanome.PluginInstance):
 
         # populate ligand list
         complex.io.to_pdb(self.pdb_file.name, PDBOPTIONS)
-        ligs = ligands(self.pdb_file)
+        ligs = utils.ligands(self.pdb_file)
         for lig in ligs:
             ln_ligand = nanome.ui.LayoutNode()
             btn_ligand = ln_ligand.add_new_button(lig.resname)
