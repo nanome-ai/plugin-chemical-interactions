@@ -12,8 +12,8 @@ services:
       INTERACTIONS_URL: http://arpeggio:8000
     stdin_open: true
     tty: true
-    # volumes:
-    #   - "./nanome_chemical_interactions:/app"
+    volumes:
+      - "./nanome_chemical_interactions:/app"
   arpeggio:
     build:
       context: arpeggio-service
@@ -24,7 +24,5 @@ services:
     command: python app.py
     stdin_open: true
     tty: true
-    # volumes:
-    #   - "arpeggio-service:/app"
-
-    
+    volumes:
+      - "./arpeggio-service:/app"
