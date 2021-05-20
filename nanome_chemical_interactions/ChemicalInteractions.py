@@ -179,7 +179,7 @@ class ChemicalInteractions(nanome.PluginInstance):
 
         atom_path_list = []
         chain_name = self.residue.parent.id
-        residue_number = clean_residue[1]
+        residue_number = clean_residue.id[1]
         for atom in clean_residue.get_atoms():
             atom_name = atom.fullname.strip()
             atom_path = f'/{chain_name}/{residue_number}/{atom_name}'
@@ -244,7 +244,7 @@ class ChemicalInteractions(nanome.PluginInstance):
             'ionic': 10,
             'metal_complex': 11,
             'aromatic': 12,
-            'hydrophobic': 13,
+            'hydrophobic': 13, 
             'carbonyl': 14,
             'polar': 15,
             'weak_polar': 16,
