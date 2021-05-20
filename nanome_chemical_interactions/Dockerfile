@@ -10,4 +10,4 @@ COPY . $work_dir
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
-CMD python ChemicalInteractions.py $ARGS -a $NTS_HOST -p $NTS_PORT -r -v
+CMD python run.py

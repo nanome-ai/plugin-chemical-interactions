@@ -40,7 +40,7 @@ def ligands(pdb_tempfile):
     for atom in model.get_atoms():
         try:
             atom.covrad = COVALENT_RADII[atom.element.strip().upper()]
-        except:
+        except Exception:
             print(f'Covalent radius could not be determined for atom {atom}')
 
     # DETERMINE POLYPEPTIDES AND CHAIN BREAKS

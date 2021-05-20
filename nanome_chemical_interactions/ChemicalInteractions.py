@@ -10,7 +10,7 @@ import nanome
 from nanome.api.shapes import Line
 from nanome.util import Logs
 from nanome.util.enums import NotificationTypes
-from utils.common import ligands
+from .utils import ligands
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
@@ -188,9 +188,9 @@ class ChemicalInteractions(nanome.PluginInstance):
         zipfile = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
         with open(zipfile.name, 'wb') as f:
             f.write(response.content)
-        
+
         archive_format = "zip"
-        # Unpack the archive file 
+        # Unpack the archive file
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_file = f'{extract_dir}/input_file.contacts'
         contacts_data = ''
@@ -199,7 +199,7 @@ class ChemicalInteractions(nanome.PluginInstance):
         # interaction_data = ''.join([str(chr(c)) for c in res.json()['data']['files'][f'{complex.name}.contacts']['data']])
         self.parse_and_upload(contacts_data, complex)
         return
-    
+
     def parse_and_upload(self, interaction_data, complex):
         residues = {residue.serial: residue for residue in complex.residues}
         interactions = {}
@@ -221,28 +221,3 @@ class ChemicalInteractions(nanome.PluginInstance):
             line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
             line.upload()
         Logs.debug(interactions)
-
-
-def main():
-    title = 'Chemical Interactions'
-    description = (
-        'A plugin to display various types of interatomic contacts '
-        'between small and macro molecules'
-    )
-    category = 'Analysis'
-    advanced_settings = False
-    plugin = nanome.Plugin(title, description, category, advanced_settings)
-    plugin.set_plugin_class(ChemicalInteractions)
-
-    host = os.environ.get('NTS_HOST')
-    port = os.environ.get('NTS_PORT') or 0
-    configs = {
-        'host': host,
-        'port': int(port) if port else None
-    }
-    [configs.pop(key) for key, value in configs.items() if not value]
-    plugin.run(**configs)
-
-
-if __name__ == '__main__':
-    main()
