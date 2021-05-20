@@ -20,7 +20,10 @@ def main():
         'host': host,
         'port': int(port) if port else None
     }
-    [configs.pop(key) for key, value in configs.items() if not value]
+    items = list(configs.items())
+    for key, value in items:
+        configs.pop(key) if not value else None
+
     plugin.run(**configs)
 
 
