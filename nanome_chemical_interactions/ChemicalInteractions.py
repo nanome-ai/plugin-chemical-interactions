@@ -1,22 +1,21 @@
 from functools import partial
 from os import environ, path
-import json
 import csv
-import re
 import requests
 import tempfile
 import shutil
 
 import nanome
+from nanome.api.structure import Complex
 from nanome.api.shapes import Line
-from nanome.util import Logs
 from nanome.util.enums import NotificationTypes
 from utils.common import ligands
+from Bio.PDB import PDBParser
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
 
-PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
+PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
 
@@ -157,27 +156,47 @@ class ChemicalInteractions(nanome.PluginInstance):
             self.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a ligand")
             return
 
-        # create the request files
+        # Clean complex to prep for arpeggio
         pdb_path = path.join(self.temp_dir.name, complex.name)
         complex.io.to_pdb(pdb_path, PDBOPTIONS)
         with open(pdb_path, 'r') as pdb_stream:
             pdb_contents = pdb_stream.read()
+
         files = {'input_file.pdb': pdb_contents}
+        interactions_url = environ['INTERACTIONS_URL']
+        clean_url = f'{interactions_url}/clean'
+        response = requests.post(clean_url, files=files)
+
+        cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
+        with open(cleaned_file.name, 'wb') as f:
+            f.write(response.content)
+
+        # Get equivalent residue to selected residue in cleaned complex
+        pdb_parser = PDBParser()
+        clean_structure = pdb_parser.get_structure(1, cleaned_file.name)
+        residue_number = self.residue.id[1]
+        clean_residue = next(iter(
+            rez for rez in clean_structure.get_residues()
+            if rez.id[1] == residue_number))
 
         atom_path_list = []
         chain_name = self.residue.parent.id
-        residue_number = self.residue.id[1]
-        for atom in self.residue.get_atoms():
+        for atom in clean_residue.get_atoms():
             atom_name = atom.fullname.strip()
-            atom_path = f'{chain_name}/{residue_number}/{atom_name}'
+            atom_path = f'/{chain_name}/{residue_number}/{atom_name}'
             atom_path_list.append(atom_path)
 
+        cleaned_data = ''
+        with open(cleaned_file.name, 'r') as f:
+            cleaned_data = f.read()
+
+        # create the request files
+        files = {'input_file.pdb': cleaned_data}
         data = {
             'atom_paths': ','.join(atom_path_list)
         }
 
         # make the request with the data and file
-        interactions_url = environ['INTERACTIONS_URL']
         response = requests.post(interactions_url, data=data, files=files)
 
         if not response.status_code == 200:
@@ -186,21 +205,16 @@ class ChemicalInteractions(nanome.PluginInstance):
 
         self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction data retrieved!")
 
-        extract_dir = tempfile.mkdtemp()
         zipfile = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
         with open(zipfile.name, 'wb') as f:
             f.write(response.content)
 
-        archive_format = "zip"
         # Unpack the archive file
+        extract_dir = tempfile.mkdtemp()
+        archive_format = "zip"
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_file = f'{extract_dir}/input_file.contacts'
-        contacts_data = []
-        with open(contacts_file, 'r') as f:
-            reader = csv.reader(f, delimiter="\t")
-            for row in reader:
-                contacts_data.append(row)
-        self.parse_and_upload(contacts_data, complex)
+        self.parse_and_upload(contacts_file, complex)
 
     @staticmethod
     def get_atom(complex, atom_path):
@@ -208,11 +222,17 @@ class ChemicalInteractions(nanome.PluginInstance):
         chain_name, res_id, atom_name = atom_path.split('/')
         chain = next(iter([chain for chain in complex.chains if chain.name == chain_name]))
         residue = next(iter([rez for rez in chain.residues if str(rez.serial) == res_id]))
-        atom =  next(iter([at for at in residue.atoms if at.name == atom_name]))
+        atom = next(iter([at for at in residue.atoms if at.name == atom_name]))
         return atom
 
-    def parse_and_upload(self, interaction_data, complex):
+    def parse_and_upload(self, interactions_file, complex):
         # Enumerate columns denoting each type of interaction
+        interaction_data = []
+        with open(interactions_file, 'r') as f:
+            reader = csv.reader(f, delimiter="\t")
+            for row in reader:
+                interaction_data.append(row)
+
         interaction_type_index = {
             'clash': 2,
             'covalent': 3,
@@ -237,9 +257,10 @@ class ChemicalInteractions(nanome.PluginInstance):
             try:
                 atom1 = self.get_atom(complex, a1)
                 atom2 = self.get_atom(complex, a2)
-            except:
+            except Exception:
                 print('invalid atom path')
                 continue
+
             # create interactions (lines)
             # Iterate through columns and draw relevant lines
             for i, col in enumerate(row[2:], 2):
