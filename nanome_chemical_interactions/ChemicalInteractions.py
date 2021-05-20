@@ -201,10 +201,10 @@ class ChemicalInteractions(nanome.PluginInstance):
             for row in reader:
                 contacts_data.append(row)
         self.parse_and_upload(contacts_data, complex)
-        return
 
     @staticmethod
     def get_atom(complex, atom_path):
+        """Return atom corresponding to atom path"""
         chain_name, res_id, atom_name = atom_path.split('/')
         chain = next(iter([chain for chain in complex.chains if chain.name == chain_name]))
         residue = next(iter([rez for rez in chain.residues if str(rez.serial) == res_id]))
@@ -212,11 +212,24 @@ class ChemicalInteractions(nanome.PluginInstance):
         return atom
 
     def parse_and_upload(self, interaction_data, complex):
-        residues = {residue.serial: residue for residue in complex.residues}
-        interactions = {}
         # Enumerate columns denoting each type of interaction
-        proximal_index = 6
-
+        interaction_type_index = {
+            'clash': 2,
+            'covalent': 3,
+            'vdw_clash': 4,
+            'vdw': 5,
+            'proximal': 6,
+            'hbond': 7,
+            'weak_hbond': 8,
+            'xbond': 9,
+            'ionic': 10,
+            'metal_complex': 11,
+            'aromatic': 12,
+            'hydrophobic': 13,
+            'carbonyl': 14,
+            'polar': 15,
+            'weak_polar': 16,
+        }
         for row in interaction_data:
             # Use atom paths to get matching atoms on Nanome Structure
             a1 = row[0]
@@ -228,14 +241,16 @@ class ChemicalInteractions(nanome.PluginInstance):
                 print('invalid atom path')
                 continue
             # create interactions (lines)
-            if row[proximal_index] == '1':
-                line = Line()
-                color = self.interaction_types['proximal']
-                line.color = color
-                line.thickness = 0.1
-                line.dash_length = 0.25
-                line.dash_distance = 0.25
-                line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
-                line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
-                line.upload()
-        Logs.debug(interactions)
+            # Iterate through columns and draw relevant lines
+            for i, col in enumerate(range(len(row[2:])), 2):
+                interaction_type_index[]
+                if col == '1':
+                    line = Line()
+                    color = self.interaction_types['proximal']
+                    line.color = color
+                    line.thickness = 0.1
+                    line.dash_length = 0.25
+                    line.dash_distance = 0.25
+                    line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
+                    line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
+                    line.upload()
