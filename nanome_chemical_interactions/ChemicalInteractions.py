@@ -10,7 +10,6 @@ from nanome.api.structure import Complex
 from nanome.api.shapes import Line
 from nanome.util.enums import NotificationTypes
 from utils.common import ligands
-from Bio.PDB import PDBParser
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
@@ -25,6 +24,7 @@ class ChemicalInteractions(nanome.PluginInstance):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
 
+        self.interactions_url = environ['INTERACTIONS_URL']
         self.index_to_complex = {}
         self.complex_indices = set()
         self.residue = ''
@@ -142,6 +142,23 @@ class ChemicalInteractions(nanome.PluginInstance):
     def get_complexes(self, callback, btn=None):
         self.request_complexes([item.get_content().complex_index for item in self.ls_complexes.items], callback)
 
+    def clean_complex(self, complex):
+        """Clean complex to prep for arpeggio."""
+        pdb_path = path.join(self.temp_dir.name, complex.name)
+        complex.io.to_pdb(pdb_path, PDBOPTIONS)
+        with open(pdb_path, 'r') as pdb_stream:
+            pdb_contents = pdb_stream.read()
+
+        files = {'input_file.pdb': pdb_contents}
+        
+        clean_url = f'{self.interactions_url}/clean'
+        response = requests.post(clean_url, files=files)
+
+        cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
+        with open(cleaned_file.name, 'wb') as f:
+            f.write(response.content)
+        return cleaned_file
+
     def get_interactions(self, complexes):
         selected_complex_indices = [c.get_content().complex_index for c in self.ls_complexes.items if c.get_content().selected]
 
@@ -156,31 +173,13 @@ class ChemicalInteractions(nanome.PluginInstance):
             self.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a ligand")
             return
 
-        # Clean complex to prep for arpeggio
-        pdb_path = path.join(self.temp_dir.name, complex.name)
-        complex.io.to_pdb(pdb_path, PDBOPTIONS)
-        with open(pdb_path, 'r') as pdb_stream:
-            pdb_contents = pdb_stream.read()
-
-        files = {'input_file.pdb': pdb_contents}
-        interactions_url = environ['INTERACTIONS_URL']
-        clean_url = f'{interactions_url}/clean'
-        response = requests.post(clean_url, files=files)
-
-        cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
-        with open(cleaned_file.name, 'wb') as f:
-            f.write(response.content)
-
+        cleaned_file = self.clean_complex(complex)
         # Get equivalent residue to selected residue in cleaned complex
-        pdb_parser = PDBParser()
-        clean_structure = pdb_parser.get_structure(1, cleaned_file.name)
-        residue_number = self.residue.id[1]
-        clean_residue = next(iter(
-            rez for rez in clean_structure.get_residues()
-            if rez.id[1] == residue_number))
+        clean_residue = next(iter(ligands(cleaned_file)))
 
         atom_path_list = []
         chain_name = self.residue.parent.id
+        residue_number = clean_residue[1]
         for atom in clean_residue.get_atoms():
             atom_name = atom.fullname.strip()
             atom_path = f'/{chain_name}/{residue_number}/{atom_name}'
@@ -197,7 +196,7 @@ class ChemicalInteractions(nanome.PluginInstance):
         }
 
         # make the request with the data and file
-        response = requests.post(interactions_url, data=data, files=files)
+        response = requests.post(self.interactions_url, data=data, files=files)
 
         if not response.status_code == 200:
             self.send_notification(NotificationTypes.error, 'Error =(')
@@ -256,9 +255,13 @@ class ChemicalInteractions(nanome.PluginInstance):
             a2 = row[1]
             try:
                 atom1 = self.get_atom(complex, a1)
+            except Exception:
+                print(f'invalid atom path {a1}')
+                continue
+            try:
                 atom2 = self.get_atom(complex, a2)
             except Exception:
-                print('invalid atom path')
+                print(f'invalid atom path {a2}')
                 continue
 
             # create interactions (lines)
