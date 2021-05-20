@@ -1,6 +1,7 @@
 from functools import partial
-import os
-from os import path
+from os import environ, path
+import json
+import csv
 import re
 import requests
 import tempfile
@@ -20,6 +21,7 @@ PDBOPTIONS.write_bonds = True
 
 
 class ChemicalInteractions(nanome.PluginInstance):
+
     def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
@@ -175,7 +177,7 @@ class ChemicalInteractions(nanome.PluginInstance):
         }
 
         # make the request with the data and file
-        interactions_url = os.environ['INTERACTIONS_URL']
+        interactions_url = environ['INTERACTIONS_URL']
         response = requests.post(interactions_url, data=data, files=files)
 
         if not response.status_code == 200:
@@ -193,31 +195,47 @@ class ChemicalInteractions(nanome.PluginInstance):
         # Unpack the archive file
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_file = f'{extract_dir}/input_file.contacts'
-        contacts_data = ''
+        contacts_data = []
         with open(contacts_file, 'r') as f:
-            contacts_data = f.read()
-        # interaction_data = ''.join([str(chr(c)) for c in res.json()['data']['files'][f'{complex.name}.contacts']['data']])
+            reader = csv.reader(f, delimiter="\t")
+            for row in reader:
+                contacts_data.append(row)
         self.parse_and_upload(contacts_data, complex)
         return
+
+    @staticmethod
+    def get_atom(complex, atom_path):
+        chain_name, res_id, atom_name = atom_path.split('/')
+        chain = next(iter([chain for chain in complex.chains if chain.name == chain_name]))
+        residue = next(iter([rez for rez in chain.residues if str(rez.serial) == res_id]))
+        atom =  next(iter([at for at in residue.atoms if at.name == atom_name]))
+        return atom
 
     def parse_and_upload(self, interaction_data, complex):
         residues = {residue.serial: residue for residue in complex.residues}
         interactions = {}
-        # cplx/res/atm/intrxions:c1    r1     a1        c2    r2     a2        i
-        for m in re.finditer(r'(\w+)/(\d+)/([\w\d]+)\t(\w+)/(\d+)/([\w\d]+)([\t01]+)', interaction_data):
-            # add interaction terms to atoms by residue
-            _, r1, a1, _, r2, a2, i = m.groups()
-            terms = list(filter(lambda e: e != '', i.split('\t')))
-            atom1 = [atom for atom in residues[int(r1)].atoms if atom.name == a1].pop()
-            atom2 = [atom for atom in residues[int(r2)].atoms if atom.name == a2].pop()
+        # Enumerate columns denoting each type of interaction
+        proximal_index = 6
+
+        for row in interaction_data:
+            # Use atom paths to get matching atoms on Nanome Structure
+            a1 = row[0]
+            a2 = row[1]
+            try:
+                atom1 = self.get_atom(complex, a1)
+                atom2 = self.get_atom(complex, a2)
+            except:
+                print('invalid atom path')
+                continue
             # create interactions (lines)
-            line = Line()
-            colors = [k for i, k in enumerate(self.interaction_types.keys()) if terms[i] == '1']
-            line.color = self.interaction_types[colors[0]]
-            line.thickness = 0.1
-            line.dash_length = 0.25
-            line.dash_distance = 0.25
-            line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
-            line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
-            line.upload()
+            if row[proximal_index] == '1':
+                line = Line()
+                color = self.interaction_types['proximal']
+                line.color = color
+                line.thickness = 0.1
+                line.dash_length = 0.25
+                line.dash_distance = 0.25
+                line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
+                line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
+                line.upload()
         Logs.debug(interactions)
