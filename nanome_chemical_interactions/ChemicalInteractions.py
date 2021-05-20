@@ -242,11 +242,11 @@ class ChemicalInteractions(nanome.PluginInstance):
                 continue
             # create interactions (lines)
             # Iterate through columns and draw relevant lines
-            for i, col in enumerate(range(len(row[2:])), 2):
-                interaction_type_index[]
+            for i, col in enumerate(row[2:], 2):
                 if col == '1':
                     line = Line()
-                    color = self.interaction_types['proximal']
+                    interaction_type = next(iter([key for key, val in interaction_type_index.items() if val == i]))
+                    color = self.interaction_types[interaction_type]
                     line.color = color
                     line.thickness = 0.1
                     line.dash_length = 0.25
@@ -254,3 +254,4 @@ class ChemicalInteractions(nanome.PluginInstance):
                     line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
                     line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
                     line.upload()
+        self.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")

@@ -6,6 +6,29 @@ from flask import Flask, request, send_file
 app = Flask(__name__)
 
 
+@app.route('/clean', methods=['POST'])
+def clean():
+    file_key = 'input_file.pdb'
+    input_file = request.files[file_key]
+    temp_dir = '/var/output'
+    try:
+        os.mkdir(temp_dir)
+    except OSError  :
+        shutil.rmtree(temp_dir)
+        os.mkdir(temp_dir)
+    
+    input_filename = input_file.filename
+    input_filepath = '{}/{}'.format(temp_dir, input_filename)
+    input_file.save(input_filepath)
+    os.system('python clean_pdb.py {}'.format(input_filepath))
+    cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
+    cleaned_filepath = '{}/{}'.format(temp_dir, cleaned_filename)
+
+    data = ''
+    with open(cleaned_filepath, 'r') as f:
+        data = f.read()
+    return data
+
 @app.route('/', methods=['POST'])
 def index():
     file_key = 'input_file.pdb'
