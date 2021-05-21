@@ -14,7 +14,8 @@ services:
     tty: true
     volumes:
       - "./nanome_chemical_interactions:/app"
-      - "./tmp/:/tmp/"
+    depends_on:
+      arpeggio
   arpeggio:
     build:
       context: arpeggio-service
