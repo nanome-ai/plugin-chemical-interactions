@@ -1,8 +1,11 @@
-from wtforms.fields.core import IntegerField
-from wtforms.form import Form
-from wtforms import IntegerField, StringField
+from wtforms import Form, SelectMultipleField, StringField
 from wtforms.validators import DataRequired
 
 
 class ChemicalInteractionsForm(Form):
-    complex = IntegerField()
+    complexes = SelectMultipleField(
+        coerce=int,
+        validators=[DataRequired()],
+        description='index of complex we will be analyzing.',
+        choices=[(1, 1), (2, 2), (3, 3)])
+    atom_paths = StringField(description="comma separated list list atom paths ex `/C/100/O,/A/20/CO`")
