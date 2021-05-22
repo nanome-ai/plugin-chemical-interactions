@@ -15,7 +15,7 @@ services:
     volumes:
       - "./nanome_chemical_interactions:/app"
     depends_on:
-      arpeggio
+      - arpeggio
   arpeggio:
     build:
       context: arpeggio-service

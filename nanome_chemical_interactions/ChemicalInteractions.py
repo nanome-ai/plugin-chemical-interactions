@@ -192,7 +192,7 @@ class ChemicalInteractions(nanome.PluginInstance):
         # create the request files
         files = {'input_file.pdb': cleaned_data}
         data = {
-            'atom_paths': ','.join(atom_path_list)
+            # 'atom_paths': ','.join(atom_path_list)
         }
 
         # make the request with the data and file

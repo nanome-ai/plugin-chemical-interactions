@@ -50,10 +50,10 @@ def index():
 
     # Set up and run arpeggio command
     flags = '-v '
-    # if 'atom_paths' in request.form:
-    #     atom_paths = request.form['atom_paths'].split(',')
-    #     for a_path in atom_paths:
-    #         flags += '-s {} '.format(a_path)
+    if 'atom_paths' in request.form:
+        atom_paths = request.form['atom_paths'].split(',')
+        for a_path in atom_paths:
+            flags += '-s {} '.format(a_path)
     command = 'python /arpeggio/arpeggio.py {} {}'.format(input_filepath, flags)
     os.system(command)
 

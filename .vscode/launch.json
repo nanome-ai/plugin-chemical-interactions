@@ -13,39 +13,12 @@
             }
         },
         {
-            "name": "Debug Plugin",
-            "type": "docker",
-            "request": "launch",
-            "preLaunchTask": "docker-run: debug",
-            "python": {
-                "justMyCode": false,
-                "pathMappings": [
-                    {
-                        "localRoot": "${workspaceFolder}/nanome_chemical_interactions",
-                        "remoteRoot": "/app"
-                    }
-                ],
-                "projectType": "general"
-            },
-        },
-        {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "env": {
-                "NTS_HOST": "192.168.50.31",
-                "NTS_PORT": "8888",
-                "INTERACTIONS_URL": "http://arpeggio:8000"
-            }
-        },
-        {
             "name": "run.py",
             "type": "python",
             "request": "launch",
-            "program": "run.py",
-            "console": "integratedTerminal"
+            "program": "${workspaceFolder}/nanome_chemical_interactions/run.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env.local",
         }
     ],
     // "compounds": [
