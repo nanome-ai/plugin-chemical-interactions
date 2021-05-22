@@ -4,6 +4,7 @@ import csv
 import requests
 import tempfile
 import shutil
+import asyncio
 
 import nanome
 from nanome.api.structure import Complex
@@ -134,10 +135,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if any([a for a in chain.atoms if a.is_het])
         ]
         chain_name, res_id, atom_name = atom_path.split('/')
-        for ch in hetchains:
-            if ch.name.startswith('H'):
-                ch.name = ch.name[1:]
-        chain = next(iter([chain for chain in hetchains if chain.name == chain_name]))
+        # for ch in hetchains:
+        #     if ch.name.startswith('H'):
+        #         ch.name = ch.name[1:]
+        chain = next(iter([chain for chain in complex.chains if chain.name == chain_name]))
         residue = next(iter([rez for rez in chain.residues if str(rez.serial) == res_id]))
         atom = next(iter([at for at in residue.atoms if at.name == atom_name]))
         return atom
@@ -170,10 +171,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         }
         valid_atom_paths = set()
         invalid_atom_paths = set()
-        for row in interaction_data:
+        for i, row in enumerate(interaction_data):
+            print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
             a1 = row[0]
-            a2 = row[1]
+            a2 = row[1]                
             try:
                 atom1 = self.get_atom(complex, a1)
             except Exception:
@@ -203,5 +205,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     line.dash_distance = 0.25
                     line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
                     line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
-                    line.upload()
+                    
+                    async def upload(line):
+                        line.upload()
+                    async_upload = asyncio.create_task(upload(line))
+                    async_upload
+
         self.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
