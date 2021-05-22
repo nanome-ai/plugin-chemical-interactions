@@ -9,7 +9,10 @@ import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Line
 from nanome.util.enums import NotificationTypes
+from nanome.util import async_callback
 from utils.common import ligands
+from forms import ChemicalInteractionsForm
+
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
@@ -18,13 +21,14 @@ PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
 
-class ChemicalInteractions(nanome.PluginInstance):
+class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
 
-        self.interactions_url = environ['INTERACTIONS_URL']
+        self.interactions_url = environ.get('INTERACTIONS_URL')
+
         self.index_to_complex = {}
         self.complex_indices = set()
         self.residue = ''
@@ -54,10 +58,12 @@ class ChemicalInteractions(nanome.PluginInstance):
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(partial(self.get_complexes, self.get_interactions))
 
-    def on_run(self):
+    @async_callback
+    async def on_run(self):
         self.menu.enabled = True
         self.update_menu(self.menu)
-        self.request_complex_list(self.display_complexes)
+        complexes = await self.request_complex_list()
+        self.display_complexes(complexes)
 
     def toggle_complex(self, btn_complex):
         # clear ligand list
@@ -159,22 +165,20 @@ class ChemicalInteractions(nanome.PluginInstance):
         return cleaned_file
 
     def get_interactions(self, complexes):
+        
+        complex_indices = [c.get_content().complex_index for c in self.ls_complexes.items]
         selected_complex_indices = [c.get_content().complex_index for c in self.ls_complexes.items if c.get_content().selected]
-        residue_index = self.residue.index
+        residue_index = self.residue.id[1]
         data = {
             "complexes": selected_complex_indices,
             "residue": residue_index
         }
-        # validation
-        if len(selected_complex_indices):
-            complex = self.index_to_complex.get(selected_complex_indices[0])
+        form = ChemicalInteractionsForm(data=data, complex_choices=complex_indices)
+        form.validate()
+        if form.errors:
+            self.send_notification(nanome.util.enums.NotificationTypes.error, form.errors.items())
         else:
-            self.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a complex")
-            return
-
-        if not self.residue:
-            self.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a ligand")
-            return
+            form.submit()
 
         cleaned_file = self.clean_complex(complex)
         # Get equivalent residue to selected residue in cleaned complex
