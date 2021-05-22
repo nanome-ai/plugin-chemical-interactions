@@ -48,6 +48,7 @@ class ChemInteractionsMenu():
 
     def display_complexes(self, complexes):
         # clear ui and state
+        self.plugin.update_menu(self._menu)
         self.ls_complexes.items = []
         self.ls_ligands.items = []
         self.index_to_complex = {}

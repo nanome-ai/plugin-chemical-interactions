@@ -129,19 +129,21 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @staticmethod
     def get_atom(complex, atom_path):
         """Return atom corresponding to atom path"""
+        hetchains = [
+            chain for chain in complex.chains
+            if any([a for a in chain.atoms if a.is_het])
+        ]
         chain_name, res_id, atom_name = atom_path.split('/')
-        chain = next(iter([chain for chain in complex.chains if chain.name == chain_name]))
+        for ch in hetchains:
+            if ch.name.startswith('H'):
+                ch.name = ch.name[1:]
+        chain = next(iter([chain for chain in hetchains if chain.name == chain_name]))
         residue = next(iter([rez for rez in chain.residues if str(rez.serial) == res_id]))
         atom = next(iter([at for at in residue.atoms if at.name == atom_name]))
         return atom
 
     def parse_and_upload(self, interactions_file, complex):
         # Get atoms corresponding to selected ligand
-        # hetchains = [
-        #     chain for chain in complex.chains
-        #     if any([a for a in chain.atoms if a.is_het])
-        # ]
-
         # Enumerate columns denoting each type of interaction
         interaction_data = []
         with open(interactions_file, 'r') as f:
@@ -166,6 +168,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             'polar': 15,
             'weak_polar': 16,
         }
+        valid_atom_paths = set()
+        invalid_atom_paths = set()
         for row in interaction_data:
             # Use atom paths to get matching atoms on Nanome Structure
             a1 = row[0]
@@ -173,14 +177,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             try:
                 atom1 = self.get_atom(complex, a1)
             except Exception:
-                print(f'invalid atom path {a1}')
+                invalid_atom_paths.add(a1)
                 continue
+            else:
+                valid_atom_paths.add(a1)
+                
             try:
                 atom2 = self.get_atom(complex, a2)
             except Exception:
-                print(f'invalid atom path {a2}')
+                invalid_atom_paths.add(a2)
                 continue
-
+            else:
+                valid_atom_paths.add(a2)
+            
             # create interactions (lines)
             # Iterate through columns and draw relevant lines
             for i, col in enumerate(row[2:], 2):
