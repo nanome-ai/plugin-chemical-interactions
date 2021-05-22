@@ -1,6 +1,5 @@
 from wtforms import Form, IntegerField, SelectMultipleField
 from wtforms.validators import DataRequired
-import nanome
 
 
 class ChemicalInteractionsForm(Form):
@@ -16,12 +15,10 @@ class ChemicalInteractionsForm(Form):
         description='index of complex we will be analyzing.',
         choices=[(1, 1), (2, 2), (3, 3)])
     residue = IntegerField(description="")
+    # Get full complexes
+    # Convert Complex into PDB, and send to `{interactions_url>}/clean`
+    # Create comma separated list atom paths ex `/C/100/O,/A/20/CO`
 
-    def submit(self):
-        if self.errors:
-            self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a complex")
-        print("Yay, submitted!")
 
-        # Get full complexes
-        # Convert Complex into PDB, and send to `{interactions_url>}/clean`
-        # Create comma separated list atom paths ex `/C/100/O,/A/20/CO`
+class ArpeggioForm(Form):
+    ...

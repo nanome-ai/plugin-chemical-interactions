@@ -164,33 +164,26 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
 
-    def get_interactions(self, complexes):
-        
-        complex_indices = [c.get_content().complex_index for c in self.ls_complexes.items]
-        selected_complex_indices = [c.get_content().complex_index for c in self.ls_complexes.items if c.get_content().selected]
-        residue_index = self.residue.id[1]
-        data = {
-            "complexes": selected_complex_indices,
-            "residue": residue_index
-        }
-        form = ChemicalInteractionsForm(data=data, complex_choices=complex_indices)
-        form.validate()
-        if form.errors:
-            self.send_notification(nanome.util.enums.NotificationTypes.error, form.errors.items())
-        else:
-            form.submit()
-
-        cleaned_file = self.clean_complex(complex)
-        # Get equivalent residue to selected residue in cleaned complex
-        clean_residue = next(iter(ligands(cleaned_file)))
-
+    def generate_atom_path_list(self, residue):
+        # Use biopython version of residue to create atom_paths
         atom_path_list = []
         chain_name = self.residue.parent.id
-        residue_number = clean_residue.id[1]
-        for atom in clean_residue.get_atoms():
+        residue_number = residue.id[1]
+        for atom in residue.get_atoms():
             atom_name = atom.fullname.strip()
             atom_path = f'/{chain_name}/{residue_number}/{atom_name}'
             atom_path_list.append(atom_path)
+
+        ...
+
+    def get_interactions(self, complexes):
+        # Starting with assumption of one comp.
+        comp = next(iter(complexes))
+
+        # Clean complex and return as TempFile
+        cleaned_file = self.clean_complex(comp)
+        clean_residue = next(iter(ligands(cleaned_file)))
+        atom_paths = self.generate_atom_path_list(clean_residue)
 
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
@@ -199,12 +192,24 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # create the request files
         files = {'input_file.pdb': cleaned_data}
         data = {
-            # 'atom_paths': ','.join(atom_path_list)
+            'atom_paths': ','.join(atom_paths)
         }
+
+        # Get atoms corresponding to selected ligand
+        # clean_comp = Complex.io.from_pdb(path=cleaned_file.name)
+        # hetchains = [
+        #     chain for chain in clean_comp.chains
+        #     if any([a for a in chain.atoms if a.is_het])
+        # ]
+        complex_indices = [c.index for c in complexes]
+        form = ChemicalInteractionsForm(data=data, complex_choices=complex_indices)
+        form.validate()
+        if form.errors:
+            self.send_notification(nanome.util.enums.NotificationTypes.error, form.errors.items())
+            return
 
         # make the request with the data and file
         response = requests.post(self.interactions_url, data=data, files=files)
-
         if not response.status_code == 200:
             self.send_notification(NotificationTypes.error, 'Error =(')
             return
