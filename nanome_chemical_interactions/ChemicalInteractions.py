@@ -167,14 +167,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def generate_atom_path_list(self, residue):
         # Use biopython version of residue to create atom_paths
         atom_path_list = []
-        chain_name = self.residue.parent.id
+        chain_name = residue.parent.id
         residue_number = residue.id[1]
         for atom in residue.get_atoms():
             atom_name = atom.fullname.strip()
             atom_path = f'/{chain_name}/{residue_number}/{atom_name}'
             atom_path_list.append(atom_path)
-
-        ...
+        return atom_path_list
 
     def get_interactions(self, complexes):
         # Starting with assumption of one comp.
@@ -195,14 +194,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             'atom_paths': ','.join(atom_paths)
         }
 
-        # Get atoms corresponding to selected ligand
-        # clean_comp = Complex.io.from_pdb(path=cleaned_file.name)
-        # hetchains = [
-        #     chain for chain in clean_comp.chains
-        #     if any([a for a in chain.atoms if a.is_het])
-        # ]
-        complex_indices = [c.index for c in complexes]
-        form = ChemicalInteractionsForm(data=data, complex_choices=complex_indices)
+        form = ChemicalInteractionsForm(data=data)
         form.validate()
         if form.errors:
             self.send_notification(nanome.util.enums.NotificationTypes.error, form.errors.items())
@@ -225,7 +217,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         archive_format = "zip"
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_file = f'{extract_dir}/input_file.contacts'
-        self.parse_and_upload(contacts_file, complex)
+        self.parse_and_upload(contacts_file, comp)
 
     @staticmethod
     def get_atom(complex, atom_path):
@@ -237,6 +229,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return atom
 
     def parse_and_upload(self, interactions_file, complex):
+        # Get atoms corresponding to selected ligand
+        # hetchains = [
+        #     chain for chain in complex.chains
+        #     if any([a for a in chain.atoms if a.is_het])
+        # ]
+
         # Enumerate columns denoting each type of interaction
         interaction_data = []
         with open(interactions_file, 'r') as f:
