@@ -12,7 +12,7 @@ from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback
 from utils.common import ligands
 from forms import ChemicalInteractionsForm
-
+from menus import ChemInteractionsMenu
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
@@ -24,14 +24,9 @@ PDBOPTIONS.write_bonds = True
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def start(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
-
-        self.interactions_url = environ.get('INTERACTIONS_URL')
-
         self.index_to_complex = {}
-        self.complex_indices = set()
         self.residue = ''
+        self.interactions_url = environ.get('INTERACTIONS_URL')
 
         self.interaction_types = {
             'clash': nanome.util.Color.Red(),
@@ -51,108 +46,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             'weak_polar': nanome.util.Color.from_int(0 << 24 | 0 << 16 | 127 << 8 | 255),
         }
 
-        self._menu = nanome.ui.Menu.io.from_json(MENU_PATH)
-        self.menu = self._menu
-        self.ls_complexes = self._menu.root.find_node('Complex List').get_content()
-        self.ls_ligands = self._menu.root.find_node('Ligands List').get_content()
-        self.btn_calculate = self._menu.root.find_node('Button').get_content()
-        self.btn_calculate.register_pressed_callback(partial(self.get_complexes, self.get_interactions))
+        self.menu = ChemInteractionsMenu(self, MENU_PATH)
 
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
-        self.update_menu(self.menu)
+        self.update_menu(self.menu._menu)
         complexes = await self.request_complex_list()
-        self.display_complexes(complexes)
-
-    def toggle_complex(self, btn_complex):
-        # clear ligand list
-        self.ls_ligands.items = []
-
-        # toggle the complex
-        btn_complex.selected = not btn_complex.selected
-
-        # deselect everything else
-        for item in (set(self.ls_complexes.items) - {btn_complex.ln}):
-            item.get_content().selected = False
-
-        # modify state
-        if btn_complex.selected:
-            self.complex_indices.add(btn_complex.complex_index)
-            self.request_complexes([btn_complex.complex_index], self.display_ligands)
-        else:
-            self.complex_indices.discard(btn_complex.complex_index)
-
-        # update ui
-        self.update_content(self.ls_complexes)
-        self.update_content(self.ls_ligands)
-
-    def toggle_ligand(self, btn_ligand):
-        # toggle the button
-        btn_ligand.selected = not btn_ligand.selected
-
-        # deselect everything else
-        for ln in set(self.ls_ligands.items) - {btn_ligand.ln}:
-            ln.get_content().selected = False
-
-        # modify state
-        if btn_ligand.selected:
-            self.residue = btn_ligand.ligand
-        else:
-            self.residue = ''
-
-        # update ui
-        self.update_content(self.ls_ligands)
-
-    def display_complexes(self, complexes):
-        # clear ui and state
-        self.ls_complexes.items = []
-        self.ls_ligands.items = []
-        self.index_to_complex = {}
-        # populate ui and state
-        for complex in complexes:
-            self.index_to_complex[complex.index] = complex
-            ln_complex = nanome.ui.LayoutNode()
-            btn_complex = ln_complex.add_new_button(complex.name)
-            btn_complex.complex_index = complex.index
-            btn_complex.ln = ln_complex
-            btn_complex.register_pressed_callback(self.toggle_complex)
-            self.ls_complexes.items.append(ln_complex)
-
-        # update ui
-        self.update_content(self.ls_complexes)
-
-    def display_ligands(self, complex):
-        complex = complex[0]
-
-        # clear ligands list
-        self.ls_ligands.items = []
-
-        # update the complex map for the actual request
-        self.index_to_complex[complex.index] = complex
-
-        # populate ligand list
-        complex.io.to_pdb(self.pdb_file.name, PDBOPTIONS)
-        ligs = ligands(self.pdb_file)
-        for lig in ligs:
-            ln_ligand = nanome.ui.LayoutNode()
-            btn_ligand = ln_ligand.add_new_button(lig.resname)
-            btn_ligand.ligand = lig
-            btn_ligand.ln = ln_ligand
-            btn_ligand.register_pressed_callback(self.toggle_ligand)
-            self.ls_ligands.items.append(ln_ligand)
-
-        # update ui
-        self.update_content(self.ls_ligands)
-
-    def get_complexes(self, callback, btn=None):
-        self.request_complexes([item.get_content().complex_index for item in self.ls_complexes.items], callback)
+        self.menu.display_complexes(complexes)
 
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
-        pdb_path = path.join(self.temp_dir.name, complex.name)
-        complex.io.to_pdb(pdb_path, PDBOPTIONS)
-        with open(pdb_path, 'r') as pdb_stream:
+        temp_file = tempfile.NamedTemporaryFile()
+        complex.io.to_pdb(temp_file.name, PDBOPTIONS)
+        with open(temp_file.name, 'r') as pdb_stream:
             pdb_contents = pdb_stream.read()
 
         files = {'input_file.pdb': pdb_contents}
@@ -191,7 +98,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # create the request files
         files = {'input_file.pdb': cleaned_data}
         data = {
-            'atom_paths': ','.join(atom_paths)
+            # 'atom_paths': ','.join(atom_paths)
         }
 
         form = ChemicalInteractionsForm(data=data)
