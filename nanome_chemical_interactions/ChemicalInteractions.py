@@ -150,7 +150,6 @@ class ChemicalInteractions(nanome.PluginInstance):
             pdb_contents = pdb_stream.read()
 
         files = {'input_file.pdb': pdb_contents}
-        
         clean_url = f'{self.interactions_url}/clean'
         response = requests.post(clean_url, files=files)
 
@@ -161,7 +160,11 @@ class ChemicalInteractions(nanome.PluginInstance):
 
     def get_interactions(self, complexes):
         selected_complex_indices = [c.get_content().complex_index for c in self.ls_complexes.items if c.get_content().selected]
-
+        residue_index = self.residue.index
+        data = {
+            "complexes": selected_complex_indices,
+            "residue": residue_index
+        }
         # validation
         if len(selected_complex_indices):
             complex = self.index_to_complex.get(selected_complex_indices[0])
@@ -244,7 +247,7 @@ class ChemicalInteractions(nanome.PluginInstance):
             'ionic': 10,
             'metal_complex': 11,
             'aromatic': 12,
-            'hydrophobic': 13, 
+            'hydrophobic': 13,
             'carbonyl': 14,
             'polar': 15,
             'weak_polar': 16,
