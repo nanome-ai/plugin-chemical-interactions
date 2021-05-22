@@ -5,5 +5,4 @@ from wtforms.fields.core import StringField
 
 class ChemicalInteractionsForm(Form):
     input_file = FileField()
-    # input_file = FileField('Cleaned PDB file', )
-    atom_paths = StringField()
+    atom_paths = StringField(description='Comma separated list of atom_paths (e.g. /C/100/O,C/45/H)')
