@@ -3,13 +3,16 @@ import tempfile
 from utils.common import ligands
 from functools import partial
 from os import environ, path
-from nanome.api.structure import Complex
 
+from nanome.api.structure import Complex
+from nanome.api.ui import Dropdown, DropdownItem
+from nanome.util import Color
+from .forms import InteractionsForm
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
-BASE_PATH = path.dirname(path.realpath(__file__))
-MENU_PATH = path.join(BASE_PATH, 'json', 'menu.json')
+BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
+MENU_PATH = path.join(BASE_PATH, 'json', 'newMenu.json')
 
 
 class ChemInteractionsMenu():
@@ -23,9 +26,69 @@ class ChemInteractionsMenu():
         self._menu = nanome.ui.Menu.io.from_json(MENU_PATH)
         self.ls_complexes = self._menu.root.find_node('Complex List').get_content()
         self.ls_ligands = self._menu.root.find_node('Ligands List').get_content()
+        self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(partial(self.get_complexes, self.plugin.get_interactions))
         self.complex_indices = set()
+        self.populate_ls_interactions(self.ls_interactions)
+
+    @property
+    def color_dropdown(self):
+        if hasattr(self, '_color_dropdown'):
+            return self._color_dropdown
+
+        color_map = {
+            'Black': Color.Black,
+            'Red': Color.Red,
+            'Green': Color.Green,
+            'Blue': Color.Blue,
+            'White': Color.White,
+            'Clear': Color.Clear,
+            'Grey': Color.Grey,
+            'Yellow': Color.Yellow,
+        }
+        # self._color_dropdown = Dropdown()
+        dropdown_items = []
+        for name, color in color_map.items():
+            dd_item = DropdownItem(name)
+            dropdown_items.append(dd_item)
+
+        self._color_dropdown = Dropdown()
+        self._color_dropdown.items = dropdown_items
+        return self._color_dropdown
+
+
+    def populate_ls_interactions(self, ls_interactions):
+        form = InteractionsForm()
+        interactions = []
+        for name, field in form._fields.items():
+            ln = nanome.ui.LayoutNode()
+            ln.sizing_type = ln.SizingTypes.expand.value
+            ln.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal.value
+            
+            list_item_ln = nanome.ui.LayoutNode()
+
+            ln_btn = list_item_ln.clone()
+            ln_btn.add_new_button("Selected")
+            
+            ln_label = list_item_ln.clone()
+            ln_label.add_new_label(name)
+            
+            ln_dropdown = list_item_ln.clone()
+            ln_dropdown.set_content(self.color_dropdown)
+            
+            ln.add_child(ln_btn)
+            ln.add_child(ln_label)
+            ln.add_child(ln_dropdown)
+            # color_dropdown.add_new_dropdown()
+            # btn_complex = ln.add_new_button(name)
+            # btn_complex.ln = ln
+            # btn_complex.register_pressed_callback(self.toggle_complex)
+            # self.ls_complexes.items.append(ln)
+            interactions.append(ln)
+        # self.plugin.update_content
+        ls_interactions.items = interactions
+        pass
 
     @property
     def index(self):
