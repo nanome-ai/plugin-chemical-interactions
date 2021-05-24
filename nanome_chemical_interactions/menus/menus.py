@@ -9,11 +9,11 @@ PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
 BASE_PATH = path.dirname(path.realpath(__file__))
-MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
+MENU_PATH = path.join(BASE_PATH, 'json', 'menu.json')
 
 
 class ChemInteractionsMenu():
-    def __init__(self, plugin, menu_path=None):
+    def __init__(self, plugin):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
 
@@ -38,7 +38,7 @@ class ChemInteractionsMenu():
     @property
     def enabled(self):
         return self._menu.enabled
-    
+
     @enabled.setter
     def enabled(self, value):
         self._menu.enabled = value
@@ -88,7 +88,7 @@ class ChemInteractionsMenu():
         self.plugin.update_content(self.ls_ligands)
 
     def toggle_ligand(self, btn_ligand):
-           # toggle the button
+        # toggle the button
         btn_ligand.selected = not btn_ligand.selected
 
         # deselect everything else
@@ -103,7 +103,7 @@ class ChemInteractionsMenu():
 
         # update ui
         self.plugin.update_content(self.ls_ligands)
-    
+
     def display_ligands(self, complex):
         complex = complex[0]
 

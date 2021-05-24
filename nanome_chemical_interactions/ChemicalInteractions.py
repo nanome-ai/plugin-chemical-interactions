@@ -1,4 +1,3 @@
-from functools import partial
 from os import environ, path
 import csv
 import requests
@@ -11,13 +10,10 @@ from nanome.api.structure import Complex
 from nanome.api.shapes import Line
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback
-from utils.common import ligands
 from forms import ChemicalInteractionsForm
 from menus import ChemInteractionsMenu
 
 BASE_PATH = path.dirname(path.realpath(__file__))
-MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
-
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
@@ -47,7 +43,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             'weak_polar': nanome.util.Color.from_int(0 << 24 | 0 << 16 | 127 << 8 | 255),
         }
 
-        self.menu = ChemInteractionsMenu(self, MENU_PATH)
+        self.menu = ChemInteractionsMenu(self)
 
     @async_callback
     async def on_run(self):
@@ -89,8 +85,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
-        clean_residue = next(iter(ligands(cleaned_file)))
-        atom_paths = self.generate_atom_path_list(clean_residue)
+        # clean_residue = next(iter(ligands(cleaned_file)))
+        # atom_paths = self.generate_atom_path_list(clean_residue)
 
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
@@ -130,10 +126,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @staticmethod
     def get_atom(complex, atom_path):
         """Return atom corresponding to atom path"""
-        hetchains = [
-            chain for chain in complex.chains
-            if any([a for a in chain.atoms if a.is_het])
-        ]
+        # hetchains = [
+        #     chain for chain in complex.chains
+        #     if any([a for a in chain.atoms if a.is_het])
+        # ]
         chain_name, res_id, atom_name = atom_path.split('/')
         # for ch in hetchains:
         #     if ch.name.startswith('H'):
@@ -175,7 +171,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
             a1 = row[0]
-            a2 = row[1]                
+            a2 = row[1]
             try:
                 atom1 = self.get_atom(complex, a1)
             except Exception:
@@ -183,7 +179,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
             else:
                 valid_atom_paths.add(a1)
-                
+
             try:
                 atom2 = self.get_atom(complex, a2)
             except Exception:
@@ -191,7 +187,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
             else:
                 valid_atom_paths.add(a2)
-            
+
             # create interactions (lines)
             # Iterate through columns and draw relevant lines
             for i, col in enumerate(row[2:], 2):
@@ -205,7 +201,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     line.dash_distance = 0.25
                     line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
                     line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
-                    
+
                     async def upload(line):
                         line.upload()
                     async_upload = asyncio.create_task(upload(line))
