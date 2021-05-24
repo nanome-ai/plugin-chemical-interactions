@@ -8,6 +8,7 @@ from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem
 from nanome.util import Color
 from .forms import InteractionsForm
+from colour import COLOR_NAME_TO_RGB
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -37,36 +38,53 @@ class ChemInteractionsMenu():
         if hasattr(self, '_color_dropdown'):
             return self._color_dropdown
 
-        color_map = {
-            'Black': Color.Black,
-            'Red': Color.Red,
-            'Green': Color.Green,
-            'Blue': Color.Blue,
-            'White': Color.White,
-            'Clear': Color.Clear,
-            'Grey': Color.Grey,
-            'Yellow': Color.Yellow,
+        RGB_TO_COLOR_NAMES = {
+            (255, 0, 0): ['Red'],
+            (255, 165, 0): ['Orange'],
+            (255, 255, 0): ['Yellow'],
+            (0, 128, 0): ['Green'],
+            (0, 0, 255): ['Blue'],
+            (75, 0, 130): ['Indigo'],
+            (238, 130, 238): ['Violet'],
+            (0, 0, 0): ['Black'],
+            (255, 255, 255): ['White'],
+            (0, 250, 154): ['MediumSpringGreen'],
+            (128, 0, 0): ['Maroon'],
+            (0, 139, 139): ['DarkCyan'],
+            (112, 128, 144): ['SlateGray'],
+            (128, 0, 128): ['Purple'],
+            (128, 128, 128): ['Gray', 'Grey'],
+            (160, 82, 45): ['Sienna'],
+            (165, 42, 42): ['Brown'],
+            (230, 230, 250): ['Lavender'],
+            (221, 160, 221): ['Plum'],
         }
-        # self._color_dropdown = Dropdown()
+        color_map = dict(
+            (name.lower(), rgb)
+            for rgb, names in RGB_TO_COLOR_NAMES.items()
+            for name in names)
+
         dropdown_items = []
-        for name, color in color_map.items():
+        for name, color_rgb in color_map.items():
             dd_item = DropdownItem(name)
+            dd_item.color = Color(*color_rgb)
             dropdown_items.append(dd_item)
 
         self._color_dropdown = Dropdown()
+        self._color_dropdown.max_displayed_items = 12
         self._color_dropdown.items = dropdown_items
         return self._color_dropdown
 
     def populate_ls_interactions(self, ls_interactions):
         form = InteractionsForm()
         interactions = []
+        ls_interactions.display_rows = 7
         for name, field in form._fields.items():
             ln = nanome.ui.LayoutNode()
             ln.sizing_type = ln.SizingTypes.expand.value
             ln.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal.value
             
             list_item_ln = nanome.ui.LayoutNode()
-
             ln_btn = list_item_ln.clone()
             ln_btn.add_new_button("")
             btn = ln_btn.get_content()
@@ -76,17 +94,16 @@ class ChemInteractionsMenu():
 
             ln_label = list_item_ln.clone()
             ln_label.add_new_label(name)
-            
+
             ln_dropdown = list_item_ln.clone()
-            ln_dropdown.set_content(self.color_dropdown)
-            
+            ln_dropdown.set_content(self.color_dropdown.clone())
+
             ln.add_child(ln_btn)
             ln.add_child(ln_label)
             ln.add_child(ln_dropdown)
             interactions.append(ln)
         ls_interactions.items = interactions
-        pass
-    
+
     def toggle_visibility(self, btn):
         btn.selected = not btn.selected
         txt_selected = 'visible'
