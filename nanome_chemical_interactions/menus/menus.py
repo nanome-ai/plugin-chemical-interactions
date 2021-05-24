@@ -8,6 +8,7 @@ from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem
 from nanome.util import Color
 from .forms import InteractionsForm
+
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
@@ -21,7 +22,6 @@ class ChemInteractionsMenu():
         self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
 
         self.interactions_url = environ.get('INTERACTIONS_URL')
-
         self.plugin = plugin
         self._menu = nanome.ui.Menu.io.from_json(MENU_PATH)
         self.ls_complexes = self._menu.root.find_node('Complex List').get_content()
@@ -57,7 +57,6 @@ class ChemInteractionsMenu():
         self._color_dropdown.items = dropdown_items
         return self._color_dropdown
 
-
     def populate_ls_interactions(self, ls_interactions):
         form = InteractionsForm()
         interactions = []
@@ -69,8 +68,12 @@ class ChemInteractionsMenu():
             list_item_ln = nanome.ui.LayoutNode()
 
             ln_btn = list_item_ln.clone()
-            ln_btn.add_new_button("Selected")
-            
+            ln_btn.add_new_button("")
+            btn = ln_btn.get_content()
+            btn.selected = True
+            btn.text.value.set_all('visible')
+            btn.register_pressed_callback(self.toggle_visibility)
+
             ln_label = list_item_ln.clone()
             ln_label.add_new_label(name)
             
@@ -80,15 +83,17 @@ class ChemInteractionsMenu():
             ln.add_child(ln_btn)
             ln.add_child(ln_label)
             ln.add_child(ln_dropdown)
-            # color_dropdown.add_new_dropdown()
-            # btn_complex = ln.add_new_button(name)
-            # btn_complex.ln = ln
-            # btn_complex.register_pressed_callback(self.toggle_complex)
-            # self.ls_complexes.items.append(ln)
             interactions.append(ln)
-        # self.plugin.update_content
         ls_interactions.items = interactions
         pass
+    
+    def toggle_visibility(self, btn):
+        btn.selected = not btn.selected
+        txt_selected = 'visible'
+        txt_unselected = 'hidden'
+        btn_text = txt_selected if btn.selected else txt_unselected
+        btn.text.value.set_all(btn_text)
+        self.plugin.update_content(btn)
 
     @property
     def index(self):
