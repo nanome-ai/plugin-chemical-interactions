@@ -1,6 +1,7 @@
 import unittest
 
-from nanome_chemical_interactions.forms import ChemicalInteractionsForm
+from nanome_chemical_interactions.forms import ChemicalInteractionsForm, InteractionColorForm
+from nanome.util import Color
 
 
 class TestChemicalInteractionForm(unittest.TestCase):
@@ -14,7 +15,23 @@ class TestChemicalInteractionForm(unittest.TestCase):
         form = ChemicalInteractionsForm(data=data, complex_choices=complexes_in_workspace)
         form.validate()
         self.assertFalse(form.errors)
-        form.submit()
+
+
+class TestColorSelectionForm(unittest.TestCase):
+
+    def test_form_validate(self):
+        test_color = "#ff0000"
+        data = {
+            "clash": test_color,
+        }
+        form = InteractionColorForm(data=data)
+        import pdb;pdb.set_trace()
+        form.validate()
+        form.process(data=data)
+        # form.process(data=form.data)
+        self.assertFalse(form.errors)
+        self.assertTrue(isinstance(form.clash.data, Color))
+        pass
 
 
 if __name__ == '__main__':
