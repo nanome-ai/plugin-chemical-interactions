@@ -1,26 +1,21 @@
-from wtforms import Form, Field, FileField, StringField
+from wtforms import Form, FileField, StringField
 from nanome.util import Color
-from colour import Color as ExternalColor
 from wtforms_components import ColorField
 
 
-class NanomeColorField(Field):
-    """Extend Wtforms  ColorField to convert data into Nanome color class."""
+class NanomeColorField(ColorField):
+    """Extend Wtforms ColorField to convert data into Nanome color class."""
 
-    def process(self, *args, **kwargs):
-        import pdb; pdb.set_trace()
-        super().process(*args, **kwargs)
-        external_color = ExternalColor(self.data)
-        self.data = Color(*external_color.rgb)
-        pass
+    def process(self, _, value, **kwargs):
+        # Leverage ColorField process_formdata to create generic Color object
+        self.process_formdata([value])
+        # Convert to Nanome color
+        self.data = Color(*self.data.rgb)
 
 
 class InteractionColorForm(Form):
     """Set colors for supported Interaction types."""
     clash = NanomeColorField()
-
-    def process(self, *args, **kwargs):
-        return super().process(*args, **kwargs)
     # covalent = StringField()
     # vdw_clash = StringField()
     # vdw = StringField()

@@ -25,13 +25,11 @@ class TestColorSelectionForm(unittest.TestCase):
             "clash": test_color,
         }
         form = InteractionColorForm(data=data)
-        import pdb;pdb.set_trace()
         form.validate()
         form.process(data=data)
         # form.process(data=form.data)
         self.assertFalse(form.errors)
         self.assertTrue(isinstance(form.clash.data, Color))
-        pass
 
 
 if __name__ == '__main__':
