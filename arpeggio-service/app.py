@@ -61,5 +61,5 @@ def index():
     shutil.rmtree(temp_dir)
     return send_file(zipfile)
 
-
+# TODO: Run Flask app gunicorn 
 app.run(host='0.0.0.0', port=8000)

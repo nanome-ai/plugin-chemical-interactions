@@ -71,7 +71,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         # Starting with assumption of one complex.
         complexes = await self.request_complexes(complex_indices)
-        comp = next(iter(complexes))
+        comp = complexes[0]
 
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
@@ -189,18 +189,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Iterate through columns and draw relevant lines
             for i, col in enumerate(row[2:], 2):
                 if col == '1':
-                    interaction_type = next(iter([
-                        key for key, val in interaction_column_index.items() if val == i]))
+                    interaction_type = next(
+                        key for key, val in interaction_column_index.items() if val == i)
                     form_data = form.data[interaction_type]
                     line = self.draw_interaction_line(atom1, atom2, form_data)
                     self._interaction_lines.append(line)
 
                     async def upload(line):
                         line.upload()
-                    async_upload = asyncio.create_task(upload(line))
-                    async_upload
+                    asyncio.create_task(upload(line))
+
         # TODO: Send this notification after all async tasks are completed.
-        self.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
+        async def send_notification(plugin):
+            plugin.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
+        asyncio.create_task(send_notification(self))
 
     def draw_interaction_line(self, atom1, atom2, form_data):
         """Draw line connecting two atoms.

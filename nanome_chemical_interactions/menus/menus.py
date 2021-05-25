@@ -33,10 +33,10 @@ class ChemInteractionsMenu():
         interaction_data = {}
         for row in self.ls_interactions.items:
             content = [ch.get_content() for ch in row.get_children()]
-            btn_visibility = next(iter(c for c in content if isinstance(c, Button)))
-            dd_color = next(iter(c for c in content if isinstance(c, Dropdown)))
-            lb_name = next(iter(c for c in content if isinstance(c, Label)))
-            ddi_color = next(iter([item for item in dd_color.items if item.selected]))
+            btn_visibility = next(c for c in content if isinstance(c, Button))
+            dd_color = next(c for c in content if isinstance(c, Dropdown))
+            lb_name = next(c for c in content if isinstance(c, Label))
+            ddi_color = next(item for item in dd_color.items if item.selected)
 
             name = lb_name.text_value
             visible = True if btn_visibility.selected else False
@@ -54,10 +54,10 @@ class ChemInteractionsMenu():
             for item in self.ls_complexes.items
             if item.get_content().selected]
 
-        # ligand = next(iter([
+        # ligand = next(
         #     item.get_content().ligand
         #     for item in self.ls_ligands.items
-        #     if item.get_content().selected]))
+        #     if item.get_content().selected)
         interaction_data = self.collect_interaction_data()
         self.plugin.get_interactions(selected_complexes, interaction_data)
 
