@@ -16,6 +16,7 @@ MENU_PATH = path.join(BASE_PATH, 'json', 'newMenu.json')
 
 
 class ChemInteractionsMenu():
+
     def __init__(self, plugin):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
@@ -36,11 +37,11 @@ class ChemInteractionsMenu():
             item.get_content().complex_index
             for item in self.ls_complexes.items
             if item.get_content().selected]
-        
-        ligand = next(iter([
-            item.get_content().ligand
-            for item in self.ls_ligands.items
-            if item.get_content().selected]))
+
+        # ligand = next(iter([
+        #     item.get_content().ligand
+        #     for item in self.ls_ligands.items
+        #     if item.get_content().selected]))
 
         # Collecting interaction data takes a little more work.
         interaction_data = {}
@@ -64,10 +65,11 @@ class ChemInteractionsMenu():
     def color_dropdown(self):
         dropdown_items = []
         for name, color_rgb in color_map.items():
-            dd_item = DropdownItem(name)
+            color_hex = '#%02x%02x%02x' % color_rgb
+            colored_name = f'<mark={color_hex}>    </mark>{name}'
+            dd_item = DropdownItem(colored_name)
             dd_item.rgb = color_rgb
             dropdown_items.append(dd_item)
-
         dropdown = Dropdown()
         dropdown.max_displayed_items = 12
         dropdown.items = dropdown_items
@@ -96,7 +98,7 @@ class ChemInteractionsMenu():
             ln_dropdown = list_item_ln.clone()
             dropdown = self.color_dropdown()
             ln_dropdown.set_content(dropdown)
-
+            ln_dropdown._forward_dist = 0.01
             # Select default color in dropdown
             if field.default and field.default.get('color'):
                 default_rgb = field.default['color']

@@ -25,26 +25,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.index_to_complex = {}
         self.residue = ''
         self.interactions_url = environ.get('INTERACTIONS_URL')
-
-        self.interaction_types = {
-            'clash': nanome.util.Color.Red(),
-            'covalent': nanome.util.Color.Black(),
-            'vdw_clash': nanome.util.Color.from_int(127 << 24 | 0 << 16 | 0 << 8 | 255),
-            'vdw': nanome.util.Color.from_int(0 << 24 | 200 << 16 | 20 << 8 | 255),
-            'proximal': nanome.util.Color.from_int(0 << 24 | 139 << 16 | 139 << 8 | 255),
-            'hbond': nanome.util.Color.Yellow(),
-            'weak_hbond': nanome.util.Color.from_int(255 << 24 | 255 << 16 | 224 << 8 | 255),
-            'xbond': nanome.util.Color.from_int(151 << 24 | 251 << 16 | 152 << 8 | 255),
-            'ionic': nanome.util.Color.from_int(12 << 24 | 0 << 16 | 255 << 8 | 255),
-            'metal_complex': nanome.util.Color.from_int(30 << 24 | 30 << 16 | 30 << 8 | 255),
-            'aromatic': nanome.util.Color.from_int(63 << 24 | 63 << 16 | 63 << 8 | 255),
-            'hydrophobic': nanome.util.Color.from_int(0 << 24 | 0 << 16 | 255 << 8 | 200),
-            'carbonyl': nanome.util.Color.from_int(12 << 24 | 12 << 16 | 12 << 8 | 255),
-            'polar': nanome.util.Color.Grey(),
-            'weak_polar': nanome.util.Color.from_int(0 << 24 | 0 << 16 | 127 << 8 | 255),
-        }
-
         self.menu = ChemInteractionsMenu(self)
+        self._interaction_lines = []
 
     @async_callback
     async def on_run(self):
@@ -87,7 +69,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complexes: List of indices
         interactions data: Data accepted by InteractionsForm.
         """
-
         # Starting with assumption of one compex.
         complexes = await self.request_complexes(complex_indices)
         comp = next(iter(complexes))
@@ -158,6 +139,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             for row in reader:
                 interaction_data.append(row)
 
+        # Represents the order of the interaction columns in the .contacts file
         interaction_type_index = {
             'clash': 2,
             'covalent': 3,
@@ -204,6 +186,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # create interactions (lines)
             # Iterate through columns and draw relevant lines
+            self._interaction_lines = []
             for i, col in enumerate(row[2:], 2):
                 if col == '1':
                     line = Line()
@@ -218,9 +201,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     line.dash_distance = 0.25
                     line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
                     line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
+                    self._interaction_lines.append(line)
 
                     async def upload(line):
                         line.upload()
                     async_upload = asyncio.create_task(upload(line))
                     async_upload
+        # TODO: Send this notification after all async tasks are completed.
         self.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")

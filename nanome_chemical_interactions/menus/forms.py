@@ -42,11 +42,10 @@ class InteractionSettings(Form):
 
 def default_data(color_name):
     """Use color name from color_map above to set default colors."""
-    color = Color(*color_map[color_name])
-    color_rep = (color.r, color.g, color.b)
+    color_rgb = color_map[color_name]
     return {
         'visible': True,
-        'color': color_rep
+        'color': color_rgb
     }
 
 
