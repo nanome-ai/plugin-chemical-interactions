@@ -20,7 +20,6 @@ class ChemInteractionsMenu():
     def __init__(self, plugin):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
-
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self.plugin = plugin
         self._menu = nanome.ui.Menu.io.from_json(MENU_PATH)
@@ -30,7 +29,6 @@ class ChemInteractionsMenu():
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(partial(self.get_complexes, self.plugin.get_interactions))
         self.complex_indices = set()
-        self.populate_ls_interactions(self.ls_interactions)
 
     def color_dropdown(self):
         dropdown_items = []
@@ -110,8 +108,9 @@ class ChemInteractionsMenu():
     def get_complexes(self, callback, btn=None):
         self.plugin.request_complexes([item.get_content().complex_index for item in self.ls_complexes.items], callback)
 
-    def display_complexes(self, complexes):
+    def populate_ls_interactions(self, complexes):
         # clear ui and state
+
         self.plugin.update_menu(self._menu)
         self.ls_complexes.items = []
         self.ls_ligands.items = []
@@ -125,6 +124,8 @@ class ChemInteractionsMenu():
             btn_complex.ln = ln_complex
             btn_complex.register_pressed_callback(self.toggle_complex)
             self.ls_complexes.items.append(ln_complex)
+
+        self.populate_ls_interactions(self.ls_interactions)
 
         # update ui
         self.plugin.update_content(self.ls_complexes)

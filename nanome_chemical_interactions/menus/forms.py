@@ -21,7 +21,6 @@ color_map = {
     "slategray": (112, 128, 144),
     "purple": (128, 0, 128),
     "gray": (128, 128, 128),
-    "grey": (128, 128, 128),
     "sienna": (160, 82, 45),
     "brown": (165, 42, 42),
     "lavender": (230, 230, 250),
@@ -54,18 +53,18 @@ def default_values(color_name):
 class InteractionsForm(Form):
     """Set colors and visibility for supported Interaction types."""
     clash = FormField(InteractionSettings, default=default_values('white'))
-    covalent = FormField(InteractionSettings)
-    vdw_clash = FormField(InteractionSettings)
-    vdw = FormField(InteractionSettings)
-    proximal = FormField(InteractionSettings)
-    hbond = FormField(InteractionSettings)
-    weak_hbond = FormField(InteractionSettings)
-    xbond = FormField(InteractionSettings)
-    ionic = FormField(InteractionSettings)
-    metal_complex = FormField(InteractionSettings)
-    aromatic = FormField(InteractionSettings)
-    hydrophobic = FormField(InteractionSettings)
-    carbonyl = FormField(InteractionSettings)
-    polar = FormField(InteractionSettings)
-    weak_polar = FormField(InteractionSettings)
+    covalent = FormField(InteractionSettings, default=default_values('red'))
+    vdw_clash = FormField(InteractionSettings, default=default_values('orange'))
+    vdw = FormField(InteractionSettings, default=default_values('yellow'))
+    proximal = FormField(InteractionSettings, default=default_values('green'))
+    hbond = FormField(InteractionSettings, default=default_values('blue'))
+    weak_hbond = FormField(InteractionSettings, default=default_values('indigo'))
+    xbond = FormField(InteractionSettings, default=default_values('violet'))
+    ionic = FormField(InteractionSettings, default=default_values('black'))
+    metal_complex = FormField(InteractionSettings, default=default_values('mediumspringgreen'))
+    aromatic = FormField(InteractionSettings, default=default_values('maroon'))
+    hydrophobic = FormField(InteractionSettings, default=default_values('darkcyan'))
+    carbonyl = FormField(InteractionSettings, default=default_values('slategray'))
+    polar = FormField(InteractionSettings, default=default_values('purple'))
+    weak_polar = FormField(InteractionSettings, default=default_values('brown'))
 
