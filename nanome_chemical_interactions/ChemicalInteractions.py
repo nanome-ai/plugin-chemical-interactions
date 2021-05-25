@@ -140,7 +140,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 interaction_data.append(row)
 
         # Represents the order of the interaction columns in the .contacts file
-        interaction_type_index = {
+
+        interaction_column_index = {
             'clash': 2,
             'covalent': 3,
             'vdw_clash': 4,
@@ -188,11 +189,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Iterate through columns and draw relevant lines
             for i, col in enumerate(row[2:], 2):
                 if col == '1':
-                    interaction_type = next(iter([key for key, val in interaction_type_index.items() if val == i]))             
+                    interaction_type = next(iter([
+                        key for key, val in interaction_column_index.items() if val == i]))
                     form_data = form.data[interaction_type]
                     line = self.draw_interaction_line(atom1, atom2, form_data)
                     self._interaction_lines.append(line)
-                    
+
                     async def upload(line):
                         line.upload()
                     async_upload = asyncio.create_task(upload(line))
@@ -202,16 +204,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def draw_interaction_line(self, atom1, atom2, form_data):
         """Draw line connecting two atoms.
-        
+
         :arg atom1: Atom
         :arg atom2: Atom
-        :arg form_data: Dict {'color': (r,g,b), 'visibility': bool}
+        :arg form_data: Dict {'color': (r,g,b), 'visible': bool}
         """
         line = Line()
         color = form_data['color']
-        if not form_data['visible']:
-            # a=0 means line becomes invisible
-            color.a = 0
+        color.a = 0 if not form_data['visible'] else 255
         line.color = color
         line.thickness = 0.1
         line.dash_length = 0.25
