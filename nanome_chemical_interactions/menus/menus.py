@@ -5,8 +5,7 @@ from functools import partial
 from os import environ, path
 
 from nanome.api.structure import Complex
-from nanome.api.ui import Dropdown, DropdownItem
-from nanome.util import Color
+from nanome.api.ui import Dropdown, DropdownItem, Button, Label
 from .forms import InteractionsForm, color_map
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -27,8 +26,40 @@ class ChemInteractionsMenu():
         self.ls_ligands = self._menu.root.find_node('Ligands List').get_content()
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
-        self.btn_calculate.register_pressed_callback(partial(self.get_complexes, self.plugin.get_interactions))
+
+        self.btn_calculate.register_pressed_callback(self)
+        self.btn_calculate.register_pressed_callback(self.submit_form)
         self.complex_indices = set()
+
+    def submit_form(self, btn):
+        selected_complexes = [
+            item.get_content().complex_index
+            for item in self.ls_complexes.items
+            if item.get_content().selected]
+        
+        ligand = next(iter([
+            item.get_content().ligand
+            for item in self.ls_ligands.items
+            if item.get_content().selected]))
+
+        # Collecting interaction data takes a little more work.
+        interaction_data = {}
+        for row in self.ls_interactions.items:
+            content = [ch.get_content() for ch in row.get_children()]
+            btn_visibility = next(iter(c for c in content if isinstance(c, Button)))
+            dd_color = next(iter(c for c in content if isinstance(c, Dropdown)))
+            lb_name = next(iter(c for c in content if isinstance(c, Label)))
+            ddi_color = next(iter([item for item in dd_color.items if item.selected]))
+
+            name = lb_name.text_value
+            visible = True if btn_visibility.selected else False
+            color = ddi_color.rgb
+
+            interaction_data[name] = {
+                'visible': visible,
+                'color': color
+            }
+        self.plugin.get_interactions(selected_complexes, interaction_data)
 
     def color_dropdown(self):
         dropdown_items = []
@@ -50,7 +81,7 @@ class ChemInteractionsMenu():
             ln = nanome.ui.LayoutNode()
             ln.sizing_type = ln.SizingTypes.expand.value
             ln.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal.value
-            
+
             list_item_ln = nanome.ui.LayoutNode()
             ln_btn = list_item_ln.clone()
             ln_btn.add_new_button("")
@@ -65,7 +96,7 @@ class ChemInteractionsMenu():
             ln_dropdown = list_item_ln.clone()
             dropdown = self.color_dropdown()
             ln_dropdown.set_content(dropdown)
-            
+
             # Select default color in dropdown
             if field.default and field.default.get('color'):
                 default_rgb = field.default['color']
@@ -74,7 +105,7 @@ class ChemInteractionsMenu():
                     if ddi.rgb == default_rgb
                 ), None)
                 selected_item.selected = True
-                
+
             ln.add_child(ln_btn)
             ln.add_child(ln_label)
             ln.add_child(ln_dropdown)
@@ -108,7 +139,7 @@ class ChemInteractionsMenu():
     def get_complexes(self, callback, btn=None):
         self.plugin.request_complexes([item.get_content().complex_index for item in self.ls_complexes.items], callback)
 
-    def populate_ls_interactions(self, complexes):
+    def display_complexes(self, complexes):
         # clear ui and state
 
         self.plugin.update_menu(self._menu)

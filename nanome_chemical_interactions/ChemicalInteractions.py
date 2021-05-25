@@ -11,6 +11,7 @@ from nanome.api.shapes import Line
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback
 from forms import ChemicalInteractionsForm
+from menus.forms import InteractionsForm
 from menus import ChemInteractionsMenu
 
 BASE_PATH = path.dirname(path.realpath(__file__))
@@ -48,9 +49,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
-        self.update_menu(self.menu._menu)
         complexes = await self.request_complex_list()
         self.menu.display_complexes(complexes)
+        self.update_menu(self.menu._menu)
 
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
@@ -79,8 +80,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_path_list.append(atom_path)
         return atom_path_list
 
-    def get_interactions(self, complexes):
-        # Starting with assumption of one comp.
+    @async_callback
+    async def get_interactions(self, complex_indices, interaction_data):
+        """Collect Form data, and render Interactions in nanome.
+
+        complexes: List of indices
+        interactions data: Data accepted by InteractionsForm.
+        """
+
+        # Starting with assumption of one compex.
+        complexes = await self.request_complexes(complex_indices)
         comp = next(iter(complexes))
 
         # Clean complex and return as TempFile
@@ -121,7 +130,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         archive_format = "zip"
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_file = f'{extract_dir}/input_file.contacts'
-        self.parse_and_upload(contacts_file, comp)
+
+        self.parse_and_upload(contacts_file, comp, interaction_data)
 
     @staticmethod
     def get_atom(complex, atom_path):
@@ -139,7 +149,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = next(iter([at for at in residue.atoms if at.name == atom_name]))
         return atom
 
-    def parse_and_upload(self, interactions_file, complex):
+    def parse_and_upload(self, interactions_file, complex, color_data):
         # Get atoms corresponding to selected ligand
         # Enumerate columns denoting each type of interaction
         interaction_data = []
@@ -165,6 +175,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             'polar': 15,
             'weak_polar': 16,
         }
+
+        form = InteractionsForm(data=color_data)
+        form.validate()
+
         valid_atom_paths = set()
         invalid_atom_paths = set()
         for i, row in enumerate(interaction_data):
@@ -194,7 +208,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if col == '1':
                     line = Line()
                     interaction_type = next(iter([key for key, val in interaction_type_index.items() if val == i]))
-                    color = self.interaction_types[interaction_type]
+                    form_data = form.data[interaction_type]
+                    if not form_data['visible']:
+                        continue
+                    color = form_data['color']
                     line.color = color
                     line.thickness = 0.1
                     line.dash_length = 0.25
@@ -206,5 +223,4 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         line.upload()
                     async_upload = asyncio.create_task(upload(line))
                     async_upload
-
         self.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")

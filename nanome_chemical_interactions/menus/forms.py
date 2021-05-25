@@ -1,8 +1,6 @@
 from os import path
 from nanome.util import Color
 from wtforms import BooleanField, Field, Form, FormField
-from wtforms_components import ColorField
-from colour import Color as ExternalColor
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 color_map = {
@@ -27,7 +25,9 @@ color_map = {
     "plum": (221, 160, 22)
 }
 
+
 class NanomeColorField(Field):
+
     def process(self, *args, **kwargs):
         super().process(*args, **kwargs)
         if self.data:
@@ -40,31 +40,30 @@ class InteractionSettings(Form):
     color = NanomeColorField()
 
 
-def default_values(color_name):
+def default_data(color_name):
     """Use color name from color_map above to set default colors."""
     color = Color(*color_map[color_name])
     color_rep = (color.r, color.g, color.b)
     return {
         'visible': True,
-        'color':  color_rep
+        'color': color_rep
     }
 
- 
+
 class InteractionsForm(Form):
     """Set colors and visibility for supported Interaction types."""
-    clash = FormField(InteractionSettings, default=default_values('white'))
-    covalent = FormField(InteractionSettings, default=default_values('red'))
-    vdw_clash = FormField(InteractionSettings, default=default_values('orange'))
-    vdw = FormField(InteractionSettings, default=default_values('yellow'))
-    proximal = FormField(InteractionSettings, default=default_values('green'))
-    hbond = FormField(InteractionSettings, default=default_values('blue'))
-    weak_hbond = FormField(InteractionSettings, default=default_values('indigo'))
-    xbond = FormField(InteractionSettings, default=default_values('violet'))
-    ionic = FormField(InteractionSettings, default=default_values('black'))
-    metal_complex = FormField(InteractionSettings, default=default_values('mediumspringgreen'))
-    aromatic = FormField(InteractionSettings, default=default_values('maroon'))
-    hydrophobic = FormField(InteractionSettings, default=default_values('darkcyan'))
-    carbonyl = FormField(InteractionSettings, default=default_values('slategray'))
-    polar = FormField(InteractionSettings, default=default_values('purple'))
-    weak_polar = FormField(InteractionSettings, default=default_values('brown'))
-
+    clash = FormField(InteractionSettings, default=default_data('white'))
+    covalent = FormField(InteractionSettings, default=default_data('red'))
+    vdw_clash = FormField(InteractionSettings, default=default_data('orange'))
+    vdw = FormField(InteractionSettings, default=default_data('yellow'))
+    proximal = FormField(InteractionSettings, default=default_data('green'))
+    hbond = FormField(InteractionSettings, default=default_data('blue'))
+    weak_hbond = FormField(InteractionSettings, default=default_data('indigo'))
+    xbond = FormField(InteractionSettings, default=default_data('violet'))
+    ionic = FormField(InteractionSettings, default=default_data('black'))
+    metal_complex = FormField(InteractionSettings, default=default_data('mediumspringgreen'))
+    aromatic = FormField(InteractionSettings, default=default_data('maroon'))
+    hydrophobic = FormField(InteractionSettings, default=default_data('darkcyan'))
+    carbonyl = FormField(InteractionSettings, default=default_data('slategray'))
+    polar = FormField(InteractionSettings, default=default_data('purple'))
+    weak_polar = FormField(InteractionSettings, default=default_data('brown'))
