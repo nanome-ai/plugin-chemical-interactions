@@ -69,7 +69,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complexes: List of indices
         interactions data: Data accepted by InteractionsForm.
         """
-        # Starting with assumption of one compex.
+        # Starting with assumption of one complex.
         complexes = await self.request_complexes(complex_indices)
         comp = next(iter(complexes))
 
@@ -96,7 +96,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # make the request with the data and file
         response = requests.post(self.interactions_url, data=data, files=files)
-        if not response.status_code == 200:
+        if response.status_code != 200:
             self.send_notification(NotificationTypes.error, 'Error =(')
             return
 
@@ -125,9 +125,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # for ch in hetchains:
         #     if ch.name.startswith('H'):
         #         ch.name = ch.name[1:]
-        chain = next(iter([chain for chain in complex.chains if chain.name == chain_name]))
-        residue = next(iter([rez for rez in chain.residues if str(rez.serial) == res_id]))
-        atom = next(iter([at for at in residue.atoms if at.name == atom_name]))
+        chain = next(chain for chain in complex.chains if chain.name == chain_name)
+        residue = next(rez for rez in chain.residues if str(rez.serial) == res_id)
+        atom = next(at for at in residue.atoms if at.name == atom_name)
         return atom
 
     def parse_and_upload(self, interactions_file, complex, color_data):

@@ -98,7 +98,7 @@ class ChemInteractionsMenu():
             ln_dropdown = list_item_ln.clone()
             dropdown = self.color_dropdown()
             ln_dropdown.set_content(dropdown)
-            ln_dropdown._forward_dist = 0.01
+            ln_dropdown.forward_dist = .001
             # Select default color in dropdown
             if field.default and field.default.get('color'):
                 default_rgb = field.default['color']
