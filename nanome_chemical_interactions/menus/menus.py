@@ -1,7 +1,6 @@
 import nanome
 import tempfile
 from utils.common import ligands
-from functools import partial
 from os import environ, path
 
 from nanome.api.structure import Complex
@@ -18,32 +17,19 @@ MENU_PATH = path.join(BASE_PATH, 'json', 'newMenu.json')
 class ChemInteractionsMenu():
 
     def __init__(self, plugin):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
-        self.interactions_url = environ.get('INTERACTIONS_URL')
         self.plugin = plugin
+        self.interactions_url = environ.get('INTERACTIONS_URL')
+
         self._menu = nanome.ui.Menu.io.from_json(MENU_PATH)
         self.ls_complexes = self._menu.root.find_node('Complex List').get_content()
         self.ls_ligands = self._menu.root.find_node('Ligands List').get_content()
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
-
-        self.btn_calculate.register_pressed_callback(self)
         self.btn_calculate.register_pressed_callback(self.submit_form)
         self.complex_indices = set()
 
-    def submit_form(self, btn):
-        selected_complexes = [
-            item.get_content().complex_index
-            for item in self.ls_complexes.items
-            if item.get_content().selected]
-
-        # ligand = next(iter([
-        #     item.get_content().ligand
-        #     for item in self.ls_ligands.items
-        #     if item.get_content().selected]))
-
-        # Collecting interaction data takes a little more work.
+    def collect_interaction_data(self):
+        """Collect Interaction data from various content widgets."""
         interaction_data = {}
         for row in self.ls_interactions.items:
             content = [ch.get_content() for ch in row.get_children()]
@@ -60,6 +46,19 @@ class ChemInteractionsMenu():
                 'visible': visible,
                 'color': color
             }
+        return interaction_data
+
+    def submit_form(self, btn):
+        selected_complexes = [
+            item.get_content().complex_index
+            for item in self.ls_complexes.items
+            if item.get_content().selected]
+
+        # ligand = next(iter([
+        #     item.get_content().ligand
+        #     for item in self.ls_ligands.items
+        #     if item.get_content().selected]))
+        interaction_data = self.collect_interaction_data()
         self.plugin.get_interactions(selected_complexes, interaction_data)
 
     def color_dropdown(self):
@@ -76,6 +75,7 @@ class ChemInteractionsMenu():
         return dropdown
 
     def populate_ls_interactions(self, ls_interactions):
+        """Populate the interactions table."""
         form = InteractionsForm()
         interactions = []
         ls_interactions.display_rows = 7
@@ -121,6 +121,11 @@ class ChemInteractionsMenu():
         btn_text = txt_selected if btn.selected else txt_unselected
         btn.text.value.set_all(btn_text)
         self.plugin.update_content(btn)
+        self.update_interaction_lines()
+
+    def update_interaction_lines(self):
+        interaction_data = self.collect_interaction_data()
+        self.plugin.update_interaction_lines(interaction_data)
 
     @property
     def index(self):
@@ -212,8 +217,9 @@ class ChemInteractionsMenu():
         self.index_to_complex[complex.index] = complex
 
         # populate ligand list
-        complex.io.to_pdb(self.pdb_file.name, PDBOPTIONS)
-        ligs = ligands(self.pdb_file)
+        pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
+        complex.io.to_pdb(pdb_file.name, PDBOPTIONS)
+        ligs = ligands(pdb_file)
         for lig in ligs:
             ln_ligand = nanome.ui.LayoutNode()
             btn_ligand = ln_ligand.add_new_button(lig.resname)

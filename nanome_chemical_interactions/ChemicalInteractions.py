@@ -186,26 +186,40 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # create interactions (lines)
             # Iterate through columns and draw relevant lines
-            self._interaction_lines = []
             for i, col in enumerate(row[2:], 2):
                 if col == '1':
-                    line = Line()
-                    interaction_type = next(iter([key for key, val in interaction_type_index.items() if val == i]))
+                    interaction_type = next(iter([key for key, val in interaction_type_index.items() if val == i]))             
                     form_data = form.data[interaction_type]
-                    if not form_data['visible']:
-                        continue
-                    color = form_data['color']
-                    line.color = color
-                    line.thickness = 0.1
-                    line.dash_length = 0.25
-                    line.dash_distance = 0.25
-                    line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
-                    line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
+                    line = self.draw_interaction_line(atom1, atom2, form_data)
                     self._interaction_lines.append(line)
-
+                    
                     async def upload(line):
                         line.upload()
                     async_upload = asyncio.create_task(upload(line))
                     async_upload
         # TODO: Send this notification after all async tasks are completed.
         self.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
+
+    def draw_interaction_line(self, atom1, atom2, form_data):
+        """Draw line connecting two atoms.
+        
+        :arg atom1: Atom
+        :arg atom2: Atom
+        :arg form_data: Dict {'color': (r,g,b), 'visibility': bool}
+        """
+        line = Line()
+        color = form_data['color']
+        if not form_data['visible']:
+            # a=0 means line becomes invisible
+            color.a = 0
+        line.color = color
+        line.thickness = 0.1
+        line.dash_length = 0.25
+        line.dash_distance = 0.25
+        line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
+        line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
+        return line
+
+    def update_interaction_lines(self, interaction_data):
+        for line in self._interaction_lines:
+            ...
