@@ -20,11 +20,12 @@ services:
     build:
       context: arpeggio-service
     ports:
-      - 8000:8000
+      - 5000:5000
     environment:
       FLASK_ENV: development
-    command: python app.py
+      FLASK_APP: wsgi.py
     stdin_open: true
     tty: true
     volumes:
       - "./arpeggio-service:/app"
+    command: gunicorn --preload -w 4 -b 127.0.0.1:5000 wsgi:app

@@ -60,6 +60,3 @@ def index():
     zipfile = shutil.make_archive('/tmp/{}'.format(input_filename), 'zip', temp_dir)
     shutil.rmtree(temp_dir)
     return send_file(zipfile)
-
-# TODO: Run Flask app gunicorn 
-app.run(host='0.0.0.0', port=8000)
