@@ -2,6 +2,7 @@ import os
 import nanome
 import ChemicalInteractions
 
+
 # TODO: Make sure -r flag works
 def main():
     title = 'Chemical Interactions'
