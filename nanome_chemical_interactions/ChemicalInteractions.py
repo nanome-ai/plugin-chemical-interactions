@@ -10,7 +10,6 @@ from nanome.api.structure import Complex
 from nanome.api.shapes import Line
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color
-from forms import ChemicalInteractionsForm
 from menus.forms import InteractionsForm
 from menus import ChemInteractionsMenu
 from utils import ligands
@@ -67,23 +66,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         cleaned_file = self.clean_complex(comp)
         complex_ligands = ligands(cleaned_file)
         clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
-
-        selection = f'RESNAME:{clean_residue.resname}'
+        
+        # create the request files
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
             cleaned_data = f.read()
-
-        # create the request files
         files = {'input_file.pdb': cleaned_data}
+
+        selection = f'RESNAME:{clean_residue.resname}'
         data = {
             'selection': selection
         }
-
-        form = ChemicalInteractionsForm(data=data)
-        form.validate()
-        if form.errors:
-            self.send_notification(nanome.util.enums.NotificationTypes.error, form.errors.items())
-            return
 
         # make the request with the data and file
         response = requests.post(self.interactions_url, data=data, files=files)
