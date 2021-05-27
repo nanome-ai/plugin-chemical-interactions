@@ -51,18 +51,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         with open(cleaned_file.name, 'wb') as f:
             f.write(response.content)
         return cleaned_file
- 
-    @staticmethod
-    def generate_atom_path_list(residue):
-        """Use biopython version of residue to create atom_paths."""
-        atom_path_list = []
-        chain_name = residue.parent.id
-        residue_number = residue.id[1]
-        for atom in residue.get_atoms():
-            atom_name = atom.fullname.strip()
-            atom_path = f'/{chain_name}/{residue_number}/{atom_name}'
-            atom_path_list.append(atom_path)
-        return atom_path_list
 
     @async_callback
     async def get_interactions(self, complex_indices, selected_residue, interaction_data):
