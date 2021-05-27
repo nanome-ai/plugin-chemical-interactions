@@ -9,7 +9,7 @@ import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Line
 from nanome.util.enums import NotificationTypes
-from nanome.util import async_callback
+from nanome.util import async_callback, Color
 from forms import ChemicalInteractionsForm
 from menus.forms import InteractionsForm
 from menus import ChemInteractionsMenu
@@ -198,11 +198,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         key for key, val in interaction_column_index.items() if val == i)
                     form_data = form.data[interaction_type]
                     line = self.draw_interaction_line(atom1, atom2, form_data)
+                    line.interaction_type = interaction_type
                     self._interaction_lines.append(line)
-
-                    async def upload(line):
-                        line.upload()
-                    asyncio.create_task(upload(line))
+                    asyncio.create_task(self.upload_line(line))
 
         print(valid_atom_paths)
         print(invalid_atom_paths)
@@ -229,6 +227,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
         return line
 
+    @staticmethod
+    async def upload_line(line):
+        line.upload()
+
     def update_interaction_lines(self, interaction_data):
         for line in self._interaction_lines:
+            line_type = line.interaction_type
+            form_data = interaction_data[line_type]
+            line.color = Color(*form_data['color'])
+            line.color.a = 0 if not form_data['visible'] else 255
+            asyncio.create_task(self.upload_line(line))
             ...
