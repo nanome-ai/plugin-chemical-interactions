@@ -52,7 +52,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
  
-    def generate_atom_path_list(self, residue):
+    @staticmethod
+    def generate_atom_path_list(residue):
         """Use biopython version of residue to create atom_paths."""
         atom_path_list = []
         chain_name = residue.parent.id
@@ -78,8 +79,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         cleaned_file = self.clean_complex(comp)
         complex_ligands = ligands(cleaned_file)
         clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
-        atom_paths = self.generate_atom_path_list(clean_residue)
 
+        selection = f'RESNAME:{clean_residue.resname}'
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
             cleaned_data = f.read()
@@ -87,7 +88,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # create the request files
         files = {'input_file.pdb': cleaned_data}
         data = {
-            'atom_paths': ','.join(atom_paths)
+            'selection': selection
         }
 
         form = ChemicalInteractionsForm(data=data)
@@ -189,7 +190,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             atom1, atom2 = atom_list
-            print('valid row!')
             # create interactions (lines)
             # Iterate through columns and draw relevant lines
             for i, col in enumerate(row[2:], 2):
@@ -238,4 +238,3 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             line.color = Color(*form_data['color'])
             line.color.a = 0 if not form_data['visible'] else 255
             asyncio.create_task(self.upload_line(line))
-            ...
