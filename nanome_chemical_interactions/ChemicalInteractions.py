@@ -51,7 +51,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         with open(cleaned_file.name, 'wb') as f:
             f.write(response.content)
         return cleaned_file
-
+ 
     def generate_atom_path_list(self, residue):
         """Use biopython version of residue to create atom_paths."""
         atom_path_list = []
@@ -124,22 +124,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         chain_name, res_id, atom_name = atom_path.split('/')
         nanome_residues = [
-            r for r in complex.residues
-            if all([
-                str(r._serial) == str(res_id),
-                r.chain.name == chain_name
-            ])
-        ]
-        nanome_residues = [
             r for r in complex.residues if all([
                 str(r._serial) == str(res_id),
-                r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}'] # Could this be done better?
+                r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']  # Could this be done better?
             ])
         ]
         if len(nanome_residues) != 1:
             raise Exception
         nanome_residue = nanome_residues[0]
-        atoms = [at for at in nanome_residue.atoms if at._name == atom_name]
+        atoms = [a for a in nanome_residue.atoms if a._name == atom_name]
         if len(atoms) != 1:
             raise Exception
         return atoms[0]
