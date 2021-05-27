@@ -53,11 +53,15 @@ class ChemInteractionsMenu():
             item.get_content().complex_index
             for item in self.ls_complexes.items
             if item.get_content().selected]
-
-        # ligand = next(
-        #     item.get_content().ligand
-        #     for item in self.ls_ligands.items
-        #     if item.get_content().selected)
+        selected_residue = getattr(self, 'residue', None)
+        error_msg = ''
+        if not selected_complexes:
+            error_msg = 'Please Select a Complex'
+        if selected_complexes and not selected_residue:
+            error_msg = 'Please Select a Ligand'
+        if error_msg:
+            self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
+            return
         interaction_data = self.collect_interaction_data()
         self.plugin.get_interactions(selected_complexes, self.residue, interaction_data)
 
