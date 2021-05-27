@@ -13,6 +13,7 @@ from nanome.util import async_callback
 from forms import ChemicalInteractionsForm
 from menus.forms import InteractionsForm
 from menus import ChemInteractionsMenu
+from utils import ligands
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -75,8 +76,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
-        # clean_residue = next(iter(ligands(cleaned_file)))
-        # atom_paths = self.generate_atom_path_list(clean_residue)
+        clean_residue = next(iter(ligands(cleaned_file)))
+        atom_paths = self.generate_atom_path_list(clean_residue)
 
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
@@ -85,7 +86,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # create the request files
         files = {'input_file.pdb': cleaned_data}
         data = {
-            # 'atom_paths': ','.join(atom_paths)
+            'atom_paths': ','.join(atom_paths)
         }
 
         form = ChemicalInteractionsForm(data=data)
@@ -116,18 +117,23 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @staticmethod
     def get_atom(complex, atom_path):
-        """Return atom corresponding to atom path"""
-        # hetchains = [
-        #     chain for chain in complex.chains
-        #     if any([a for a in chain.atoms if a.is_het])
-        # ]
-        chain_name, res_id, atom_name = atom_path.split('/')
-        # for ch in hetchains:
-        #     if ch.name.startswith('H'):
-        #         ch.name = ch.name[1:]
-        chain = next(chain for chain in complex.chains if chain.name == chain_name)
-        residue = next(rez for rez in chain.residues if str(rez.serial) == res_id)
-        atom = next(at for at in residue.atoms if at.name == atom_name)
+        """Return atom corresponding to atom path.
+        
+        complex: nanome.api.Complex object
+        residue: Bio.PDB.Residue.Residue object
+        atom_path: str (/C/20/O)
+        """
+        hetchains = [
+            chain for chain in complex.chains
+            if any([a for a in chain.atoms if a.is_het])
+        ]
+        
+        chain_name, res_id, atom_name = atom_path.split('/')        
+        nanome_residue = next(
+            r for r in complex.residues
+            if str(r._serial) == str(res_id)
+        )
+        atom = next(at for at in nanome_residue.atoms if at._name == atom_name)
         return atom
 
     def parse_and_upload(self, interactions_file, complex, color_data):
@@ -169,22 +175,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Use atom paths to get matching atoms on Nanome Structure
             a1 = row[0]
             a2 = row[1]
-            try:
-                atom1 = self.get_atom(complex, a1)
-            except Exception:
-                invalid_atom_paths.add(a1)
-                continue
-            else:
-                valid_atom_paths.add(a1)
-
-            try:
-                atom2 = self.get_atom(complex, a2)
-            except Exception:
-                invalid_atom_paths.add(a2)
-                continue
-            else:
-                valid_atom_paths.add(a2)
-
+            atom_list = []
+            for a in [a1, a2]:
+                try:
+                    atom = self.get_atom(complex, a)
+                    atom_list.append(atom)
+                except Exception:
+                    invalid_atom_paths.add(a)
+                    continue
+                else:
+                    valid_atom_paths.add(a)
+            atom1, atom2 = atom_list
+            print('valid row!')
             # create interactions (lines)
             # Iterate through columns and draw relevant lines
             for i, col in enumerate(row[2:], 2):
@@ -199,7 +201,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         line.upload()
                     asyncio.create_task(upload(line))
 
-        # TODO: Send this notification after all async tasks are completed.
+        print(valid_atom_paths)
+        print(invalid_atom_paths)
+
         async def send_notification(plugin):
             plugin.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
         asyncio.create_task(send_notification(self))
