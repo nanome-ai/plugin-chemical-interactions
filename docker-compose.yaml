@@ -7,8 +7,9 @@ services:
     build:
       context: nanome_chemical_interactions
     environment:
-      NTS_HOST: ${NTS_HOST:-nts-dev.nanome.ai}
-      NTS_PORT: ${NTS_PORT:-9999}
+      NTS_HOST: ${NTS_HOST:-}
+      NTS_PORT: ${NTS_PORT:-}
+      ARGS: ${ARGS:-}
       INTERACTIONS_URL: http://arpeggio:8000
     stdin_open: true
     tty: true
@@ -20,7 +21,7 @@ services:
     build:
       context: arpeggio-service
     ports:
-      - 5000:5000
+      - 8000:8000
     environment:
       FLASK_ENV: development
       FLASK_APP: wsgi.py
