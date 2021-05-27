@@ -76,15 +76,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
-
-        # cleaned_file = tempfile.NamedTemporaryFile()
-        # comp.io.to_pdb(cleaned_file.name, PDBOPTIONS)
-
-        # clean_complex = Complex.io.from_pdb(path=cleaned_file.name)
-        # clean_complex.index = comp.index
-        # clean_complex._rendering = comp._rendering
-        # self.update_structures_deep([clean_complex])
-
         complex_ligands = ligands(cleaned_file)
         clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
         atom_paths = self.generate_atom_path_list(clean_residue)
@@ -122,7 +113,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         archive_format = "zip"
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_file = f'{extract_dir}/input_file.contacts'
-
         self.parse_and_upload(contacts_file, comp, interaction_data)
 
     @staticmethod
@@ -133,14 +123,28 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom_path: str (/C/20/O)
         """
         chain_name, res_id, atom_name = atom_path.split('/')
-        nanome_residue = next(
+        nanome_residues = [
             r for r in complex.residues
-            if str(r._serial) == str(res_id)
-        )
-        atom = next(at for at in nanome_residue.atoms if at._name == atom_name)
-        return atom
+            if all([
+                str(r._serial) == str(res_id),
+                r.chain.name == chain_name
+            ])
+        ]
+        nanome_residues = [
+            r for r in complex.residues if all([
+                str(r._serial) == str(res_id),
+                r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}'] # Could this be done better?
+            ])
+        ]
+        if len(nanome_residues) != 1:
+            raise Exception
+        nanome_residue = nanome_residues[0]
+        atoms = [at for at in nanome_residue.atoms if at._name == atom_name]
+        if len(atoms) != 1:
+            raise Exception
+        return atoms[0]
 
-    def parse_and_upload(self, interactions_file, complex, color_data):
+    def parse_and_upload(self, interactions_file, complex, interaction_form):
         # Get atoms corresponding to selected ligand
         # Enumerate columns denoting each type of interaction
         interaction_data = []
@@ -167,7 +171,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             'polar': 15,
             'weak_polar': 16,
         }
-        form = InteractionsForm(data=color_data)
+        form = InteractionsForm(data=interaction_form)
         form.validate()
         if form.errors:
             raise Exception
@@ -177,18 +181,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for i, row in enumerate(interaction_data):
             print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
-            a1 = row[0]
-            a2 = row[1]
+            atom_paths = row[:2]
             atom_list = []
-            for a in [a1, a2]:
+            for a in atom_paths:
                 try:
                     atom = self.get_atom(complex, a)
                     atom_list.append(atom)
                 except Exception:
                     invalid_atom_paths.add(a)
-                    continue
                 else:
                     valid_atom_paths.add(a)
+
+            if len(atom_list) != 2:
+                continue
 
             atom1, atom2 = atom_list
             print('valid row!')
