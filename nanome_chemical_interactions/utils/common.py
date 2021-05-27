@@ -74,7 +74,6 @@ def ligands(pdb_tempfile):
                     distance = norm(atom.coord - nearby_atom.coord)
 
                     if distance <= sum_cov_radii:
-
                         # print atom, nearby_atom, sum_cov_radii, distance
                         residue_is_cov = True
                         break
@@ -85,5 +84,4 @@ def ligands(pdb_tempfile):
         if not residue_is_cov:
             non_cov_heteroresidues.append(residue)
 
-    # LIMIT TO > 7 HEAVY ATOM LIGANDS
-    return [r for r in non_cov_heteroresidues if len(r.child_list) > 7]
+    return non_cov_heteroresidues  # [r for r in non_cov_heteroresidues if len(r.child_list) > 7]
