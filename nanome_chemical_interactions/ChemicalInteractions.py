@@ -53,7 +53,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return cleaned_file
 
     def generate_atom_path_list(self, residue):
-        # Use biopython version of residue to create atom_paths
+        """Use biopython version of residue to create atom_paths."""
         atom_path_list = []
         chain_name = residue.parent.id
         residue_number = residue.id[1]
@@ -64,7 +64,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return atom_path_list
 
     @async_callback
-    async def get_interactions(self, complex_indices, interaction_data):
+    async def get_interactions(self, complex_indices, selected_residue, interaction_data):
         """Collect Form data, and render Interactions in nanome.
 
         complexes: List of indices
@@ -76,7 +76,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
-        clean_residue = next(iter(ligands(cleaned_file)))
+
+        # cleaned_file = tempfile.NamedTemporaryFile()
+        # comp.io.to_pdb(cleaned_file.name, PDBOPTIONS)
+
+        # clean_complex = Complex.io.from_pdb(path=cleaned_file.name)
+        # clean_complex.index = comp.index
+        # clean_complex._rendering = comp._rendering
+        # self.update_structures_deep([clean_complex])
+
+        complex_ligands = ligands(cleaned_file)
+        clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
         atom_paths = self.generate_atom_path_list(clean_residue)
 
         cleaned_data = ''
@@ -118,17 +128,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @staticmethod
     def get_atom(complex, atom_path):
         """Return atom corresponding to atom path.
-        
+
         complex: nanome.api.Complex object
-        residue: Bio.PDB.Residue.Residue object
         atom_path: str (/C/20/O)
         """
-        hetchains = [
-            chain for chain in complex.chains
-            if any([a for a in chain.atoms if a.is_het])
-        ]
-        
-        chain_name, res_id, atom_name = atom_path.split('/')        
+        chain_name, res_id, atom_name = atom_path.split('/')
         nanome_residue = next(
             r for r in complex.residues
             if str(r._serial) == str(res_id)
@@ -146,7 +150,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 interaction_data.append(row)
 
         # Represents the order of the interaction columns in the .contacts file
-
         interaction_column_index = {
             'clash': 2,
             'covalent': 3,
@@ -164,9 +167,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             'polar': 15,
             'weak_polar': 16,
         }
-
         form = InteractionsForm(data=color_data)
         form.validate()
+        if form.errors:
+            raise Exception
 
         valid_atom_paths = set()
         invalid_atom_paths = set()
@@ -185,6 +189,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     continue
                 else:
                     valid_atom_paths.add(a)
+
             atom1, atom2 = atom_list
             print('valid row!')
             # create interactions (lines)

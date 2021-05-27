@@ -59,7 +59,7 @@ class ChemInteractionsMenu():
         #     for item in self.ls_ligands.items
         #     if item.get_content().selected)
         interaction_data = self.collect_interaction_data()
-        self.plugin.get_interactions(selected_complexes, interaction_data)
+        self.plugin.get_interactions(selected_complexes, self.residue, interaction_data)
 
     def color_dropdown(self):
         dropdown_items = []
