@@ -12,7 +12,7 @@ from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color
 from menus.forms import InteractionsForm
 from menus import ChemInteractionsMenu
-from utils import ligands
+from utils import extract_ligands
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -64,7 +64,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
-        complex_ligands = ligands(cleaned_file)
+        complex_ligands = extract_ligands(cleaned_file)
         clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
 
         # create the request files

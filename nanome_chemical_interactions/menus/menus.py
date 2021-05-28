@@ -1,6 +1,6 @@
 import nanome
 import tempfile
-from utils.common import ligands
+from utils import extract_ligands
 from os import environ, path
 
 from nanome.api.structure import Complex
@@ -232,7 +232,7 @@ class ChemInteractionsMenu():
         # populate ligand list
         pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
         complex.io.to_pdb(pdb_file.name, PDBOPTIONS)
-        ligs = ligands(pdb_file)
+        ligs = extract_ligands(pdb_file)
         for lig in ligs:
             ln_ligand = nanome.ui.LayoutNode()
             btn_ligand = ln_ligand.add_new_button(lig.resname)
