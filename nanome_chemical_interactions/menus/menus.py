@@ -1,6 +1,6 @@
 import nanome
 import tempfile
-from utils.common import ligands
+from utils import extract_ligands
 from os import environ, path
 
 from nanome.api.structure import Complex
@@ -38,7 +38,7 @@ class ChemInteractionsMenu():
             lb_name = next(c for c in content if isinstance(c, Label))
             ddi_color = next(item for item in dd_color.items if item.selected)
 
-            name = lb_name.text_value
+            name = lb_name.field_name
             visible = True if btn_visibility.selected else False
             color = ddi_color.rgb
 
@@ -92,12 +92,16 @@ class ChemInteractionsMenu():
             ln_btn = list_item_ln.clone()
             ln_btn.add_new_button("")
             btn = ln_btn.get_content()
-            btn.selected = True
-            btn.text.value.set_all('visible')
+
+            is_visible = field.default.get('visible', True)
+            btn.selected = is_visible
+            btn.text.value.set_all('visible' if is_visible else 'hidden')
             btn.register_pressed_callback(self.toggle_visibility)
 
             ln_label = list_item_ln.clone()
-            ln_label.add_new_label(name)
+
+            ln_label.add_new_label(field.label.text)
+            ln_label.get_content().field_name = name
 
             ln_dropdown = list_item_ln.clone()
             dropdown = self.color_dropdown()
@@ -122,7 +126,6 @@ class ChemInteractionsMenu():
 
     def change_interaction_color(self, dropdown, item):
         self.update_interaction_lines()
-
 
     def toggle_visibility(self, btn):
         btn.selected = not btn.selected
@@ -229,7 +232,7 @@ class ChemInteractionsMenu():
         # populate ligand list
         pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
         complex.io.to_pdb(pdb_file.name, PDBOPTIONS)
-        ligs = ligands(pdb_file)
+        ligs = extract_ligands(pdb_file)
         for lig in ligs:
             ln_ligand = nanome.ui.LayoutNode()
             btn_ligand = ln_ligand.add_new_button(lig.resname)

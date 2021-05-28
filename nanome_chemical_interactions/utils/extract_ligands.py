@@ -1,4 +1,7 @@
 # Thank you harryjubb for this beautiful tool
+# https://github.com/harryjubb/pdbtools/blob/3532f0a3160f2fdd8e5e3a48929d9331717bf644/extract_ligands.py
+
+
 import os
 
 from Bio.PDB import PDBParser
@@ -26,7 +29,7 @@ MAX_COV_RADIUS = max(COVALENT_RADII.values())
 MAX_COV_BOND = MAX_COV_RADIUS * 2
 
 
-def ligands(pdb_tempfile):
+def extract_ligands(pdb_tempfile):
     # LOAD THE PDB
     pdb_parser = PDBParser()
     id = os.path.split(os.path.splitext(pdb_tempfile.name)[0])[1]
@@ -84,4 +87,5 @@ def ligands(pdb_tempfile):
         if not residue_is_cov:
             non_cov_heteroresidues.append(residue)
 
-    return non_cov_heteroresidues  # [r for r in non_cov_heteroresidues if len(r.child_list) > 7]
+    # LIMIT TO > 7 HEAVY ATOM LIGANDS
+    return [r for r in non_cov_heteroresidues if len(r.child_list) > 7]

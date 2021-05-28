@@ -29,11 +29,5 @@
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env.local",
         }
-    ],
-    // "compounds": [
-    //     {
-    //       "name": "ChemicalInteractions",
-    //       "configurations": ["Plugin", "ArpeggioServices"],
-    //     }
-    //   ]
+    ]
 }
