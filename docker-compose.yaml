@@ -1,0 +1,31 @@
+# Optimized for debugging.
+
+version: "3.9"
+
+services:
+  plugin:
+    build:
+      context: nanome_chemical_interactions
+    environment:
+      NTS_HOST: ${NTS_HOST:-}
+      NTS_PORT: ${NTS_PORT:-}
+      ARGS: ${ARGS:-}
+      INTERACTIONS_URL: http://arpeggio:8000
+    stdin_open: true
+    tty: true
+    volumes:
+      - "./nanome_chemical_interactions:/app"
+    depends_on:
+      - arpeggio
+  arpeggio:
+    build:
+      context: arpeggio-service
+    ports:
+      - 8000:8000
+    environment:
+      FLASK_ENV: development
+      FLASK_APP: wsgi.py
+    stdin_open: true
+    tty: true
+    volumes:
+      - "./arpeggio-service:/app"

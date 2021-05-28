@@ -1,8 +1,9 @@
 __pycache__
-/.vscode
 /build
 /dist
-/docker/.cachebust
+*.cachebust
 *.egg-info
 *.log
-/server/node_modules
+*.env*
+*.pyc
+tmp

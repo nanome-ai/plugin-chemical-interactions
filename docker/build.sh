@@ -13,4 +13,4 @@ if [ ! -f ".cachebust" ] || (($cachebust)); then
 fi
 
 cachebust=`cat .cachebust`
-docker build -f Dockerfile --build-arg CACHEBUST=$cachebust -t nanome-chemical-interactions:latest ..
+docker-compose build --build-arg CACHEBUST=$cachebust

@@ -1,212 +1,221 @@
-from functools import partial
-import nanome
-from nanome.api.shapes import Line, Anchor
-from nanome.util import Logs
-from nanome.util.enums import NotificationTypes
-from os import path
-import re
+from os import environ, path
+import csv
 import requests
 import tempfile
+import shutil
+import asyncio
 
-from .utils.common import ligands
+import nanome
+from nanome.api.structure import Complex
+from nanome.api.shapes import Line
+from nanome.util.enums import NotificationTypes
+from nanome.util import async_callback, Color
+from menus.forms import InteractionsForm
+from menus import ChemInteractionsMenu
+from utils import ligands
 
 BASE_PATH = path.dirname(path.realpath(__file__))
-MENU_PATH = path.join(BASE_PATH, 'menus', 'json', 'menu.json')
-
-PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
+PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
-IMAGE = 'dockerfile'
-FLAGS = r'-v "{{files}}":/run -u `id -u`:`id -g`'
 
-f = open(path.join(path.dirname(__file__), 'Dockerfile'), 'r')
-requests.post('http://localhost:80/init', data={'dockerfile': f.read()})
-f.close()
+class ChemicalInteractions(nanome.AsyncPluginInstance):
 
-class ChemicalInteractions(nanome.PluginInstance):
     def start(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
-        
         self.index_to_complex = {}
-        self.complex_indices = set()
         self.residue = ''
-        self.command_template = 'python arpeggio.py /run/{{complex}}.pdb -s RESNAME:{{residue}} -v'
+        self.interactions_url = environ.get('INTERACTIONS_URL')
+        self.menu = ChemInteractionsMenu(self)
+        self._interaction_lines = []
 
-        self.interaction_types = {
-        'clash': nanome.util.Color.Red(),
-        'covalent': nanome.util.Color.Black(),
-        'vdw_clash': nanome.util.Color.from_int(127 << 24 | 0 << 16 | 0 << 8 | 255),
-        'vdw': nanome.util.Color.from_int(0 << 24 | 200 << 16 | 20 << 8 | 255),
-        'proximal': nanome.util.Color.from_int(0 << 24 | 139 << 16 | 139 << 8 | 255),
-        'hbond': nanome.util.Color.Yellow(),
-        'weak_hbond': nanome.util.Color.from_int(255 << 24 | 255 << 16 | 224 << 8 | 255),
-        'xbond': nanome.util.Color.from_int(151 << 24 | 251 << 16 | 152 << 8 | 255),
-        'ionic': nanome.util.Color.from_int(12 << 24 | 0 << 16 | 255 << 8 | 255),
-        'metal_complex': nanome.util.Color.from_int(30 << 24 | 30 << 16 | 30 << 8 | 255),
-        'aromatic': nanome.util.Color.from_int(63 << 24 | 63 << 16 | 63 << 8 | 255),
-        'hydrophobic': nanome.util.Color.from_int(0 << 24 | 0 << 16 | 255 << 8 | 200),
-        'carbonyl': nanome.util.Color.from_int(12 << 24 | 12 << 16 | 12 << 8 | 255),
-        'polar': nanome.util.Color.Grey(),
-        'weak_polar': nanome.util.Color.from_int(0 << 24 | 0 << 16 | 127 << 8 | 255),
+    @async_callback
+    async def on_run(self):
+        self.menu.enabled = True
+        complexes = await self.request_complex_list()
+        self.menu.display_complexes(complexes)
+        self.update_menu(self.menu._menu)
+
+    def clean_complex(self, complex):
+        """Clean complex to prep for arpeggio."""
+        temp_file = tempfile.NamedTemporaryFile()
+        complex.io.to_pdb(temp_file.name, PDBOPTIONS)
+        with open(temp_file.name, 'r') as pdb_stream:
+            pdb_contents = pdb_stream.read()
+
+        files = {'input_file.pdb': pdb_contents}
+        clean_url = f'{self.interactions_url}/clean'
+        response = requests.post(clean_url, files=files)
+
+        cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
+        with open(cleaned_file.name, 'wb') as f:
+            f.write(response.content)
+        return cleaned_file
+
+    @async_callback
+    async def get_interactions(self, complex_indices, selected_residue, interaction_data):
+        """Collect Form data, and render Interactions in nanome.
+
+        complexes: List of indices
+        interactions data: Data accepted by InteractionsForm.
+        """
+        # Starting with assumption of one complex.
+        complexes = await self.request_complexes(complex_indices)
+        comp = complexes[0]
+
+        # Clean complex and return as TempFile
+        cleaned_file = self.clean_complex(comp)
+        complex_ligands = ligands(cleaned_file)
+        clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
+        
+        # create the request files
+        cleaned_data = ''
+        with open(cleaned_file.name, 'r') as f:
+            cleaned_data = f.read()
+        files = {'input_file.pdb': cleaned_data}
+
+        selection = f'RESNAME:{clean_residue.resname}'
+        data = {
+            'selection': selection
         }
 
-        self._menu = nanome.ui.Menu.io.from_json(MENU_PATH)
-        self.menu = self._menu
-        self.ls_complexes = self._menu.root.find_node('Complex List').get_content()
-        self.ls_ligands = self._menu.root.find_node('Ligands List').get_content()
-        self.btn_calculate = self._menu.root.find_node('Button').get_content()
-        self.btn_calculate.register_pressed_callback(partial(self.get_complexes, self.get_interactions))
-
-    def on_run(self):
-        self.menu.enabled = True
-        self.update_menu(self.menu)
-        self.request_complex_list(self.display_complexes)
-
-    def toggle_complex(self, btn_complex):
-        # clear ligand list
-        self.ls_ligands.items = []
-
-        # toggle the complex
-        btn_complex.selected = not btn_complex.selected
-
-        # deselect everything else
-        for item in (set(self.ls_complexes.items) - {btn_complex.ln}):
-            item.get_content().selected = False
-
-        # modify state
-        if btn_complex.selected:
-            self.complex_indices.add(btn_complex.complex_index)
-            self.request_complexes([btn_complex.complex_index], self.display_ligands)
-        else:
-            self.complex_indices.discard(btn_complex.complex_index)
-
-        # update ui
-        self.update_content(self.ls_complexes)
-        self.update_content(self.ls_ligands)
-
-    def toggle_ligand(self, btn_ligand):
-        # toggle the button
-        btn_ligand.selected = not btn_ligand.selected
-
-        # deselect everything else
-        for ln in set(self.ls_ligands.items) - {btn_ligand.ln}:
-            ln.get_content().selected = False
-
-        # modify state
-        if btn_ligand.selected:
-            self.residue = btn_ligand.name
-        else:
-            self.residue = ''
-
-        # update ui
-        self.update_content(self.ls_ligands)
-
-    def display_complexes(self, complexes):
-        # clear ui and state
-        self.ls_complexes.items = []
-        self.ls_ligands.items = []
-        self.index_to_complex = {}
-
-        # populate ui and state
-        for complex in complexes:
-            self.index_to_complex[complex.index] = complex
-            ln_complex = nanome.ui.LayoutNode()
-            btn_complex = ln_complex.add_new_button(complex.name)
-            btn_complex.complex_index = complex.index
-            btn_complex.ln = ln_complex
-            btn_complex.register_pressed_callback(self.toggle_complex)
-            self.ls_complexes.items.append(ln_complex)
-        
-        # update ui
-        self.update_content(self.ls_complexes)
-
-    def display_ligands(self, complex):
-        complex = complex[0]
-
-        # clear ligands list
-        self.ls_ligands.items = []
-        
-        # update the complex map for the actual request
-        self.index_to_complex[complex.index] = complex
-
-        # populate ligand list
-        complex.io.to_pdb(self.pdb_file.name, PDBOPTIONS)
-        ligs = ligands(self.pdb_file)
-        for lig in ligs:
-            ln_ligand = nanome.ui.LayoutNode()
-            btn_ligand = ln_ligand.add_new_button(lig.resname)
-            btn_ligand.name = lig.resname
-            btn_ligand.ln = ln_ligand
-            btn_ligand.register_pressed_callback(self.toggle_ligand)
-            self.ls_ligands.items.append(ln_ligand)
-        
-        # update ui
-        self.update_content(self.ls_ligands)
-    
-    def get_complexes(self, callback, btn=None):
-        self.request_complexes([item.get_content().complex_index for item in self.ls_complexes.items], callback)
-
-    def get_interactions(self, complexes):
-        selected_complex_indices = [c.get_content().complex_index for c in self.ls_complexes.items if c.get_content().selected]
-
-        # validation
-        if len(selected_complex_indices):
-            complex = self.index_to_complex.get(selected_complex_indices[0])
-        else:
-            self.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a complex")
-            return
-        
-        if not self.residue:
-            self.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a ligand")
-            return
-        
-        # create the request data
-        command = self.command_template.replace('{{complex}}', complex.name).replace('{{residue}}', self.residue)
-        data = {'flags': FLAGS, 'image': IMAGE, 'command': command}
-
-        # create the request files
-        pdb_path = path.join(self.temp_dir.name, complex.name)
-        complex.io.to_pdb(pdb_path, PDBOPTIONS)
-        with open(pdb_path, 'r') as pdb_stream:
-            pdb_contents = pdb_stream.read()
-        files = {f'{complex.name}.pdb': pdb_contents}
-
         # make the request with the data and file
-        res = requests.post('http://localhost:80/', data=data, files=files)
-        if not res.json()['success']:
-            self.send_notification(NotificationTypes.error, res.json()['error']['message'])
+        response = requests.post(self.interactions_url, data=data, files=files)
+        if response.status_code != 200:
+            self.send_notification(NotificationTypes.error, 'Error =(')
             return
 
-        interaction_data = ''.join([str(chr(c)) for c in res.json()['data']['files'][f'{complex.name}.contacts']['data']])
-        self.parse_and_upload(interaction_data, complex)
-    
-    def parse_and_upload(self, interaction_data, complex):
-        residues = {residue.serial: residue for residue in complex.residues}
-        interactions = {}
-        # cplx/res/atm/intrxions:c1    r1     a1        c2    r2     a2        i
-        for m in re.finditer(r'(\w+)/(\d+)/([\w\d]+)\t(\w+)/(\d+)/([\w\d]+)([\t01]+)', interaction_data):
-            # add interaction terms to atoms by residue
-            _, r1, a1, _, r2, a2, i = m.groups()
-            terms = list(filter(lambda e: e is not '', i.split('\t')))
-            atom1 = [atom for atom in residues[int(r1)].atoms if atom.name == a1].pop()
-            atom2 = [atom for atom in residues[int(r2)].atoms if atom.name == a2].pop()
+        self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction data retrieved!")
+
+        zipfile = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+        with open(zipfile.name, 'wb') as f:
+            f.write(response.content)
+
+        # Unpack the archive file
+        extract_dir = tempfile.mkdtemp()
+        archive_format = "zip"
+        shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
+        contacts_file = f'{extract_dir}/input_file.contacts'
+        self.parse_and_upload(contacts_file, comp, interaction_data)
+
+    @staticmethod
+    def get_atom(complex, atom_path):
+        """Return atom corresponding to atom path.
+
+        complex: nanome.api.Complex object
+        atom_path: str (/C/20/O)
+        """
+        chain_name, res_id, atom_name = atom_path.split('/')
+        nanome_residues = [
+            r for r in complex.residues if all([
+                str(r._serial) == str(res_id),
+                r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']  # Could this be done better?
+            ])
+        ]
+        if len(nanome_residues) != 1:
+            raise Exception
+        nanome_residue = nanome_residues[0]
+        atoms = [a for a in nanome_residue.atoms if a._name == atom_name]
+        if len(atoms) != 1:
+            raise Exception
+        return atoms[0]
+
+    def parse_and_upload(self, interactions_file, complex, interaction_form):
+        # Get atoms corresponding to selected ligand
+        # Enumerate columns denoting each type of interaction
+        interaction_data = []
+        with open(interactions_file, 'r') as f:
+            reader = csv.reader(f, delimiter="\t")
+            for row in reader:
+                interaction_data.append(row)
+
+        # Represents the order of the interaction columns in the .contacts file
+        interaction_column_index = {
+            'clash': 2,
+            'covalent': 3,
+            'vdw_clash': 4,
+            'vdw': 5,
+            'proximal': 6,
+            'hbond': 7,
+            'weak_hbond': 8,
+            'xbond': 9,
+            'ionic': 10,
+            'metal_complex': 11,
+            'aromatic': 12,
+            'hydrophobic': 13,
+            'carbonyl': 14,
+            'polar': 15,
+            'weak_polar': 16,
+        }
+        form = InteractionsForm(data=interaction_form)
+        form.validate()
+        if form.errors:
+            raise Exception
+
+        valid_atom_paths = set()
+        invalid_atom_paths = set()
+        for i, row in enumerate(interaction_data):
+            print(f"row {i}")
+            # Use atom paths to get matching atoms on Nanome Structure
+            atom_paths = row[:2]
+            atom_list = []
+            for a in atom_paths:
+                try:
+                    atom = self.get_atom(complex, a)
+                    atom_list.append(atom)
+                except Exception:
+                    invalid_atom_paths.add(a)
+                else:
+                    valid_atom_paths.add(a)
+
+            if len(atom_list) != 2:
+                continue
+
+            atom1, atom2 = atom_list
             # create interactions (lines)
-            line = Line()
-            colors = [k for i,k in enumerate(self.interaction_types.keys()) if terms[i] == '1']
-            line.color = self.interaction_types[colors[0]]
-            line.thickness = 0.1
-            line.dash_length = 0.25
-            line.dash_distance = 0.25
-            line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
-            line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
-            line.upload()
-        Logs.debug(interactions)
+            # Iterate through columns and draw relevant lines
+            for i, col in enumerate(row[2:], 2):
+                if col == '1':
+                    interaction_type = next(
+                        key for key, val in interaction_column_index.items() if val == i)
+                    form_data = form.data[interaction_type]
+                    line = self.draw_interaction_line(atom1, atom2, form_data)
+                    line.interaction_type = interaction_type
+                    self._interaction_lines.append(line)
+                    asyncio.create_task(self.upload_line(line))
 
-def main():
-    plugin = nanome.Plugin('Chemical Interactions', 'A plugin to display various types of interatomic contacts between small- and macromolecules', 'other', False)
-    plugin.set_plugin_class(ChemicalInteractions)
-    plugin.run()
+        print(valid_atom_paths)
+        print(invalid_atom_paths)
 
-if __name__ == '__main__':
-    main()
+        async def send_notification(plugin):
+            plugin.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
+        asyncio.create_task(send_notification(self))
+
+    def draw_interaction_line(self, atom1, atom2, form_data):
+        """Draw line connecting two atoms.
+
+        :arg atom1: Atom
+        :arg atom2: Atom
+        :arg form_data: Dict {'color': (r,g,b), 'visible': bool}
+        """
+        line = Line()
+        color = form_data['color']
+        color.a = 0 if not form_data['visible'] else 255
+        line.color = color
+        line.thickness = 0.1
+        line.dash_length = 0.25
+        line.dash_distance = 0.25
+        line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
+        line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
+        return line
+
+    @staticmethod
+    async def upload_line(line):
+        line.upload()
+
+    def update_interaction_lines(self, interaction_data):
+        for line in self._interaction_lines:
+            line_type = line.interaction_type
+            form_data = interaction_data[line_type]
+            line.color = Color(*form_data['color'])
+            line.color.a = 0 if not form_data['visible'] else 255
+            asyncio.create_task(self.upload_line(line))

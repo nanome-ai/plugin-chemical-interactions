@@ -1,12 +1,26 @@
 #!/bin/bash
 
-if [ -n "$(docker ps -aqf name=nanome-chemical-interactions)" ]; then
-    echo "removing exited container"
-    docker rm -f nanome-chemical-interactions
-fi
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+cd "$parent_path"
 
-docker run -d \
---name nanome-chemical-interactions \
---restart unless-stopped \
--e ARGS="$*" \
-nanome-chemical-interactions
+ENV_FILE='../.env'
+
+NTS_HOST=''
+NTS_PORT=''
+while getopts 'a:p:vr' flag; do
+  case "${flag}" in
+    a) NTS_HOST="${OPTARG}" ;;
+    p) NTS_PORT="${OPTARG}" ;;
+  esac
+done
+ARGS="$*"
+
+# Create on the fly .env file to pass args into plugin container
+if [ -n "$ARGS" ];  then
+    tmpfile=$(mktemp)
+    echo "Generating .env"
+    echo 'ARGS=${ARGS}' > $tmpfile
+    ENV_FILE=$tmpfile
+fi 
+
+docker-compose --env-file $ENV_FILE up

@@ -1,3 +1,13 @@
-FROM harryjubb/arpeggio
+FROM nanome/plugin-env
 
-RUN git clone https://github.com/harryjubb/pdbtools.git
+ARG  work_dir=/app
+WORKDIR $work_dir
+
+ENV ARGS=''
+ARG CACHEBUST
+
+COPY . $work_dir
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt
+
+CMD python run.py {ARGS}
