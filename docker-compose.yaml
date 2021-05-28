@@ -11,6 +11,7 @@ services:
       NTS_PORT: ${NTS_PORT:-}
       ARGS: ${ARGS:-}
       INTERACTIONS_URL: http://arpeggio:8000
+    command: python run.py ${ARGS}
     stdin_open: true
     tty: true
     volumes:
