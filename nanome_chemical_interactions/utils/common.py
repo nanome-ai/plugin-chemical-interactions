@@ -1,4 +1,6 @@
 # Thank you harryjubb for this beautiful tool
+# https://github.com/harryjubb/pdbtools/blob/3532f0a3160f2fdd8e5e3a48929d9331717bf644/extract_ligands.py
+
 import os
 
 from Bio.PDB import PDBParser
