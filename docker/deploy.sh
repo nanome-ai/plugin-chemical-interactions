@@ -3,7 +3,7 @@
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
-ENV_FILE='../.env'
+ENV_FILE='../.env.dev'
 
 NTS_HOST=''
 NTS_PORT=''
