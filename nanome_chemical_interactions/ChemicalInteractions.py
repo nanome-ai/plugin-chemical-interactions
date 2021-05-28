@@ -66,7 +66,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         cleaned_file = self.clean_complex(comp)
         complex_ligands = ligands(cleaned_file)
         clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
-        
+
         # create the request files
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
