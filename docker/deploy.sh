@@ -4,7 +4,7 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
 # default env file
-ENV_FILE='../.env.dev' 
+ENV_FILE='../.env' 
 
 # Create on the fly .env file to pass args into plugin container
 ARGS="$*"
