@@ -35,6 +35,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.menu.display_complexes(complexes)
         self.update_menu(self.menu._menu)
 
+    def on_complex_list_received(self, complex_list):
+        self.menu.display_complexes(complex_list)
+
+    def on_complex_list_updated(self, complex_list):
+        self.menu.display_complexes(complex_list)
+
+    def on_complex_added(self):
+        self.request_complex_list(self.on_complex_list_received)
+
+    def on_complex_removed(self):
+        self.request_complex_list(self.on_complex_list_received)
+
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
         temp_file = tempfile.NamedTemporaryFile()
