@@ -32,6 +32,8 @@ class ChemInteractionsMenu():
         """Collect Interaction data from various content widgets."""
         interaction_data = {}
         for row in self.ls_interactions.items:
+            line_data = row.line_data
+
             content = [ch.get_content() for ch in row.get_children()]
             btn_visibility = next(c for c in content if isinstance(c, Button))
             dd_color = next(c for c in content if isinstance(c, Dropdown))
@@ -40,11 +42,14 @@ class ChemInteractionsMenu():
 
             name = lb_name.field_name
             visible = True if btn_visibility.selected else False
+
+
             color = ddi_color.rgb
 
             interaction_data[name] = {
+                **line_data,
                 'visible': visible,
-                'color': color
+                'color': color,
             }
         return interaction_data
 
@@ -93,6 +98,7 @@ class ChemInteractionsMenu():
             ln_btn.add_new_button("")
             btn = ln_btn.get_content()
 
+            ln.line_data = field.default
             is_visible = field.default.get('visible', True)
             btn.selected = is_visible
             btn.text.value.set_all('visible' if is_visible else 'hidden')

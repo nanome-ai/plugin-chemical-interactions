@@ -10,7 +10,7 @@ from nanome.api.structure import Complex
 from nanome.api.shapes import Line
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color
-from menus.forms import InteractionsForm
+from menus.forms import InteractionsForm, LineForm
 from menus import ChemInteractionsMenu
 from utils import extract_ligands
 
@@ -188,8 +188,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             for i, col in enumerate(row[2:], 2):
                 if col == '1':
                     interaction_type = next(
-                        key for key, val in interaction_column_index.items() if val == i)
-                    form_data = form.data[interaction_type]
+                        key for key, val in interaction_column_index.items() if val == i)  
+                    form_data = form.data.get(interaction_type)
+                    if not form_data:
+                        continue
+ 
                     line = self.draw_interaction_line(atom1, atom2, form_data)
                     line.interaction_type = interaction_type
                     self._interaction_lines.append(line)
@@ -209,13 +212,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :arg atom2: Atom
         :arg form_data: Dict {'color': (r,g,b), 'visible': bool}
         """
-        line = Line()
-        color = form_data['color']
-        color.a = 0 if not form_data['visible'] else 255
-        line.color = color
-        line.thickness = 0.1
-        line.dash_length = 0.25
-        line.dash_distance = 0.25
+        lineform = LineForm(data=form_data)
+        line = lineform.create()
         line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
         line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
         return line
