@@ -162,31 +162,40 @@ class ChemInteractionsMenu():
     def enabled(self, value):
         self._menu.enabled = value
 
-    def get_complexes(self, callback, btn=None):
-        self.plugin.request_complexes([item.get_content().complex_index for item in self.ls_complexes.items], callback)
 
-    def display_complexes(self, complexes):
-        # clear ui and state
-
-        self.plugin.update_menu(self._menu)
-        self.ls_complexes.items = []
-        self.ls_ligands.items = []
+    def render(self, context):
+        self.context = context
+        complexes = context['complexes']
         self.index_to_complex = {}
+
+        self.display_complexes(complexes)
+        self.display_ligands(complexes)
+        self.populate_ls_interactions(self.ls_interactions)
+        self.plugin.update_menu(self._menu)
+
+        # update ui
+        self.plugin.update_menu(self._menu)
+    
+    def display_complexes(self, complexes):
         # populate ui and state
+        btn_labels = []
+        self.ls_complexes.items = []
         for complex in complexes:
             self.index_to_complex[complex.index] = complex
+
+            if complex.name not in btn_labels:
+                btn_label = complex.name
+            else:
+                btn_label =  f'{complex.name} {{a}}'            
+            btn_labels.append(complex.name)
+
             ln_complex = nanome.ui.LayoutNode()
-            btn_complex = ln_complex.add_new_button(complex.name)
+            btn_complex = ln_complex.add_new_button(btn_label) 
             btn_complex.complex_index = complex.index
             btn_complex.ln = ln_complex
             btn_complex.register_pressed_callback(self.toggle_complex)
-            self.ls_complexes.items.append(ln_complex)
-
-        self.populate_ls_interactions(self.ls_interactions)
-
-        # update ui
-        self.plugin.update_content(self.ls_complexes)
-
+            self.ls_complexes.items.append(ln_complex)    
+    
     def toggle_complex(self, btn_complex):
         # clear ligand list
         self.ls_ligands.items = []

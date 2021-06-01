@@ -32,14 +32,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_run(self):
         self.menu.enabled = True
         complexes = await self.request_complex_list()
-        self.menu.display_complexes(complexes)
+        self.menu.render({'complexes': complexes})
         self.update_menu(self.menu._menu)
 
     def on_complex_list_received(self, complex_list):
-        self.menu.display_complexes(complex_list)
+        self.menu.render({'complexes': complex_list})
 
     def on_complex_list_updated(self, complex_list):
-        self.menu.display_complexes(complex_list)
+        self.menu.render({'complexes': complex_list})
 
     def on_complex_added(self):
         self.request_complex_list(self.on_complex_list_received)
@@ -70,14 +70,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complexes: List of indices
         interactions data: Data accepted by InteractionsForm.
         """
-        # Starting with assumption of one complex.
         complexes = await self.request_complexes(complex_indices)
         comp = complexes[0]
 
+        
+        # Find complex that contains ligand
+        for com in complexes:
+            try:
+                complex_ligands = extract_ligands(cleaned_file)
+                clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
+            except StopIteration:
+                continue
+
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
-        complex_ligands = extract_ligands(cleaned_file)
-        clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
 
         # create the request files
         cleaned_data = ''
