@@ -144,7 +144,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         nanome_residues = [
             r for r in complex.residues if all([
                 str(r._serial) == str(res_id),
-                r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']  # Could this be done better?
+                r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
             ])
         ]
         if len(nanome_residues) != 1:

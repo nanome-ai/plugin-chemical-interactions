@@ -100,7 +100,7 @@ class ChemInteractionsMenu():
             ln_btn = list_item_ln.clone()
             ln_btn.add_new_button("")
             # ln_btn.set_padding(right=0.2)
-            ln_btn.set_size_ratio(0.2)
+            ln_btn.set_size_ratio(0.1)
             btn = ln_btn.get_content()
 
             ln.line_data = field.default
@@ -114,7 +114,7 @@ class ChemInteractionsMenu():
             ln_label.add_new_label(field.label.text)
             ln_label.get_content().field_name = name
             ln_label.set_padding(left=0.01)
-            ln_label.set_size_ratio(0.4)
+            ln_label.set_size_ratio(0.5)
 
             ln_dropdown = list_item_ln.clone()
             dropdown = self.color_dropdown()
