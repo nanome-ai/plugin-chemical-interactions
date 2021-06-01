@@ -1,4 +1,3 @@
-import json
 import nanome
 import tempfile
 from utils import extract_ligands
@@ -72,7 +71,7 @@ class ChemInteractionsMenu():
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
         interaction_data = self.collect_interaction_data()
-        self.plugin.get_interactions(selected_complexes, self.residue, self.residue_complex, interaction_data)
+        self.plugin.get_interactions(selected_complexes, self.residue, residue_complex, interaction_data)
 
     def color_dropdown(self):
         dropdown_items = []
@@ -178,11 +177,11 @@ class ChemInteractionsMenu():
 
         # update ui
         self.plugin.update_menu(self._menu)
-    
+
     @staticmethod
     def next_alpha(s):
         """return next letter alphabetically."""
-        return chr((ord(s.upper())+1 - 65) % 26 + 65).lower()
+        return chr((ord(s.upper()) + 1 - 65) % 26 + 65).lower()
 
     def display_complexes(self, complexes):
         # populate ui and state
@@ -197,17 +196,17 @@ class ChemInteractionsMenu():
                 # Find unique complex name.
                 letter = 'a'
                 while btn_label in btn_labels:
-                    btn_label =  f'{complex.name} {{{letter}}}'
+                    btn_label = f'{complex.name} {{{letter}}}'
                     letter = self.next_alpha(letter)
             btn_labels.append(complex.name)
 
             ln_complex = nanome.ui.LayoutNode()
-            btn_complex = ln_complex.add_new_button(btn_label) 
+            btn_complex = ln_complex.add_new_button(btn_label)
             btn_complex.complex_index = complex.index
             btn_complex.ln = ln_complex
             btn_complex.register_pressed_callback(self.toggle_complex)
-            self.ls_complexes.items.append(ln_complex)    
-    
+            self.ls_complexes.items.append(ln_complex)
+
     def toggle_complex(self, btn_complex):
         # clear ligand list
         # self.ls_ligands.items = []

@@ -7,7 +7,6 @@ import asyncio
 
 import nanome
 from nanome.api.structure import Complex
-from nanome.api.shapes import Line
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color
 from menus.forms import InteractionsForm, LineForm
@@ -70,14 +69,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         mol = next(complex.molecules)
         mol.add_chain(nanome_chain)
         return complex
-    
+
     def remove_ligand_from_complex(self, complex, ligand_complex, selected_ligand):
         selected_nanome_residue = next(res for res in complex.residues if str(res._serial) == str(selected_ligand.id[1]))
         nanome_chain = selected_nanome_residue.chain
         mol = next(complex.molecules)
         mol.remove_chain(nanome_chain)
         return complex
-
 
     @async_callback
     async def get_interactions(self, complexes, selected_residue, residue_complex, interaction_data):
@@ -88,10 +86,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         comp = complexes[0]
 
-        # If residue not part of selected complex, we need to combine the pdb complexes into one 
-        manually_merged_complexes = False
+        # If residue not part of selected complex, we need to combine the pdb complexes into one
         if residue_complex != comp:
-            manually_merged_complexes = True
             comp = self.merge_ligand_into_complex(comp, residue_complex, selected_residue)
 
         # Clean complex and return as TempFile
@@ -102,7 +98,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         except StopIteration:
             pass
 
-        
         # create the request files
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
@@ -132,7 +127,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_file = f'{extract_dir}/input_file.contacts'
 
-        # If we manually merged complexes, undo 
+        # If we manually merged complexes, undo
         # if manually_merged_complexes:
         #     self.remove_ligand_from_complex(comp, residue_complex, selected_residue)
 
@@ -217,11 +212,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             for i, col in enumerate(row[2:], 2):
                 if col == '1':
                     interaction_type = next(
-                        key for key, val in interaction_column_index.items() if val == i)  
+                        key for key, val in interaction_column_index.items() if val == i)
                     form_data = form.data.get(interaction_type)
                     if not form_data:
                         continue
- 
+
                     line = self.draw_interaction_line(atom1, atom2, form_data)
                     line.interaction_type = interaction_type
                     self._interaction_lines.append(line)
