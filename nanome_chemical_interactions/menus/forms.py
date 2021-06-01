@@ -70,7 +70,7 @@ class InteractionsForm(Form):
     hbond = FormField(LineForm, label='Hydrogen Bond', default=default_data('blue'))
     ionic = FormField(LineForm, label='Ionic', default=default_data('red'))
     xbond = FormField(LineForm, label='Halogen', default=default_data('green'))
-    metal_complex = FormField(LineForm, label='Metal Complex', default=default_data('orange'))
+    metal_complex = FormField(LineForm, label='Metal Complex', default=default_data('black'))
     aromatic = FormField(LineForm, label='Pi-Pi Aromatic', default=default_data('grey'))
 
     hydrophobic = FormField(
@@ -79,7 +79,7 @@ class InteractionsForm(Form):
 
     vdw = FormField(LineForm, label='VDW', default=default_data('sienna'))
     vdw_clash = FormField(LineForm, label='VDW Clash', default=default_data('plum'))
-    weak_hbond = FormField(LineForm, label='Weak Hydrogen', default=default_data('black'))
+    weak_hbond = FormField(LineForm, label='Weak Hydrogen', default=default_data('orange'))
     polar = FormField(LineForm, label='Polar', default=default_data('darkcyan'))
     weak_polar = FormField(LineForm, label='Weak Polar', default=default_data('brown'))
     clash = FormField(LineForm, label='Clash', default=default_data('white'))
