@@ -4,6 +4,7 @@ from utils import extract_ligands
 from os import environ, path
 
 from nanome.api.structure import Complex
+from nanome.util import Color
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label
 from .forms import InteractionsForm, color_map
 
@@ -106,14 +107,14 @@ class ChemInteractionsMenu():
             ln.line_data = field.default
             is_visible = field.default.get('visible', True)
             btn.selected = is_visible
-            btn.text.value.set_all('visible' if is_visible else 'hidden')
+            btn.text.value.set_all('off' if not is_visible else '')
             btn.register_pressed_callback(self.toggle_visibility)
 
             ln_label = list_item_ln.clone()
 
             ln_label.add_new_label(field.label.text)
             ln_label.get_content().field_name = name
-            ln_label.set_padding(left=0.01)
+            ln_label.set_padding(left=0.03)
             ln_label.set_size_ratio(0.5)
 
             ln_dropdown = list_item_ln.clone()
@@ -143,8 +144,8 @@ class ChemInteractionsMenu():
 
     def toggle_visibility(self, btn):
         btn.selected = not btn.selected
-        txt_selected = 'visible'
-        txt_unselected = 'hidden'
+        txt_selected = ''
+        txt_unselected = 'off'
         btn_text = txt_selected if btn.selected else txt_unselected
         btn.text.value.set_all(btn_text)
         self.plugin.update_content(btn)
@@ -223,8 +224,6 @@ class ChemInteractionsMenu():
         # modify state
         if btn_complex.selected:
             self.complex_indices.add(btn_complex.complex_index)
-            # complexes = await self.plugin.request_complexes(self.complex_indices)
-            # self.display_ligands()
         else:
             self.complex_indices.discard(btn_complex.complex_index)
 
