@@ -31,7 +31,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
-        complexes = await self.request_complex_list()
+        shallow_complexes = await self.request_complex_list()
+        complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
         self.menu.render({'complexes': complexes})
         self.update_menu(self.menu._menu)
 
@@ -63,28 +64,45 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
 
+    def merge_ligand_into_complex(self, complex, ligand_complex, selected_ligand):
+        selected_nanome_residue = next(res for res in ligand_complex.residues if str(res._serial) == str(selected_ligand.id[1]))
+        nanome_chain = selected_nanome_residue.chain
+        mol = next(complex.molecules)
+        mol.add_chain(nanome_chain)
+        return complex
+    
+    def remove_ligand_from_complex(self, complex, ligand_complex, selected_ligand):
+        selected_nanome_residue = next(res for res in complex.residues if str(res._serial) == str(selected_ligand.id[1]))
+        nanome_chain = selected_nanome_residue.chain
+        mol = next(complex.molecules)
+        mol.remove_chain(nanome_chain)
+        return complex
+
+
     @async_callback
-    async def get_interactions(self, complex_indices, selected_residue, interaction_data):
+    async def get_interactions(self, complexes, selected_residue, residue_complex, interaction_data):
         """Collect Form data, and render Interactions in nanome.
 
         complexes: List of indices
         interactions data: Data accepted by InteractionsForm.
         """
-        complexes = await self.request_complexes(complex_indices)
         comp = complexes[0]
 
-        
-        # Find complex that contains ligand
-        for com in complexes:
-            try:
-                complex_ligands = extract_ligands(cleaned_file)
-                clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
-            except StopIteration:
-                continue
+        # If residue not part of selected complex, we need to combine the pdb complexes into one 
+        manually_merged_complexes = False
+        if residue_complex != comp:
+            manually_merged_complexes = True
+            comp = self.merge_ligand_into_complex(comp, residue_complex, selected_residue)
 
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
+        try:
+            complex_ligands = extract_ligands(cleaned_file)
+            clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
+        except StopIteration:
+            pass
 
+        
         # create the request files
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
@@ -113,6 +131,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         archive_format = "zip"
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_file = f'{extract_dir}/input_file.contacts'
+
+        # If we manually merged complexes, undo 
+        # if manually_merged_complexes:
+        #     self.remove_ligand_from_complex(comp, residue_complex, selected_residue)
+
         self.parse_and_upload(contacts_file, comp, interaction_data)
 
     @staticmethod
