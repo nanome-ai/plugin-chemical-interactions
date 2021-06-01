@@ -26,7 +26,7 @@ class ChemInteractionsMenu():
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
-        self.complex_indices = set()
+        self.complex_infdices = set()
 
     def collect_interaction_data(self):
         """Collect Interaction data from various content widgets."""
@@ -77,7 +77,7 @@ class ChemInteractionsMenu():
         dropdown_items = []
         for name, color_rgb in color_map.items():
             color_hex = '#%02x%02x%02x' % color_rgb
-            colored_name = f'<mark={color_hex}>    </mark>{name}'
+            colored_name = f'<mark={color_hex}>    </mark> {name}'
             dd_item = DropdownItem(colored_name)
             dd_item.rgb = color_rgb
             dropdown_items.append(dd_item)
@@ -93,12 +93,14 @@ class ChemInteractionsMenu():
         self.ls_interactions.display_rows = 7
         for name, field in form._fields.items():
             ln = nanome.ui.LayoutNode()
-            ln.sizing_type = ln.SizingTypes.expand.value
+            ln.sizing_type = ln.SizingTypes.ratio.value
             ln.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal.value
 
             list_item_ln = nanome.ui.LayoutNode()
             ln_btn = list_item_ln.clone()
             ln_btn.add_new_button("")
+            # ln_btn.set_padding(right=0.2)
+            ln_btn.set_size_ratio(0.2)
             btn = ln_btn.get_content()
 
             ln.line_data = field.default
@@ -111,11 +113,14 @@ class ChemInteractionsMenu():
 
             ln_label.add_new_label(field.label.text)
             ln_label.get_content().field_name = name
+            ln_label.set_padding(left=0.01)
+            ln_label.set_size_ratio(0.4)
 
             ln_dropdown = list_item_ln.clone()
             dropdown = self.color_dropdown()
             dropdown.register_item_clicked_callback(self.change_interaction_color)
             ln_dropdown.set_content(dropdown)
+            ln_dropdown.set_size_ratio(0.4)
             ln_dropdown.forward_dist = .001
 
             # Select default color in dropdown
@@ -173,9 +178,6 @@ class ChemInteractionsMenu():
         self.display_complexes(complexes)
         self.display_ligands(complexes)
         self.populate_ls_interactions()
-        self.plugin.update_menu(self._menu)
-
-        # update ui
         self.plugin.update_menu(self._menu)
 
     @staticmethod
