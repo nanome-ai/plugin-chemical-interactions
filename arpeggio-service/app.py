@@ -8,8 +8,11 @@ app = Flask(__name__)
 
 @app.route('/clean', methods=['POST'])
 def clean():
-    file_key = 'input_file.pdb'
-    input_file = request.files[file_key]
+    # Assume only one file sent
+    if len(request.files) != 1:
+        raise Exception("Invalid data")
+
+    input_file = request.files.values()[0]
     temp_dir = '/var/clean'
     try:
         os.mkdir(temp_dir)
@@ -18,6 +21,9 @@ def clean():
         os.mkdir(temp_dir)
 
     input_filename = input_file.filename
+    if not input_filename.endswith('.pdb'):
+        input_filename += '.pdb'
+
     input_filepath = '{}/{}'.format(temp_dir, input_filename)
     input_file.save(input_filepath)
     os.system('python clean_pdb.py {}'.format(input_filepath))
