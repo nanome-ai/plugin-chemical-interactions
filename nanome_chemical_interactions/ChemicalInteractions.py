@@ -77,20 +77,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
 
-    def merge_ligand_into_complex(self, complex, ligand_complex, selected_ligand):
-        selected_nanome_residue = next(res for res in ligand_complex.residues if str(res._serial) == str(selected_ligand.id[1]))
-        nanome_chain = selected_nanome_residue.chain
-        mol = next(complex.molecules)
-        mol.add_chain(nanome_chain)
-        return complex
-
-    def remove_ligand_from_complex(self, complex, ligand_complex, selected_ligand):
-        selected_nanome_residue = next(res for res in complex.residues if str(res._serial) == str(selected_ligand.id[1]))
-        nanome_chain = selected_nanome_residue.chain
-        mol = next(complex.molecules)
-        mol.remove_chain(nanome_chain)
-        return complex
-
     @async_callback
     async def get_interactions(self, complexes, selected_residue, residue_complex, interaction_data):
         """Collect Form data, and render Interactions in nanome.
@@ -140,11 +126,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         archive_format = "zip"
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_file = f'{extract_dir}/input_file.contacts'
-
-        # If we manually merged complexes, undo
-        # if manually_merged_complexes:
-        #     self.remove_ligand_from_complex(comp, residue_complex, selected_residue)
-
         self.parse_and_upload(contacts_file, comp, interaction_data)
 
     @staticmethod
