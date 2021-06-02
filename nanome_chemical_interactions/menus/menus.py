@@ -4,7 +4,6 @@ from utils import extract_ligands
 from os import environ, path
 
 from nanome.api.structure import Complex
-from nanome.util import Color
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label
 from .forms import InteractionsForm, color_map
 
@@ -12,7 +11,7 @@ PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
 BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
-MENU_PATH = path.join(BASE_PATH, 'json', 'newMenu.json')
+MENU_PATH = path.join(BASE_PATH, 'json', 'newMenu2.json')
 
 
 class ChemInteractionsMenu():
@@ -27,7 +26,7 @@ class ChemInteractionsMenu():
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
-        self.complex_infdices = set()
+        self.complex_indices = set()
 
     def collect_interaction_data(self):
         """Collect Interaction data from various content widgets."""
@@ -176,10 +175,9 @@ class ChemInteractionsMenu():
         complexes = context['complexes']
         self.index_to_complex = {}
 
+        self.populate_ls_interactions()
         self.display_complexes(complexes)
         self.display_ligands(complexes)
-        self.populate_ls_interactions()
-        self.plugin.update_menu(self._menu)
 
     @staticmethod
     def next_alpha(s):
