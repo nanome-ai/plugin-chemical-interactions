@@ -26,7 +26,31 @@ class ChemInteractionsMenu():
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
+        
+        self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
+        self.btn_toggle_interactions.register_pressed_callback(self.toggle_interactions)
+
         self.complex_indices = set()
+
+    def toggle_interactions(self, btn):
+        btn.selected = not btn.selected
+        txt_selected = 'Hide All'
+        txt_unselected = 'Show all'
+        btn_text = txt_selected if btn.selected else txt_unselected
+        btn.text.value.set_all(btn_text)
+
+        # Find all the interaction buttons and disable them
+        selected_value = btn.selected
+        for row in self.ls_interactions.items:
+            content = [ch.get_content() for ch in row.get_children()]
+            btn = next(c for c in content if isinstance(c, Button))
+            btn.selected = selected_value
+        
+        # self.plugin.update_content(btn)
+        # self.plugin.update_content(self.ls_interactions)
+        self.plugin.update_menu(self._menu)
+        self.update_interaction_lines()
+        pass
 
     def collect_interaction_data(self):
         """Collect Interaction data from various content widgets."""
@@ -99,7 +123,6 @@ class ChemInteractionsMenu():
             list_item_ln = nanome.ui.LayoutNode()
             ln_btn = list_item_ln.clone()
             ln_btn.add_new_button("")
-            # ln_btn.set_padding(right=0.2)
             ln_btn.set_size_ratio(0.1)
             btn = ln_btn.get_content()
 
@@ -143,10 +166,10 @@ class ChemInteractionsMenu():
 
     def toggle_visibility(self, btn):
         btn.selected = not btn.selected
-        txt_selected = ''
-        txt_unselected = 'off'
-        btn_text = txt_selected if btn.selected else txt_unselected
-        btn.text.value.set_all(btn_text)
+        # txt_selected = ''
+        # txt_unselected = ''
+        # btn_text = txt_selected if btn.selected else txt_unselected
+        # btn.text.value.set_all(btn_text)
         self.plugin.update_content(btn)
         self.update_interaction_lines()
 
