@@ -12,6 +12,7 @@ from nanome.util import async_callback, Color
 from menus.forms import InteractionsForm, LineForm
 from menus import ChemInteractionsMenu
 from utils import extract_ligands
+from ComplexUtils import ComplexUtils
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -97,19 +98,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complexes: List of indices
         interactions data: Data accepted by InteractionsForm.
         """
-        comp = complexes[0]
+        for line in self._interaction_lines:
+            line.destroy() 
 
+        comp = complexes[0]
         # If residue not part of selected complex, we need to combine the complexes into one pdb
         if residue_complex != comp:
-            comp = self.merge_ligand_into_complex(comp, residue_complex, selected_residue)
+            comp = ComplexUtils.combine_ligands(comp, [residue_complex], comp)
 
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
-        try:
-            complex_ligands = extract_ligands(cleaned_file)
-            clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
-        except StopIteration:
-            pass
+        complex_ligands = extract_ligands(cleaned_file)
+        clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
+
 
         # create the request files
         cleaned_data = ''
