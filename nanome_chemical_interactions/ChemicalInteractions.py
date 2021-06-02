@@ -96,7 +96,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         comp = complexes[0]
 
-        # If residue not part of selected complex, we need to combine the pdb complexes into one
+        # If residue not part of selected complex, we need to combine the complexes into one pdb
         if residue_complex != comp:
             comp = self.merge_ligand_into_complex(comp, residue_complex, selected_residue)
 
