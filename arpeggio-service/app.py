@@ -1,5 +1,6 @@
 import os
 import shutil
+import uuid
 
 from flask import Flask, request, send_file
 
@@ -13,7 +14,7 @@ def clean():
         raise Exception("Invalid data")
 
     input_file = request.files.values()[0]
-    temp_dir = '/var/clean'
+    temp_dir = '/var/{}'.format(str(uuid.uuid4()))
     try:
         os.mkdir(temp_dir)
     except OSError:
@@ -40,9 +41,11 @@ def clean():
 
 @app.route('/', methods=['POST'])
 def index():
-    file_key = 'input_file.pdb'
-    input_file = request.files[file_key]
-    temp_dir = '/var/calculate'
+    if len(request.files) != 1:
+        raise Exception("Invalid data")
+
+    input_file = request.files.values()[0]
+    temp_dir = '/var/{}'.format(str(uuid.uuid4()))
 
     try:
         os.mkdir(temp_dir)
@@ -51,6 +54,8 @@ def index():
         os.mkdir(temp_dir)
 
     input_filename = input_file.filename
+    if not input_filename.endswith('.pdb'):
+        input_filename += '.pdb'
     input_filepath = '{}/{}'.format(temp_dir, input_filename)
     input_file.save(input_filepath)
 
