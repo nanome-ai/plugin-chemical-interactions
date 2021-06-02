@@ -11,8 +11,7 @@ from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color
 from menus.forms import InteractionsForm, LineForm
 from menus import ChemInteractionsMenu
-from utils import extract_ligands
-from ComplexUtils import ComplexUtils
+from utils import extract_ligands, ComplexUtils
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -83,9 +82,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         complexes: List of indices
         interactions data: Data accepted by InteractionsForm.
-        """
-        for line in self._interaction_lines:
-            line.destroy() 
+        """ 
+        await asyncio.create_task(self.destroy_lines(self._interaction_lines))
+        # for line in self._interaction_lines:
+        #     await line.destroy()
+        self._interaction_lines = []
 
         comp = complexes[0]
         # If residue not part of selected complex, we need to combine the complexes into one pdb
@@ -96,7 +97,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         cleaned_file = self.clean_complex(comp)
         complex_ligands = extract_ligands(cleaned_file)
         clean_residue = next(lig for lig in complex_ligands if lig.id == selected_residue.id)
-
 
         # create the request files
         cleaned_data = ''
@@ -240,6 +240,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @staticmethod
     async def upload_line(line):
         line.upload()
+
+    async def destroy_lines(self, line_list):
+        for line in line_list:
+            line.destroy()
 
     def update_interaction_lines(self, interaction_data):
         for line in self._interaction_lines:

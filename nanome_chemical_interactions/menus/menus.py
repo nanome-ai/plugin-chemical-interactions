@@ -11,7 +11,7 @@ PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
 BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
-MENU_PATH = path.join(BASE_PATH, 'json', 'newMenu2.json')
+MENU_PATH = path.join(BASE_PATH, 'json', 'newMenu3.json')
 
 
 class ChemInteractionsMenu():
@@ -50,7 +50,6 @@ class ChemInteractionsMenu():
         # self.plugin.update_content(self.ls_interactions)
         self.plugin.update_menu(self._menu)
         self.update_interaction_lines()
-        pass
 
     def collect_interaction_data(self):
         """Collect Interaction data from various content widgets."""
@@ -129,7 +128,6 @@ class ChemInteractionsMenu():
             ln.line_data = field.default
             is_visible = field.default.get('visible', True)
             btn.selected = is_visible
-            btn.text.value.set_all('off' if not is_visible else '')
             btn.register_pressed_callback(self.toggle_visibility)
 
             ln_label = list_item_ln.clone()
