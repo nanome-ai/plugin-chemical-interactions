@@ -100,9 +100,6 @@ class ChemInteractionsMenu():
             content = [ch.get_content() for ch in row.get_children()]
             btn = next(c for c in content if isinstance(c, Button))
             btn.selected = selected_value
-        
-        # self.plugin.update_content(btn)
-        # self.plugin.update_content(self.ls_interactions)
         self.plugin.update_menu(self._menu)
         self.update_interaction_lines()
 
@@ -220,10 +217,6 @@ class ChemInteractionsMenu():
 
     def toggle_visibility(self, btn):
         btn.selected = not btn.selected
-        # txt_selected = ''
-        # txt_unselected = ''
-        # btn_text = txt_selected if btn.selected else txt_unselected
-        # btn.text.value.set_all(btn_text)
         self.plugin.update_content(btn)
         self.update_interaction_lines()
 

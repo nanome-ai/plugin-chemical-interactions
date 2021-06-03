@@ -77,8 +77,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         interactions data: Data accepted by InteractionsForm.
         """ 
         await asyncio.create_task(self.destroy_lines(self._interaction_lines))
-        # for line in self._interaction_lines:
-        #     await line.destroy()
         self._interaction_lines = []
 
         comp = complexes[0]
@@ -95,7 +93,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
             cleaned_data = f.read()
-        files = {'input_file.pdb': cleaned_data}
+        
+        filename = cleaned_file.name.split('/')[-1]
+        files = {filename: cleaned_data}
 
         selection = f'RESNAME:{clean_residue.resname}'
         data = {
@@ -118,7 +118,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         extract_dir = tempfile.mkdtemp()
         archive_format = "zip"
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
-        contacts_file = f'{extract_dir}/input_file.contacts'
+
+        contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
+        contacts_file = f'{extract_dir}/{contacts_filename}'
         self.parse_and_upload(contacts_file, comp, interaction_data)
 
     @staticmethod
@@ -195,7 +197,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             atom1, atom2 = atom_list
-            # create interactions (lines)
             # Iterate through columns and draw relevant lines
             for i, col in enumerate(row[2:], 2):
                 if col == '1':
