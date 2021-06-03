@@ -1,5 +1,7 @@
 import nanome
 import tempfile
+
+from nanome.util.asyncio import async_callback
 from utils import extract_ligands
 from os import environ, path
 
@@ -31,6 +33,7 @@ class ChemInteractionsMenu():
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_interactions)
         self.complex_indices = set()
 
+    @async_callback
     async def render(self, complexes=None):
         complexes = complexes or []
         self.populate_ls_interactions()

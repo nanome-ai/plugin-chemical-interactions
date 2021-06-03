@@ -29,26 +29,22 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
-        complex_list = await self.request_complex_list()
-        await self.refresh_menu(complexes=complex_list)
+        complexes = await self.request_complex_list()
+        self.menu.render(complexes=complexes)
 
     @async_callback
-    async def on_complex_list_updated(self, complex_list):
-        await self.refresh_menu(complexes=complex_list)
-
-    async def refresh_menu(self, complexes=None, **kwargs):
-        complexes = complexes or []
-        await self.menu.render(complexes=complexes)
+    async def on_complex_list_updated(self, complexes):
+        self.menu.render(complexes=complexes)
 
     @async_callback
     async def on_complex_added(self):
         complexes = await self.request_complex_list()
-        self.request_complexes([c.index for c in complexes], self.refresh_menu)
+        await self.menu.render(complexes=complexes)
 
     @async_callback
     async def on_complex_removed(self):
         complexes = await self.request_complex_list()
-        self.request_complexes([c.index for c in complexes], self.refresh_menu)
+        await self.menu.render(complexes=complexes)
 
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
