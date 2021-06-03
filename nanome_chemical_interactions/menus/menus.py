@@ -1,12 +1,13 @@
-import nanome
 import tempfile
-from Bio.PDB.Residue import Residue as BioResidue
-from nanome.util.asyncio import async_callback
-from utils import extract_ligands
 from os import environ, path
+from utils.complex_utils import ComplexUtils
+from Bio.PDB.Residue import Residue as BioResidue
 
+import nanome
+from utils import extract_ligands
 from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label
+from nanome.util.asyncio import async_callback
 from .forms import InteractionsForm, color_map
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -33,6 +34,33 @@ class ChemInteractionsMenu():
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_interactions)
         self.complex_indices = set()
 
+    @async_callback
+    async def render(self, complexes=None):
+        complexes = complexes or []
+        self.complexes = complexes
+
+        for comp in self.complexes:
+            comp.register_complex_updated_callback(self.on_complex_updated) 
+
+        self.render_interaction_form()
+        self.display_structures(complexes, self.ls_complexes)
+        self.display_structures(complexes, self.ls_ligands)
+
+        for ln_btn in self.ls_complexes.items:
+            btn = ln_btn.get_content()
+            btn.register_pressed_callback(self.toggle_complex)
+
+        for ln_btn in self.ls_ligands.items:
+            btn = ln_btn.get_content()
+            btn.register_pressed_callback(self.toggle_ligand)
+
+        self.plugin.update_menu(self._menu)
+
+    def display_structures(self, complexes, ui_list):
+        btns = self.create_structure_btns(complexes)
+        ui_list.items = btns
+        self.plugin.update_content(ui_list)
+
     def create_structure_btns(self, structures):
         """Generate list of buttons corresponding to provided complexes."""
         complex_btns = []
@@ -56,7 +84,7 @@ class ChemInteractionsMenu():
             btn_labels.append(struct_name)
             ln_btn = nanome.ui.LayoutNode()
             btn = ln_btn.add_new_button(btn_label)
-            
+
             if isinstance(struct, Complex):
                 btn.complex = struct
                 btn.complex_index = struct.index
@@ -68,30 +96,7 @@ class ChemInteractionsMenu():
         return complex_btns
 
     @async_callback
-    async def render(self, complexes=None):
-        complexes = complexes or []
-        self.complexes = complexes
-        self.populate_ls_interactions()
-
-        self.display_structures(complexes, self.ls_complexes)
-        self.display_structures(complexes, self.ls_ligands)
-
-        for ln_btn in self.ls_complexes.items:
-            btn = ln_btn.get_content()
-            btn.register_pressed_callback(self.toggle_complex)
-        
-        for ln_btn in self.ls_ligands.items:
-            btn = ln_btn.get_content()
-            btn.register_pressed_callback(self.toggle_ligand)
-
-        self.plugin.update_menu(self._menu)
-
-    def display_structures(self, complexes, ui_list):
-        btns = self.create_structure_btns(complexes)
-        ui_list.items = btns
-        self.plugin.update_content(ui_list)
-
-    def toggle_interactions(self, btn):
+    async def toggle_interactions(self, btn):
         btn.selected = not btn.selected
         txt_selected = 'Hide All'
         txt_unselected = 'Show all'
@@ -105,7 +110,7 @@ class ChemInteractionsMenu():
             btn = next(c for c in content if isinstance(c, Button))
             btn.selected = selected_value
         self.plugin.update_menu(self._menu)
-        self.update_interaction_lines()
+        await self.update_interaction_lines()
 
     def collect_interaction_data(self):
         """Collect Interaction data from various content widgets."""
@@ -130,31 +135,37 @@ class ChemInteractionsMenu():
             }
         return interaction_data
 
-    def submit_form(self, btn):
-        selected_complex_indices = [
-            item.get_content().complex_index
-            for item in self.ls_complexes.items
-            if item.get_content().selected]
-
-        # Find deep complex saved on button
+    @async_callback
+    async def submit_form(self, btn):
         selected_complexes = [
-            getattr(item.get_content(), 'complex', None)
+            item.get_content().complex
             for item in self.ls_complexes.items
-            if getattr(item.get_content(), 'complex').index in selected_complex_indices
+            if item.get_content().selected
         ]
+
+        if len(selected_complexes) != 1:
+            raise Exception("Too many selected complexes.")
+
+        selected_complex = selected_complexes[0]
         selected_residue = getattr(self, 'residue', None)
         residue_complex = getattr(self, 'residue_complex', None)
+
+        # Get deep residue complex
+        if len(list(residue_complex.molecules)) ==  0:
+            residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
+            # Update self.complexes with deep complex
+            self.update_complex_data(residue_complex)
 
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
-        if selected_complexes and not selected_residue:
+        if selected_complexes and not (selected_residue or residue_complex):
             error_msg = 'Please Select a Ligand'
         if error_msg:
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
         interaction_data = self.collect_interaction_data()
-        self.plugin.get_interactions(selected_complexes, self.residue, residue_complex, interaction_data)
+        self.plugin.get_interactions(selected_complex, self.residue, residue_complex, interaction_data)
 
     def color_dropdown(self):
         dropdown_items = []
@@ -169,8 +180,8 @@ class ChemInteractionsMenu():
         dropdown.items = dropdown_items
         return dropdown
 
-    def populate_ls_interactions(self):
-        """Populate the interactions table."""
+    def render_interaction_form(self):
+        """Populate the interaction type form."""
         form = InteractionsForm()
         interactions = []
         self.ls_interactions.display_rows = 7
@@ -184,6 +195,8 @@ class ChemInteractionsMenu():
             ln_btn.set_padding(left=0.01)
             ln_btn.add_new_button("")
             ln_btn.set_size_ratio(0.07)
+            ln_btn.toggle_on_press = True
+
             btn = ln_btn.get_content()
             btn.mesh.active = True
             btn.mesh.enabled.set_all(False)
@@ -195,7 +208,6 @@ class ChemInteractionsMenu():
             btn.register_pressed_callback(self.toggle_visibility)
 
             ln_label = list_item_ln.clone()
-
             ln_label.add_new_label(field.label.text)
             ln_label.get_content().field_name = name
             ln_label.set_padding(left=0.03)
@@ -227,10 +239,11 @@ class ChemInteractionsMenu():
     def change_interaction_color(self, dropdown, item):
         self.update_interaction_lines()
 
-    def toggle_visibility(self, btn):
+    @async_callback
+    async def toggle_visibility(self, btn):
         btn.selected = not btn.selected
         self.plugin.update_content(btn)
-        self.update_interaction_lines()
+        await self.update_interaction_lines()
 
     @async_callback
     async def update_interaction_lines(self):
@@ -260,24 +273,25 @@ class ChemInteractionsMenu():
 
     @async_callback
     async def toggle_complex(self, btn):
-        # toggle the complex 
+        # toggle the complex
         btn.selected = not btn.selected
 
         # deselect everything else
         for item in (set(self.ls_complexes.items) - {btn.ln}):
             item.get_content().selected = False
-        self.plugin.update_content(self.ls_complexes) 
+        self.plugin.update_content(self.ls_complexes)
 
         if btn.selected:
             # Pull out ligands from complex and add them to ligands list
             comp = btn.complex
             deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
+            self.update_complex_data(deep_complex)
             btn.complex = deep_complex
             # Remove selected complex from ligands list
             for ln in self.ls_ligands.items:
                 if ln.get_content().complex.index == comp.index:
                     self.ls_ligands.items.remove(ln)
-            
+
             temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
             deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
             ligands = extract_ligands(temp_file)
@@ -291,7 +305,7 @@ class ChemInteractionsMenu():
             # Reset ligands list to default if nothing is selected
             ligand_btns = self.create_structure_btns(self.complexes)
             self.ls_ligands.items = ligand_btns
-  
+
         self.plugin.update_content(self.ls_ligands)
 
     def toggle_ligand(self, btn_ligand):
@@ -304,10 +318,24 @@ class ChemInteractionsMenu():
 
         # Add residue data to button
         if btn_ligand.selected:
-            self.residue = btn_ligand.ligand
+            self.residue = getattr(btn_ligand, 'ligand', None)
             self.residue_complex = btn_ligand.complex
         else:
             self.residue = ''
 
         # update ui
         self.plugin.update_content(self.ls_ligands)
+
+    def on_complex_updated(self, complex):
+        # Update complex in self.complexes, and redraw lines
+        self.update_complex_data(complex)
+        self.update_interaction_lines()
+
+    
+    def update_complex_data(self, new_complex):
+        """Replace complex self.complexes with updated data."""
+        for i, comp in enumerate(self.complexes):
+            if comp.index == complex.index:
+                self.complexes[i] = complex
+                self.complexes[i].register_complex_updated_callback(self.on_complex_updated)
+                return

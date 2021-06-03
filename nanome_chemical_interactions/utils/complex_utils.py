@@ -20,12 +20,11 @@ class ComplexUtils:
     def combine_ligands(receptor, ligands, target=None):
         combined_ligands = target or nanome.structure.Complex()
         for ligand in ligands:
-            # selected_nanome_residue = next(res for res in ligand.residues if str(res._serial) == str(selected_ligand.id[1]))
             ComplexUtils.align_to(ligand, receptor)
-
-            ligand_chain = next(ligand.chains)
             mol = next(combined_ligands.molecules)
-            mol.add_chain(ligand_chain)
+            ligand_mol = list(ligand.molecules)[ligand.current_frame]
+            for chain in ligand_mol.chains:
+                mol.add_chain(chain)
         return combined_ligands
 
     @staticmethod
@@ -38,9 +37,15 @@ class ComplexUtils:
     @staticmethod
     def convert_to_frames(complexes):
         for i in range(len(complexes)):
-            complex_index = complexes[i].index
-            complexes[i] = complexes[i].convert_to_frames()
-            complexes[i].index = complex_index
+            new_complex = complexes[i].convert_to_frames()
+            new_complex.index = complexes[i].index
+            complexes[i] = new_complex
+    
+    @staticmethod
+    def convert_complex_to_frames(complex):
+        new_complex = complex.convert_to_frames()
+        new_complex.index = complex.index
+        return new_complex
 
     @staticmethod
     def reset_transform(complex):

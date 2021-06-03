@@ -88,4 +88,5 @@ def extract_ligands(pdb_tempfile):
             non_cov_heteroresidues.append(residue)
 
     # LIMIT TO > 7 HEAVY ATOM LIGANDS
+    # return non_cov_heteroresidues
     return [r for r in non_cov_heteroresidues if len(r.child_list) > 7]
