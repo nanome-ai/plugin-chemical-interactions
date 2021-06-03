@@ -7,12 +7,11 @@ import asyncio
 
 import nanome
 from nanome.api.structure import Complex
-from nanome.api.shapes import Line
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color
-from menus.forms import InteractionsForm
+from menus.forms import InteractionsForm, LineForm
 from menus import ChemInteractionsMenu
-from utils import extract_ligands
+from utils import extract_ligands, ComplexUtils
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -22,7 +21,6 @@ PDBOPTIONS.write_bonds = True
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def start(self):
-        self.index_to_complex = {}
         self.residue = ''
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self.menu = ChemInteractionsMenu(self)
@@ -32,19 +30,35 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_run(self):
         self.menu.enabled = True
         complexes = await self.request_complex_list()
-        self.menu.display_complexes(complexes)
-        self.update_menu(self.menu._menu)
+        self.menu.render(complexes=complexes)
+
+    @async_callback
+    async def on_complex_list_updated(self, complexes):
+        self.menu.render(complexes=complexes)
+
+    @async_callback
+    async def on_complex_added(self):
+        complexes = await self.request_complex_list()
+        await self.menu.render(complexes=complexes)
+
+    @async_callback
+    async def on_complex_removed(self):
+        complexes = await self.request_complex_list()
+        await self.menu.render(complexes=complexes)
 
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
-        temp_file = tempfile.NamedTemporaryFile()
+        temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
         complex.io.to_pdb(temp_file.name, PDBOPTIONS)
         with open(temp_file.name, 'r') as pdb_stream:
             pdb_contents = pdb_stream.read()
 
-        files = {'input_file.pdb': pdb_contents}
+        temp_file.name.split('/')
+        filename = temp_file.name.split('/')[-1]
+        file_data = {filename: pdb_contents}
+
         clean_url = f'{self.interactions_url}/clean'
-        response = requests.post(clean_url, files=files)
+        response = requests.post(clean_url, files=file_data)
 
         cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
         with open(cleaned_file.name, 'wb') as f:
@@ -52,15 +66,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return cleaned_file
 
     @async_callback
-    async def get_interactions(self, complex_indices, selected_residue, interaction_data):
+    async def get_interactions(self, complexes, selected_residue, residue_complex, interaction_data):
         """Collect Form data, and render Interactions in nanome.
 
         complexes: List of indices
         interactions data: Data accepted by InteractionsForm.
-        """
-        # Starting with assumption of one complex.
-        complexes = await self.request_complexes(complex_indices)
+        """ 
+        await asyncio.create_task(self.destroy_lines(self._interaction_lines))
+        self._interaction_lines = []
+
         comp = complexes[0]
+        # If residue not part of selected complex, we need to combine the complexes into one pdb
+        if residue_complex.index != comp.index:
+            comp = ComplexUtils.combine_ligands(comp, [residue_complex], comp)
 
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
@@ -71,7 +89,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
             cleaned_data = f.read()
-        files = {'input_file.pdb': cleaned_data}
+        
+        filename = cleaned_file.name.split('/')[-1]
+        files = {filename: cleaned_data}
 
         selection = f'RESNAME:{clean_residue.resname}'
         data = {
@@ -94,7 +114,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         extract_dir = tempfile.mkdtemp()
         archive_format = "zip"
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
-        contacts_file = f'{extract_dir}/input_file.contacts'
+
+        contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
+        contacts_file = f'{extract_dir}/{contacts_filename}'
         self.parse_and_upload(contacts_file, comp, interaction_data)
 
     @staticmethod
@@ -108,7 +130,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         nanome_residues = [
             r for r in complex.residues if all([
                 str(r._serial) == str(res_id),
-                r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']  # Could this be done better?
+                r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
             ])
         ]
         if len(nanome_residues) != 1:
@@ -171,13 +193,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             atom1, atom2 = atom_list
-            # create interactions (lines)
             # Iterate through columns and draw relevant lines
             for i, col in enumerate(row[2:], 2):
                 if col == '1':
                     interaction_type = next(
                         key for key, val in interaction_column_index.items() if val == i)
-                    form_data = form.data[interaction_type]
+                    form_data = form.data.get(interaction_type)
+                    if not form_data:
+                        continue
+
                     line = self.draw_interaction_line(atom1, atom2, form_data)
                     line.interaction_type = interaction_type
                     self._interaction_lines.append(line)
@@ -197,13 +221,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :arg atom2: Atom
         :arg form_data: Dict {'color': (r,g,b), 'visible': bool}
         """
-        line = Line()
-        color = form_data['color']
-        color.a = 0 if not form_data['visible'] else 255
-        line.color = color
-        line.thickness = 0.1
-        line.dash_length = 0.25
-        line.dash_distance = 0.25
+        lineform = LineForm(data=form_data)
+        line = lineform.create()
         line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
         line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
         return line
@@ -211,6 +230,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @staticmethod
     async def upload_line(line):
         line.upload()
+
+    async def destroy_lines(self, line_list):
+        for line in line_list:
+            line.destroy()
 
     def update_interaction_lines(self, interaction_data):
         for line in self._interaction_lines:
