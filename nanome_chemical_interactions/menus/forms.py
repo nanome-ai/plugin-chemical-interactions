@@ -15,16 +15,18 @@ color_map = {
     "indigo": (75, 0, 130),
     "violet": (238, 130, 238),
     "black": (0, 0, 0),
-    "plum": (221, 160, 22),
+    "plum": (221, 160, 221),
     "white": (255, 255, 255),
     "maroon": (128, 0, 0),
-    "darkcyan": (0, 139, 139),
+    "cyan": (0, 255, 255),
     "slategrey": (112, 128, 144),
-    "purple": (128, 0, 128),
+    "purple": (104, 0, 104),
     "grey": (192, 192, 192),
     "sienna": (160, 82, 45),
     "brown": (165, 42, 42),
     "lavender": (230, 230, 250),
+    "magenta": (255, 0, 255),
+    "steelblue": (88, 88, 167)
 }
 
 
@@ -52,36 +54,41 @@ class LineForm(Form):
         return line
 
 
-def default_data(color_name, visible=True, **kwargs):
-    """Set line attributes requested for each interaction type."""
-    color_rgb = color_map[color_name]
-    data = {
-        'visible': visible,
-        'color': color_rgb,
-        **kwargs
-    }
-    return data
+disc_line_settings = dict(thickness=0.2, dash_length=0.1, dash_distance=0.25)
+
+line_settings = {
+    'covalent': {'visible': True, 'color': color_map['yellow']},
+    'hbond': {'visible': True, 'color': color_map['blue']},
+    'ionic': {'visible': True, 'color': color_map['red']},
+    'xbond': {'visible': True, 'color': color_map['green']},
+    'metal_complex': {'visible': True, 'color': color_map['grey']},
+    'aromatic': {'visible': True, 'color': color_map['magenta']},
+    'hydrophobic': {'visible': False, 'color': color_map['purple'], **disc_line_settings},
+    'vdw': {'visible': False, 'color': color_map['sienna']},
+    'vdw_clash': {'visible': False, 'color': color_map['plum']},
+    'weak_hbond': {'visible': False, 'color': color_map['orange']},
+    'polar': {'visible': False, 'color': color_map['cyan']},
+    'weak_polar': {'visible': False, 'color': color_map['steelblue']},
+    'clash': {'visible': False, 'color': color_map['white']},
+    'carbonyl': {'visible': False, 'color': color_map['slategrey']},
+    # 'proximal': {'visible': True, 'color': color_map['lavender']},
+}
 
 
 class InteractionsForm(Form):
     """Set colors and visibility for supported Interaction types."""
-
-    covalent = FormField(LineForm, label='Covalent', default=default_data('yellow'))
-    hbond = FormField(LineForm, label='Hydrogen Bond', default=default_data('blue'))
-    ionic = FormField(LineForm, label='Ionic', default=default_data('red'))
-    xbond = FormField(LineForm, label='Halogen', default=default_data('green'))
-    metal_complex = FormField(LineForm, label='Metal Complex', default=default_data('black'))
-    aromatic = FormField(LineForm, label='Pi-Pi Aromatic', default=default_data('grey'))
-
-    hydrophobic = FormField(
-        LineForm, label='Hydrophobic',
-        default=default_data('purple', thickness=0.2, dash_length=0.1, dash_distance=0.25))
-
-    vdw = FormField(LineForm, label='VDW', default=default_data('sienna'))
-    vdw_clash = FormField(LineForm, label='VDW Clash', default=default_data('plum'))
-    weak_hbond = FormField(LineForm, label='Weak Hydrogen', default=default_data('orange'))
-    polar = FormField(LineForm, label='Polar', default=default_data('darkcyan'))
-    weak_polar = FormField(LineForm, label='Weak Polar', default=default_data('brown'))
-    clash = FormField(LineForm, label='Clash', default=default_data('white'))
-    carbonyl = FormField(LineForm, label='Carbonyl', default=default_data('slategrey'))
-    proximal = FormField(LineForm, label='Proximal', default=default_data('lavender', False))
+    covalent = FormField(LineForm, label='Covalent', default=line_settings['covalent'])
+    hbond = FormField(LineForm, label='Hydrogen Bond', default=line_settings['hbond'])
+    ionic = FormField(LineForm, label='Ionic', default=line_settings['ionic'])
+    xbond = FormField(LineForm, label='Halogen', default=line_settings['xbond'])
+    metal_complex = FormField(LineForm, label='Metal Complex', default=line_settings['metal_complex'])
+    aromatic = FormField(LineForm, label='Pi-Pi Aromatic', default=line_settings['aromatic'])
+    hydrophobic = FormField(LineForm, label='Hydrophobic', default=line_settings['hydrophobic'])
+    vdw = FormField(LineForm, label='VDW', default=line_settings['vdw'])
+    vdw_clash = FormField(LineForm, label='VDW Clash', default=line_settings['vdw_clash'])
+    weak_hbond = FormField(LineForm, label='Weak Hydrogen', default=line_settings['weak_hbond'])
+    polar = FormField(LineForm, label='Polar', default=line_settings['polar'])
+    weak_polar = FormField(LineForm, label='Weak Polar', default=line_settings['weak_polar'])
+    clash = FormField(LineForm, label='Clash', default=line_settings['clash'])
+    carbonyl = FormField(LineForm, label='Carbonyl', default=line_settings['carbonyl'])
+    # proximal = FormField(LineForm, label='Proximal', default=line_settings['proximal'])
