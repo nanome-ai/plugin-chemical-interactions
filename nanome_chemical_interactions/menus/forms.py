@@ -29,6 +29,7 @@ color_map = {
     "steelblue": (88, 88, 167)
 }
 
+
 class NanomeColorField(Field):
 
     def process(self, *args, **kwargs):
@@ -54,7 +55,8 @@ class LineForm(Form):
 
 
 disc_line_settings = dict(thickness=0.2, dash_length=0.1, dash_distance=0.25)
-interaction_settings = {
+
+line_settings = {
     'covalent': {'visible': True, 'color': color_map['yellow']},
     'hbond': {'visible': True, 'color': color_map['blue']},
     'ionic': {'visible': True, 'color': color_map['red']},
@@ -75,18 +77,18 @@ interaction_settings = {
 
 class InteractionsForm(Form):
     """Set colors and visibility for supported Interaction types."""
-    covalent = FormField(LineForm, label='Covalent', default=interaction_settings['covalent'])
-    hbond = FormField(LineForm, label='Hydrogen Bond', default=interaction_settings['hbond'])
-    ionic = FormField(LineForm, label='Ionic', default=interaction_settings['ionic'])
-    xbond = FormField(LineForm, label='Halogen', default=interaction_settings['xbond'])
-    metal_complex = FormField(LineForm, label='Metal Complex', default=interaction_settings['metal_complex'])
-    aromatic = FormField(LineForm, label='Pi-Pi Aromatic', default=interaction_settings['aromatic'])
-    hydrophobic = FormField(LineForm, label='Hydrophobic', default=interaction_settings['hydrophobic'])
-    vdw = FormField(LineForm, label='VDW', default=interaction_settings['vdw'])
-    vdw_clash = FormField(LineForm, label='VDW Clash', default=interaction_settings['vdw_clash'])
-    weak_hbond = FormField(LineForm, label='Weak Hydrogen', default=interaction_settings['weak_hbond'])
-    polar = FormField(LineForm, label='Polar', default=interaction_settings['polar'])
-    weak_polar = FormField(LineForm, label='Weak Polar', default=interaction_settings['weak_polar'])
-    clash = FormField(LineForm, label='Clash', default=interaction_settings['clash'])
-    carbonyl = FormField(LineForm, label='Carbonyl', default=interaction_settings['carbonyl'])
-    # proximal = FormField(LineForm, label='Proximal', default=interaction_settings['proximal'])
+    covalent = FormField(LineForm, label='Covalent', default=line_settings['covalent'])
+    hbond = FormField(LineForm, label='Hydrogen Bond', default=line_settings['hbond'])
+    ionic = FormField(LineForm, label='Ionic', default=line_settings['ionic'])
+    xbond = FormField(LineForm, label='Halogen', default=line_settings['xbond'])
+    metal_complex = FormField(LineForm, label='Metal Complex', default=line_settings['metal_complex'])
+    aromatic = FormField(LineForm, label='Pi-Pi Aromatic', default=line_settings['aromatic'])
+    hydrophobic = FormField(LineForm, label='Hydrophobic', default=line_settings['hydrophobic'])
+    vdw = FormField(LineForm, label='VDW', default=line_settings['vdw'])
+    vdw_clash = FormField(LineForm, label='VDW Clash', default=line_settings['vdw_clash'])
+    weak_hbond = FormField(LineForm, label='Weak Hydrogen', default=line_settings['weak_hbond'])
+    polar = FormField(LineForm, label='Polar', default=line_settings['polar'])
+    weak_polar = FormField(LineForm, label='Weak Polar', default=line_settings['weak_polar'])
+    clash = FormField(LineForm, label='Clash', default=line_settings['clash'])
+    carbonyl = FormField(LineForm, label='Carbonyl', default=line_settings['carbonyl'])
+    # proximal = FormField(LineForm, label='Proximal', default=line_settings['proximal'])
