@@ -15,18 +15,19 @@ color_map = {
     "indigo": (75, 0, 130),
     "violet": (238, 130, 238),
     "black": (0, 0, 0),
-    "plum": (221, 160, 22),
+    "plum": (221, 160, 221),
     "white": (255, 255, 255),
     "maroon": (128, 0, 0),
-    "darkcyan": (0, 139, 139),
+    "cyan": (0, 255, 255),
     "slategrey": (112, 128, 144),
-    "purple": (128, 0, 128),
+    "purple": (104, 0, 104),
     "grey": (192, 192, 192),
     "sienna": (160, 82, 45),
     "brown": (165, 42, 42),
     "lavender": (230, 230, 250),
+    "magenta": (255, 0, 255),
+    "steelblue": (88, 88, 167)
 }
-
 
 class NanomeColorField(Field):
 
@@ -52,35 +53,23 @@ class LineForm(Form):
         return line
 
 
-def default_data(color_name, visible=True, **kwargs):
-    """Set line attributes requested for each interaction type."""
-    color_rgb = color_map[color_name]
-    data = {
-        'visible': visible,
-        'color': color_rgb,
-        **kwargs
-    }
-    return data
-
-
-donut_line_settings = dict(thickness=0.2, dash_length=0.1, dash_distance=0.25)
-
+disc_line_settings = dict(thickness=0.2, dash_length=0.1, dash_distance=0.25)
 interaction_settings = {
     'covalent': {'visible': True, 'color': color_map['yellow']},
     'hbond': {'visible': True, 'color': color_map['blue']},
     'ionic': {'visible': True, 'color': color_map['red']},
     'xbond': {'visible': True, 'color': color_map['green']},
-    'metal_complex': {'visible': True, 'color': color_map['black']},
-    'aromatic': {'visible': True, 'color': color_map['grey']},
-    'hydrophobic': {'visible': True, 'color': color_map['purple'], **donut_line_settings},
-    'vdw': {'visible': True, 'color': color_map['sienna']},
-    'vdw_clash': {'visible': True, 'color': color_map['plum']},
-    'weak_hbond': {'visible': True, 'color': color_map['orange']},
-    'polar': {'visible': True, 'color': color_map['darkcyan']},
-    'weak_polar': {'visible': True, 'color': color_map['brown']},
-    'clash': {'visible': True, 'color': color_map['white']},
-    'carbonyl': {'visible': True, 'color': color_map['slategrey']},
-    'proximal': {'visible': True, 'color': color_map['lavender']},
+    'metal_complex': {'visible': True, 'color': color_map['grey']},
+    'aromatic': {'visible': True, 'color': color_map['magenta']},
+    'hydrophobic': {'visible': False, 'color': color_map['purple'], **disc_line_settings},
+    'vdw': {'visible': False, 'color': color_map['sienna']},
+    'vdw_clash': {'visible': False, 'color': color_map['plum']},
+    'weak_hbond': {'visible': False, 'color': color_map['orange']},
+    'polar': {'visible': False, 'color': color_map['cyan']},
+    'weak_polar': {'visible': False, 'color': color_map['steelblue']},
+    'clash': {'visible': False, 'color': color_map['white']},
+    'carbonyl': {'visible': False, 'color': color_map['slategrey']},
+    # 'proximal': {'visible': True, 'color': color_map['lavender']},
 }
 
 
@@ -100,4 +89,4 @@ class InteractionsForm(Form):
     weak_polar = FormField(LineForm, label='Weak Polar', default=interaction_settings['weak_polar'])
     clash = FormField(LineForm, label='Clash', default=interaction_settings['clash'])
     carbonyl = FormField(LineForm, label='Carbonyl', default=interaction_settings['carbonyl'])
-    proximal = FormField(LineForm, label='Proximal', default=interaction_settings['proximal'])
+    # proximal = FormField(LineForm, label='Proximal', default=interaction_settings['proximal'])
