@@ -80,7 +80,7 @@ class ChemInteractionsMenu():
             for item in self.ls_complexes.items
             if item.get_content().selected]
 
-        selected_complexes = [comp for comp in self.context['complexes'] if comp.index in selected_complex_indices]
+        selected_complexes = [comp for comp in self.complexes if comp.index in selected_complex_indices]
 
         selected_residue = getattr(self, 'residue', None)
         residue_complex = getattr(self, 'residue_complex', None)
@@ -158,6 +158,7 @@ class ChemInteractionsMenu():
             ln.add_child(ln_dropdown)
             interactions.append(ln)
         self.ls_interactions.items = interactions
+        self.plugin.update_content(self.ls_interactions)
 
     def change_interaction_color(self, dropdown, item):
         self.update_interaction_lines()
@@ -191,16 +192,18 @@ class ChemInteractionsMenu():
     def enabled(self, value):
         self._menu.enabled = value
 
-    def render(self, context):
-        self.context = context
-        complexes = context['complexes']
-        self.index_to_complex = {}
-
+    async def render(self, complexes=None):
+        complexes = complexes or []
         self.populate_ls_interactions()
         self.display_complexes(complexes)
-        self.display_ligands(complexes)
+        self.plugin.update_menu(self._menu)
+        deep_complexes = await self.plugin.request_complexes([c.index for c in complexes])
+        self.display_ligands(deep_complexes)
+        self.plugin.update_menu(self._menu)
 
-    @staticmethod
+        self.complexes = complexes
+
+    @staticmethod 
     def next_alpha(s):
         """return next letter alphabetically."""
         return chr((ord(s.upper()) + 1 - 65) % 26 + 65).lower()
@@ -210,8 +213,6 @@ class ChemInteractionsMenu():
         btn_labels = []
         self.ls_complexes.items = []
         for complex in complexes:
-            self.index_to_complex[complex.index] = complex
-
             if complex.name not in btn_labels:
                 btn_label = complex.name
             else:
@@ -228,6 +229,7 @@ class ChemInteractionsMenu():
             btn_complex.ln = ln_complex
             btn_complex.register_pressed_callback(self.toggle_complex)
             self.ls_complexes.items.append(ln_complex)
+        self.plugin.update_content(self.ls_complexes)
 
     def toggle_complex(self, btn_complex):
         # clear ligand list
@@ -274,9 +276,6 @@ class ChemInteractionsMenu():
         self.ls_ligands.items = []
 
         for complex in complexes:
-            # update the complex map for the actual request
-            self.index_to_complex[complex.index] = complex
-
             # populate ligand list
             pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
             complex.io.to_pdb(pdb_file.name, PDBOPTIONS)

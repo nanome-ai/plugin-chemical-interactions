@@ -21,7 +21,6 @@ PDBOPTIONS.write_bonds = True
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def start(self):
-        self.index_to_complex = {}
         self.residue = ''
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self.menu = ChemInteractionsMenu(self)
@@ -31,21 +30,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_run(self):
         self.menu.enabled = True
         complex_list = await self.request_complex_list()
-        deep_complexes = await self.request_complexes([c.index for c in complex_list])
-        self.refresh_menu(complexes=deep_complexes)
+        await self.refresh_menu(complexes=complex_list)
 
     @async_callback
     async def on_complex_list_updated(self, complex_list):
-        complexes = await self.request_complexes([comp.index for comp in complex_list])
-        self.refresh_menu(complexes=complexes)
+        await self.refresh_menu(complexes=complex_list)
 
-    def refresh_menu(self, complexes=None, **kwargs):
+    async def refresh_menu(self, complexes=None, **kwargs):
         complexes = complexes or []
-        context = {
-            'complexes': complexes
-        }
-        self.menu.render(context)
-        self.update_menu(self.menu._menu)
+        await self.menu.render(complexes=complexes)
 
     @async_callback
     async def on_complex_added(self):
@@ -90,7 +83,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         comp = complexes[0]
         # If residue not part of selected complex, we need to combine the complexes into one pdb
-        if residue_complex != comp:
+        if residue_complex.index != comp.index:
             comp = ComplexUtils.combine_ligands(comp, [residue_complex], comp)
 
         # Clean complex and return as TempFile
