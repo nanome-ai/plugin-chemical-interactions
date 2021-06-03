@@ -52,7 +52,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
-        temp_file = tempfile.NamedTemporaryFile()
+        temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
         complex.io.to_pdb(temp_file.name, PDBOPTIONS)
         with open(temp_file.name, 'r') as pdb_stream:
             pdb_contents = pdb_stream.read()

@@ -37,9 +37,9 @@ class ChemInteractionsMenu():
         self.display_complexes(complexes)
         self.plugin.update_menu(self._menu)
         deep_complexes = await self.plugin.request_complexes([c.index for c in complexes])
+        self.complexes = deep_complexes
         self.display_ligands(deep_complexes)
         self.plugin.update_menu(self._menu)
-        self.complexes = complexes
     
     def display_complexes(self, complexes):
         # populate ui and state

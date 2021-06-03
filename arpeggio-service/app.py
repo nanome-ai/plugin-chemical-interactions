@@ -22,9 +22,6 @@ def clean():
         os.mkdir(temp_dir)
 
     input_filename = input_file.filename
-    if not input_filename.endswith('.pdb'):
-        input_filename += '.pdb'
-
     input_filepath = '{}/{}'.format(temp_dir, input_filename)
     input_file.save(input_filepath)
     os.system('python clean_pdb.py {}'.format(input_filepath))
@@ -54,8 +51,6 @@ def index():
         os.mkdir(temp_dir)
 
     input_filename = input_file.filename
-    if not input_filename.endswith('.pdb'):
-        input_filename += '.pdb'
     input_filepath = '{}/{}'.format(temp_dir, input_filename)
     input_file.save(input_filepath)
 
