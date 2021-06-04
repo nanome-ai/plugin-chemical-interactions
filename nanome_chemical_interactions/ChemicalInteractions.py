@@ -247,5 +247,4 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             color = Color(*form_data['color'])
             color.a = 0 if not form_data['visible'] else 255
             new_colors.extend([color.r, color.g, color.b, color.a])
-            # asyncio.create_task(self.upload_line(line))
         stream.update(new_colors)
