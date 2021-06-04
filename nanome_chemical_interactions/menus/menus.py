@@ -43,7 +43,7 @@ class ChemInteractionsMenu():
         self.complexes = deep_complexes
         self.display_ligands(deep_complexes)
         self.plugin.update_menu(self._menu)
-    
+
     def display_complexes(self, complexes):
         # populate ui and state
         btn_labels = []
@@ -90,7 +90,8 @@ class ChemInteractionsMenu():
 
         self.plugin.update_content(self.ls_ligands)
 
-    def toggle_interactions(self, btn):
+    @async_callback
+    async def toggle_interactions(self, btn):
         btn.selected = not btn.selected
         txt_selected = 'Hide All'
         txt_unselected = 'Show all'
@@ -104,7 +105,7 @@ class ChemInteractionsMenu():
             btn = next(c for c in content if isinstance(c, Button))
             btn.selected = selected_value
         self.plugin.update_menu(self._menu)
-        self.update_interaction_lines()
+        await self.update_interaction_lines()
 
     def collect_interaction_data(self):
         """Collect Interaction data from various content widgets."""
@@ -135,7 +136,8 @@ class ChemInteractionsMenu():
             for item in self.ls_complexes.items
             if item.get_content().selected]
 
-        selected_complexes = [comp for comp in self.complexes if comp.index in selected_complex_indices]
+        selected_complexes = [
+            comp for comp in self.complexes if comp.index in selected_complex_indices]
 
         selected_residue = getattr(self, 'residue', None)
         residue_complex = getattr(self, 'residue_complex', None)
@@ -146,10 +148,12 @@ class ChemInteractionsMenu():
         if selected_complexes and not selected_residue:
             error_msg = 'Please Select a Ligand'
         if error_msg:
-            self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
+            self.plugin.send_notification(
+                nanome.util.enums.NotificationTypes.error, error_msg)
             return
         interaction_data = self.collect_interaction_data()
-        self.plugin.get_interactions(selected_complexes, self.residue, residue_complex, interaction_data)
+        self.plugin.get_interactions(
+            selected_complexes, self.residue, residue_complex, interaction_data)
 
     def color_dropdown(self):
         dropdown_items = []
@@ -194,7 +198,8 @@ class ChemInteractionsMenu():
 
             ln_dropdown = list_item_ln.clone()
             dropdown = self.color_dropdown()
-            dropdown.register_item_clicked_callback(self.change_interaction_color)
+            dropdown.register_item_clicked_callback(
+                self.change_interaction_color)
             ln_dropdown.set_content(dropdown)
             ln_dropdown.set_size_ratio(0.4)
             ln_dropdown.forward_dist = .001
@@ -215,17 +220,20 @@ class ChemInteractionsMenu():
         self.ls_interactions.items = interactions
         self.plugin.update_content(self.ls_interactions)
 
-    def change_interaction_color(self, dropdown, item):
-        self.update_interaction_lines()
+    @async_callback
+    async def change_interaction_color(self, dropdown, item):
+        await self.update_interaction_lines()
 
-    def toggle_visibility(self, btn):
+    @async_callback
+    async def toggle_visibility(self, btn):
         btn.selected = not btn.selected
         self.plugin.update_content(btn)
-        self.update_interaction_lines()
+        await self.update_interaction_lines()
 
-    def update_interaction_lines(self):
+    @async_callback
+    async def update_interaction_lines(self):
         interaction_data = self.collect_interaction_data()
-        self.plugin.update_interaction_lines(interaction_data)
+        await self.plugin.update_interaction_lines(interaction_data)
 
     @property
     def index(self):
@@ -243,7 +251,7 @@ class ChemInteractionsMenu():
     def enabled(self, value):
         self._menu.enabled = value
 
-    @staticmethod 
+    @staticmethod
     def next_alpha(s):
         """return next letter alphabetically."""
         return chr((ord(s.upper()) + 1 - 65) % 26 + 65).lower()
