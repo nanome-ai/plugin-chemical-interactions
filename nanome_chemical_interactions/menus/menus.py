@@ -135,8 +135,7 @@ class ChemInteractionsMenu():
             for item in self.ls_complexes.items
             if item.get_content().selected]
 
-        selected_complexes = [
-            comp for comp in self.complexes if comp.index in selected_complex_indices]
+        selected_complexes = [comp for comp in self.complexes if comp.index in selected_complex_indices]
 
         selected_residue = getattr(self, 'residue', None)
         residue_complex = getattr(self, 'residue_complex', None)
@@ -147,12 +146,10 @@ class ChemInteractionsMenu():
         if selected_complexes and not selected_residue:
             error_msg = 'Please Select a Ligand'
         if error_msg:
-            self.plugin.send_notification(
-                nanome.util.enums.NotificationTypes.error, error_msg)
+            self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
         interaction_data = self.collect_interaction_data()
-        self.plugin.get_interactions(
-            selected_complexes, self.residue, residue_complex, interaction_data)
+        self.plugin.get_interactions(selected_complexes, self.residue, residue_complex, interaction_data)
 
     def color_dropdown(self):
         dropdown_items = []
@@ -197,8 +194,7 @@ class ChemInteractionsMenu():
 
             ln_dropdown = list_item_ln.clone()
             dropdown = self.color_dropdown()
-            dropdown.register_item_clicked_callback(
-                self.change_interaction_color)
+            dropdown.register_item_clicked_callback(self.change_interaction_color)
             ln_dropdown.set_content(dropdown)
             ln_dropdown.set_size_ratio(0.4)
             ln_dropdown.forward_dist = .001
