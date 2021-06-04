@@ -90,8 +90,7 @@ class ChemInteractionsMenu():
 
         self.plugin.update_content(self.ls_ligands)
 
-    @async_callback
-    async def toggle_interactions(self, btn):
+    def toggle_interactions(self, btn):
         btn.selected = not btn.selected
         txt_selected = 'Hide All'
         txt_unselected = 'Show all'
@@ -105,7 +104,7 @@ class ChemInteractionsMenu():
             btn = next(c for c in content if isinstance(c, Button))
             btn.selected = selected_value
         self.plugin.update_menu(self._menu)
-        await self.update_interaction_lines()
+        self.update_interaction_lines()
 
     def collect_interaction_data(self):
         """Collect Interaction data from various content widgets."""
@@ -220,15 +219,14 @@ class ChemInteractionsMenu():
         self.ls_interactions.items = interactions
         self.plugin.update_content(self.ls_interactions)
 
-    @async_callback
-    async def change_interaction_color(self, dropdown, item):
-        await self.update_interaction_lines()
 
-    @async_callback
-    async def toggle_visibility(self, btn):
+    def change_interaction_color(self, dropdown, item):
+        self.update_interaction_lines()
+
+    def toggle_visibility(self, btn):
         btn.selected = not btn.selected
         self.plugin.update_content(btn)
-        await self.update_interaction_lines()
+        self.update_interaction_lines()
 
     @async_callback
     async def update_interaction_lines(self):
