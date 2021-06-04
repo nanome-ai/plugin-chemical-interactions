@@ -51,11 +51,12 @@ class LineForm(Form):
         for attr, value in self.data.items():
             if hasattr(line, attr):
                 setattr(line, attr, value)
+        if not self.data['visible']:
+            line.color.a = 0
         return line
 
 
 disc_line_settings = dict(thickness=0.2, dash_length=0.1, dash_distance=0.25)
-
 line_settings = {
     'covalent': {'visible': True, 'color': color_map['yellow']},
     'hbond': {'visible': True, 'color': color_map['blue']},

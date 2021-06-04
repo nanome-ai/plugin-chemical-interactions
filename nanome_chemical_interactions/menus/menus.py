@@ -43,7 +43,7 @@ class ChemInteractionsMenu():
         self.complexes = deep_complexes
         self.display_ligands(deep_complexes)
         self.plugin.update_menu(self._menu)
-    
+
     def display_complexes(self, complexes):
         # populate ui and state
         btn_labels = []
@@ -215,6 +215,7 @@ class ChemInteractionsMenu():
         self.ls_interactions.items = interactions
         self.plugin.update_content(self.ls_interactions)
 
+
     def change_interaction_color(self, dropdown, item):
         self.update_interaction_lines()
 
@@ -223,9 +224,10 @@ class ChemInteractionsMenu():
         self.plugin.update_content(btn)
         self.update_interaction_lines()
 
-    def update_interaction_lines(self):
+    @async_callback
+    async def update_interaction_lines(self):
         interaction_data = self.collect_interaction_data()
-        self.plugin.update_interaction_lines(interaction_data)
+        await self.plugin.update_interaction_lines(interaction_data)
 
     @property
     def index(self):
@@ -243,7 +245,7 @@ class ChemInteractionsMenu():
     def enabled(self, value):
         self._menu.enabled = value
 
-    @staticmethod 
+    @staticmethod
     def next_alpha(s):
         """return next letter alphabetically."""
         return chr((ord(s.upper()) + 1 - 65) % 26 + 65).lower()

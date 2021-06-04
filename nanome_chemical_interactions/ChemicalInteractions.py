@@ -89,7 +89,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
             cleaned_data = f.read()
-        
+
         filename = cleaned_file.name.split('/')[-1]
         files = {filename: cleaned_data}
 
@@ -235,10 +235,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for line in line_list:
             line.destroy()
 
-    def update_interaction_lines(self, interaction_data):
+    async def update_interaction_lines(self, interaction_data):
+        stream_type = nanome.api.streams.Stream.Type.shape_color.value
+        line_indices = [line.index for line in self._interaction_lines]
+        stream, _ = await self.create_writing_stream(line_indices, stream_type)
+
+        new_colors = []
         for line in self._interaction_lines:
             line_type = line.interaction_type
             form_data = interaction_data[line_type]
-            line.color = Color(*form_data['color'])
-            line.color.a = 0 if not form_data['visible'] else 255
-            asyncio.create_task(self.upload_line(line))
+            color = Color(*form_data['color'])
+            color.a = 0 if not form_data['visible'] else 255
+            new_colors.extend([color.r, color.g, color.b, color.a])
+        stream.update(new_colors)
