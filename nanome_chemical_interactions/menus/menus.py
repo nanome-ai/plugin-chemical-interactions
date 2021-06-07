@@ -299,7 +299,7 @@ class ChemInteractionsMenu():
         for ln in set(self.ls_ligands.items) - {btn_ligand.ln}:
             ln.get_content().selected = False
 
-        # modify state
+        # Add residue data to button
         if btn_ligand.selected:
             self.residue = btn_ligand.ligand
             self.residue_complex = btn_ligand.complex
