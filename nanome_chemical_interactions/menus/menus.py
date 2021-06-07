@@ -33,21 +33,11 @@ class ChemInteractionsMenu():
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_interactions)
         self.complex_indices = set()
 
-    @async_callback
-    async def render(self, complexes=None):
-        complexes = complexes or []
-        self.populate_ls_interactions()
-        self.display_complexes(complexes)
-        self.plugin.update_menu(self._menu)
-        deep_complexes = await self.plugin.request_complexes([c.index for c in complexes])
-        self.complexes = deep_complexes
-        self.display_ligands(deep_complexes)
-        self.plugin.update_menu(self._menu)
 
-    def display_complexes(self, complexes):
-        # populate ui and state
+    def create_complex_btns(self, complexes):
+        """Generate list of buttons corresponding to provided complexes."""
+        complex_btns = []
         btn_labels = []
-        self.ls_complexes.items = []
         for complex in complexes:
             if complex.name not in btn_labels:
                 btn_label = complex.name
@@ -58,36 +48,56 @@ class ChemInteractionsMenu():
                     btn_label = f'{complex.name} {{{letter}}}'
                     letter = self.next_alpha(letter)
             btn_labels.append(complex.name)
+            ln_btn = nanome.ui.LayoutNode()
+            btn = ln_btn.add_new_button(btn_label)
+            btn.complex = complex
+            btn.complex_index = complex.index
+            complex_btns.append(ln_btn)
+        return complex_btns
 
-            ln_complex = nanome.ui.LayoutNode()
-            btn_complex = ln_complex.add_new_button(btn_label)
-            btn_complex.complex_index = complex.index
-            btn_complex.ln = ln_complex
-            btn_complex.register_pressed_callback(self.toggle_complex)
-            self.ls_complexes.items.append(ln_complex)
+    @async_callback
+    async def render(self, complexes=None):
+        complexes = complexes or []
+        self.populate_ls_interactions()
+
+        self.display_complexes(complexes)
+        self.plugin.update_menu(self._menu)
+        # deep_complexes = await self.plugin.request_complexes([c.index for c in complexes])
+        # self.complexes = deep_complexes
+        self.display_ligands()
+        self.plugin.update_menu(self._menu)
+
+    def display_complexes(self, complexes):
+        btns = self.create_complex_btns(complexes)
+        btn_labels = []
+        self.ls_complexes.items = []
+        for ln_btn in btns:
+            btn = ln_btn.get_content()
+            complex = btn.complex
+            btn.register_pressed_callback(self.toggle_complex)
+        self.ls_complexes.items = btns
         self.plugin.update_content(self.ls_complexes)
 
-    def display_ligands(self, complexes):
+    def display_ligands(self):
         # clear ligands list
-        self.ls_ligands.items = []
-        for complex in complexes:
-            # populate ligand list
-            pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
-            complex.io.to_pdb(pdb_file.name, PDBOPTIONS)
-            try:
-                ligands = extract_ligands(pdb_file)
-            except KeyError:
-                continue
+        self.ls_ligands.items = [btn.clone() for btn in self.ls_complexes.items]
+        # for complex in complexes:
+        #     # populate ligand list
+        #     pdb_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
+        #     complex.io.to_pdb(pdb_file.name, PDBOPTIONS)
+        #     try:
+        #         ligands = extract_ligands(pdb_file)
+        #     except KeyError:
+        #         continue
 
-            for lig in ligands:
-                ln_ligand = nanome.ui.LayoutNode()
-                btn_ligand = ln_ligand.add_new_button(lig.resname)
-                btn_ligand.ligand = lig
-                btn_ligand.ln = ln_ligand
-                btn_ligand.complex = complex
-                btn_ligand.register_pressed_callback(self.toggle_ligand)
-                self.ls_ligands.items.append(ln_ligand)
-
+        #     for lig in ligands:
+        #         ln_ligand = nanome.ui.LayoutNode()
+        #         btn_ligand = ln_ligand.add_new_button(lig.resname)
+        #         btn_ligand.ligand = lig
+        #         btn_ligand.ln = ln_ligand
+        #         btn_ligand.complex = complex
+        #         btn_ligand.register_pressed_callback(self.toggle_ligand)
+        #         self.ls_ligands.items.append(ln_ligand)
         self.plugin.update_content(self.ls_ligands)
 
     def toggle_interactions(self, btn):
@@ -261,11 +271,9 @@ class ChemInteractionsMenu():
         for item in (set(self.ls_complexes.items) - {btn_complex.ln}):
             item.get_content().selected = False
 
-        # modify state
-        if btn_complex.selected:
-            self.complex_indices.add(btn_complex.complex_index)
-        else:
-            self.complex_indices.discard(btn_complex.complex_index)
+        # Update Ligands List
+        comp = btn_complex.complex
+        self.ls_ligands.items = self.ls_complexes.clone().items
 
         # update ui
         self.plugin.update_content(self.ls_complexes)
