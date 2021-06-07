@@ -68,6 +68,7 @@ class ChemInteractionsMenu():
     @async_callback
     async def render(self, complexes=None):
         complexes = complexes or []
+        self.complexes = complexes
         self.populate_ls_interactions()
 
         self.display_complexes(complexes, self.ls_complexes)
@@ -258,14 +259,21 @@ class ChemInteractionsMenu():
         for item in (set(self.ls_complexes.items) - {btn.ln}):
             item.get_content().selected = False
         self.plugin.update_content(self.ls_complexes) 
-        comp = btn.complex
 
-        deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
-        temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
-        deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
-        ligands = extract_ligands(temp_file)
-        ligand_btns = self.create_structure_btns(ligands)
-        self.ls_ligands.items.extend(ligand_btns)
+        if btn.selected:
+            # Pull out ligands from complex and add them to ligands list
+            comp = btn.complex
+            deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
+            temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
+            deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
+            ligands = extract_ligands(temp_file)
+            ligand_btns = self.create_structure_btns(ligands)
+            self.ls_ligands.items.extend(ligand_btns)
+        else:
+            # Reset ligands list to default if nothing is selected
+            ligand_btns = self.create_structure_btns(self.complexes)
+            self.ls_ligands.items = ligand_btns
+  
         self.plugin.update_content(self.ls_ligands)
 
     def toggle_ligand(self, btn_ligand):
