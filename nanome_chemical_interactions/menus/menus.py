@@ -23,12 +23,12 @@ class ChemInteractionsMenu():
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self._menu = nanome.ui.Menu.io.from_json(MENU_PATH)
 
-        self.ln_complexes = self._menu.root.find_node('Complex Choices')
+        self.ls_complexes = self._menu.root.find_node('Complex List').get_content()
         self.ls_ligands = self._menu.root.find_node('Ligands List').get_content()
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
-
+        
         self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_interactions)
         self.complex_indices = set()
@@ -132,7 +132,7 @@ class ChemInteractionsMenu():
     def submit_form(self, btn):
         selected_complex_indices = [
             item.get_content().complex_index
-            for item in self.ln_complexes.items
+            for item in self.ls_complexes.items
             if item.get_content().selected]
 
         selected_complexes = [comp for comp in self.complexes if comp.index in selected_complex_indices]
@@ -150,29 +150,6 @@ class ChemInteractionsMenu():
             return
         interaction_data = self.collect_interaction_data()
         self.plugin.get_interactions(selected_complexes, self.residue, residue_complex, interaction_data)
-
-    def complex_dropdown(self, complexes):
-        dropdown_items = []
-
-        # complex_names = []
-        for comp in complexes:
-            ddi_text = comp.name
-            # if dd_txt not in complex_names:
-            #     dd_text = complex.name
-            # else:
-            #     # Find unique complex name.
-            #     letter = 'a'
-            #     while dd_text in complex_names:
-            #         dd_text = f'{complex.name} {{{letter}}}'
-            #         letter = self.next_alpha(letter)
-            # complex_names.append(complex.name)
-            dd_item = DropdownItem(ddi_text)
-            dd_item.complex = comp
-            dropdown_items.append(dd_item)
-        dropdown = Dropdown()
-        dropdown.max_displayed_items = 6
-        dropdown.items = dropdown_items
-        return dropdown
 
     def color_dropdown(self):
         dropdown_items = []
@@ -238,6 +215,7 @@ class ChemInteractionsMenu():
         self.ls_interactions.items = interactions
         self.plugin.update_content(self.ls_interactions)
 
+
     def change_interaction_color(self, dropdown, item):
         self.update_interaction_lines()
 
@@ -280,7 +258,7 @@ class ChemInteractionsMenu():
         btn_complex.selected = not btn_complex.selected
 
         # deselect everything else
-        for item in (set(self.ln_complexes.items) - {btn_complex.ln}):
+        for item in (set(self.ls_complexes.items) - {btn_complex.ln}):
             item.get_content().selected = False
 
         # modify state
@@ -290,7 +268,7 @@ class ChemInteractionsMenu():
             self.complex_indices.discard(btn_complex.complex_index)
 
         # update ui
-        self.plugin.update_content(self.ln_complexes)
+        self.plugin.update_content(self.ls_complexes)
         self.plugin.update_content(self.ls_ligands)
 
     def toggle_ligand(self, btn_ligand):
