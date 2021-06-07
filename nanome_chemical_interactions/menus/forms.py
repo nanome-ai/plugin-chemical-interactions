@@ -8,10 +8,10 @@ BASE_PATH = path.dirname(path.realpath(__file__))
 
 color_map = {
     "red": (255, 0, 0),
-    "orange": (217, 91, 0),
+    "orange": (242, 128, 0),
     "yellow": (255, 255, 0),
     "green": (0, 128, 0),
-    "blue": (0, 0, 255),
+    "blue": (0, 80, 90),
     "indigo": (75, 0, 130),
     "violet": (238, 130, 238),
     "black": (0, 0, 0),
