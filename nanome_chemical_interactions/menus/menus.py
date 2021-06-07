@@ -2,7 +2,6 @@ import nanome
 import tempfile
 from Bio.PDB.Residue import Residue as BioResidue
 from nanome.util.asyncio import async_callback
-from numpy.lib.arraysetops import isin
 from utils import extract_ligands
 from os import environ, path
 
