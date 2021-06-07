@@ -34,24 +34,22 @@ class ChemInteractionsMenu():
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_interactions)
         self.complex_indices = set()
 
-    def create_structure_btns(self, complexes):
+    def create_structure_btns(self, structures):
         """Generate list of buttons corresponding to provided complexes."""
         complex_btns = []
         btn_labels = []
 
-        for complex in complexes:
+        for struct in structures:
             struct_name = ''
-            index = None
-            if isinstance(complex, Complex):
-                struct_name = complex.name
-                index = complex.index
-            elif isinstance(complex, BioResidue):
-                struct_name = complex.resname
+            if isinstance(struct, Complex):
+                struct_name = struct.name
+            elif isinstance(struct, BioResidue):
+                struct_name = struct.resname
 
             if struct_name not in btn_labels:
                 btn_label = struct_name
             else:
-                # Find unique complex name.
+                # Find unique struct name.
                 letter = 'a'
                 while btn_label in btn_labels:
                     btn_label = f'{struct_name} {{{letter}}}'
@@ -59,8 +57,13 @@ class ChemInteractionsMenu():
             btn_labels.append(struct_name)
             ln_btn = nanome.ui.LayoutNode()
             btn = ln_btn.add_new_button(btn_label)
-            btn.complex = complex
-            btn.complex_index = index
+            
+            if isinstance(struct, Complex):
+                btn.complex = struct
+                btn.complex_index = struct.index
+            elif isinstance(struct, BioResidue):
+                btn.ligand = struct
+
             btn.ln = ln_btn
             complex_btns.append(ln_btn)
         return complex_btns
@@ -71,23 +74,21 @@ class ChemInteractionsMenu():
         self.complexes = complexes
         self.populate_ls_interactions()
 
-        self.display_complexes(complexes, self.ls_complexes)
-        self.display_complexes(complexes, self.ls_ligands)
+        self.display_structures(complexes, self.ls_complexes)
+        self.display_structures(complexes, self.ls_ligands)
 
-        self.plugin.update_menu(self._menu)
-        # deep_complexes = await self.plugin.request_complexes([c.index for c in complexes])
-        # self.complexes = deep_complexes
-        # self.display_ligands(complexes)
-        self.plugin.update_menu(self._menu)
-
-    def display_complexes(self, complexes, ui_list):
-        btns = self.create_structure_btns(complexes)
-        btn_labels = []
-        ui_list.items = []
-        for ln_btn in btns:
+        for ln_btn in self.ls_complexes.items:
             btn = ln_btn.get_content()
-            complex = btn.complex
             btn.register_pressed_callback(self.toggle_complex)
+        
+        for ln_btn in self.ls_ligands.items:
+            btn = ln_btn.get_content()
+            btn.register_pressed_callback(self.toggle_ligand)
+
+        self.plugin.update_menu(self._menu)
+
+    def display_structures(self, complexes, ui_list):
+        btns = self.create_structure_btns(complexes)
         ui_list.items = btns
         self.plugin.update_content(ui_list)
 
@@ -136,8 +137,12 @@ class ChemInteractionsMenu():
             for item in self.ls_complexes.items
             if item.get_content().selected]
 
-        selected_complexes = [comp for comp in self.complexes if comp.index in selected_complex_indices]
-
+        # Find deep complex saved on button
+        selected_complexes = [
+            getattr(item.get_content(), 'complex', None)
+            for item in self.ls_complexes.items
+            if getattr(item.get_content(), 'complex').index in selected_complex_indices
+        ]
         selected_residue = getattr(self, 'residue', None)
         residue_complex = getattr(self, 'residue_complex', None)
 
@@ -264,7 +269,7 @@ class ChemInteractionsMenu():
             # Pull out ligands from complex and add them to ligands list
             comp = btn.complex
             deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
-            
+            btn.complex = deep_complex
             # Remove selected complex from ligands list
             for ln in self.ls_ligands.items:
                 if ln.get_content().complex.index == comp.index:
@@ -274,7 +279,10 @@ class ChemInteractionsMenu():
             deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
             ligands = extract_ligands(temp_file)
             ligand_btns = self.create_structure_btns(ligands)
-
+            for ln_btn in ligand_btns:
+                lig_btn = ln_btn.get_content()
+                lig_btn.complex = deep_complex
+                lig_btn.register_pressed_callback(self.toggle_ligand)
             self.ls_ligands.items.extend(ligand_btns)
         else:
             # Reset ligands list to default if nothing is selected
