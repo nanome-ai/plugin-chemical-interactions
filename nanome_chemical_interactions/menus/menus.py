@@ -264,10 +264,17 @@ class ChemInteractionsMenu():
             # Pull out ligands from complex and add them to ligands list
             comp = btn.complex
             deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
+            
+            # Remove selected complex from ligands list
+            for ln in self.ls_ligands.items:
+                if ln.get_content().complex.index == comp.index:
+                    self.ls_ligands.items.remove(ln)
+            
             temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
             deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
             ligands = extract_ligands(temp_file)
             ligand_btns = self.create_structure_btns(ligands)
+
             self.ls_ligands.items.extend(ligand_btns)
         else:
             # Reset ligands list to default if nothing is selected
