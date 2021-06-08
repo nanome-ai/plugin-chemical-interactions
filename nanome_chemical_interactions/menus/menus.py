@@ -31,7 +31,7 @@ class ChemInteractionsMenu():
         self.btn_calculate.register_pressed_callback(self.submit_form)
 
         self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
-        self.btn_toggle_interactions.register_pressed_callback(self.toggle_interactions)
+        self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
         self.complex_indices = set()
 
     @async_callback
@@ -96,7 +96,7 @@ class ChemInteractionsMenu():
         return complex_btns
 
     @async_callback
-    async def toggle_interactions(self, btn):
+    async def toggle_all_interactions(self, btn):
         btn.selected = not btn.selected
         txt_selected = 'Hide All'
         txt_unselected = 'Show all'

@@ -85,7 +85,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if len(list(comp.molecules)) <= 1:
                 update_required = True
                 comp = ComplexUtils.convert_complex_to_frames(comp)
-            if len(list(ligand_complex.molecules)) <= 1:
+            if len(list(ligand_complex.molecules)) <= 1 and ligand_complex.index != comp.index:
                 update_required = True
                 ligand_complex = ComplexUtils.convert_complex_to_frames(ligand_complex)
             if update_required:
@@ -204,13 +204,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         valid_atom_paths = set()
         invalid_atom_paths = set()
 
-        # # If we have frames, make sure we're looking at the correct one
-        # if self.frames_mode:
-        #     current_complex_frame = complex.current_frame
-        #     residue_complex_frame = residue_complex.current_frame
-        #     complex = list(complex.molecules)[current_complex_frame]
-        #     residue_complex = list(residue_complex.molecules)[residue_complex_frame]
-
         for i, row in enumerate(interaction_data):
             print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
@@ -228,8 +221,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             atom1, atom2 = atom_list
-            # ligand_atom = next(a for a in atom_list if a.is_het)
-            # Iterate through columns and draw relevant lines
+
+            # Iterate through csv data and draw relevant lines
             for i, col in enumerate(row[2:], 2):
                 if col == '1':
                     interaction_type = next(
