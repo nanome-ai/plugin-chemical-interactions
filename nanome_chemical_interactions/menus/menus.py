@@ -335,7 +335,7 @@ class ChemInteractionsMenu():
     def update_complex_data(self, new_complex):
         """Replace complex self.complexes with updated data."""
         for i, comp in enumerate(self.complexes):
-            if comp.index == complex.index:
-                self.complexes[i] = complex
+            if comp.index == new_complex.index:
+                self.complexes[i] = new_complex
                 self.complexes[i].register_complex_updated_callback(self.on_complex_updated)
                 return
