@@ -143,6 +143,9 @@ class ChemInteractionsMenu():
             if item.get_content().selected
         ]
 
+        btn.unusable = True
+        btn.text.value.set_all('Calculating...')
+        self.plugin.update_content(btn)
         if len(selected_complexes) != 1:
             raise Exception("Too many selected complexes.")
 
@@ -165,7 +168,11 @@ class ChemInteractionsMenu():
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
         interaction_data = self.collect_interaction_data()
-        self.plugin.get_interactions(selected_complex, self.residue, residue_complex, interaction_data)
+        await self.plugin.get_interactions(selected_complex, self.residue, residue_complex, interaction_data)
+        
+        btn.unusable = False
+        btn.text.value.set_all('Calculate')
+        self.plugin.update_content(btn)
 
     def color_dropdown(self):
         dropdown_items = []
@@ -282,6 +289,9 @@ class ChemInteractionsMenu():
         self.plugin.update_content(self.ls_complexes)
 
         if btn.selected:
+            self.btn_calculate.unusable = True
+            self.btn_calculate.text.value.set_all('Extracting Ligands...')
+            self.plugin.update_content(self.btn_calculate)
             # Pull out ligands from complex and add them to ligands list
             comp = btn.complex
             deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
@@ -306,6 +316,9 @@ class ChemInteractionsMenu():
             ligand_btns = self.create_structure_btns(self.complexes)
             self.ls_ligands.items = ligand_btns
 
+        self.btn_calculate.unusable = False
+        self.btn_calculate.text.value.set_all('Calculate')
+        self.plugin.update_content(self.btn_calculate)
         self.plugin.update_content(self.ls_ligands)
 
     def toggle_ligand(self, btn_ligand):
