@@ -181,10 +181,14 @@ class ChemInteractionsMenu():
 
             list_item_ln = nanome.ui.LayoutNode()
             ln_btn = list_item_ln.clone()
+            ln_btn.set_padding(left=0.01)
             ln_btn.add_new_button("")
-            ln_btn.set_size_ratio(0.1)
+            ln_btn.set_size_ratio(0.07)
             btn = ln_btn.get_content()
-
+            btn.mesh.active = True
+            btn.mesh.enabled.set_all(False)
+            btn.mesh.enabled.set_each(selected=True)
+            btn.mesh.color.set_each(selected=btn.outline.color.selected)
             ln.line_data = field.default
             is_visible = field.default.get('visible', True)
             btn.selected = is_visible
