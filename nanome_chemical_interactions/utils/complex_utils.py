@@ -19,9 +19,12 @@ class ComplexUtils:
     @staticmethod
     def combine_ligands(receptor, ligands, target=None):
         combined_ligands = target or nanome.structure.Complex()
+        if not target:
+            combined_ligands.add_molecule(nanome.structure.Molecule())
+
+        mol = list(combined_ligands.molecules)[combined_ligands.current_frame]
         for ligand in ligands:
             ComplexUtils.align_to(ligand, receptor)
-            mol = next(combined_ligands.molecules)
             ligand_mol = list(ligand.molecules)[ligand.current_frame]
             for chain in ligand_mol.chains:
                 mol.add_chain(chain)
