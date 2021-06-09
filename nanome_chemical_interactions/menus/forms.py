@@ -51,10 +51,10 @@ class LineForm(Form):
         for attr, value in self.data.items():
             if hasattr(line, attr):
                 setattr(line, attr, value)
+
         if not self.data['visible']:
             line.color.a = 0
         return line
-
 
 disc_line_settings = dict(thickness=0.2, dash_length=0.1, dash_distance=0.25)
 line_settings = {
@@ -72,7 +72,7 @@ line_settings = {
     'weak_polar': {'visible': False, 'color': color_map['steelblue']},
     'clash': {'visible': False, 'color': color_map['white']},
     'carbonyl': {'visible': False, 'color': color_map['slategrey']},
-    # 'proximal': {'visible': True, 'color': color_map['lavender']},
+    # 'proximal': {'visible': False, 'color': color_map['lavender']},
 }
 
 

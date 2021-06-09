@@ -11,6 +11,14 @@
             "program": "run.py",
             "args": ["-a", "nts-dev.nanome.ai", "-p", "9999"],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "run.py Local NTS",
+            "type": "python",
+            "request": "launch",
+            "program": "run.py",
+            "args": ["-a", "192.168.50.31", "-p", "8888"],
+            "console": "integratedTerminal"
         }
     ]
 }
