@@ -77,7 +77,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         ligand_complex: Complex object. Can be the same as comp.
         interactions data: Data accepted by InteractionsForm.
         """
-        await asyncio.create_task(self.destroy_lines(self._interaction_lines))
+        # await asyncio.create_task(self.destroy_lines(self._interaction_lines))
     
         # Convert complexes to frames if that setting is enabled
         if self.frames_mode:
@@ -96,8 +96,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         comp = c
                     elif c.index == ligand_complex.index:
                         ligand_complex = c
-
-        self._interaction_lines = []
 
         # If residue not part of selected complex, we need to combine the complexes into one pdb
         if ligand_complex.index != comp.index:
@@ -286,16 +284,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     if atom.index == atom1_index:
                         atom1 = atom
                     elif atom.index == atom2_index:
-                        atom2 = atom            
-
+                        atom2 = atom
+        
             line_type = line.interaction_type
             form_data = interaction_data[line_type]
-            line_in_frame = all([
-                atom1 is not None,
-                atom2 is not None,
-                line.frames.get(atom1.index, None) == atom1.complex.current_frame,
-                line.frames.get(atom2.index, None) == atom2.complex.current_frame
-            ])
+            
+            line_in_frame = False
+            atoms_found = atom1 is not None and atom2 is not None
+            if atoms_found:
+                line_in_frame = all([
+                    line.frames.get(atom1_index, None) == atom1.complex.current_frame,
+                    line.frames.get(atom2_index, None) == atom2.complex.current_frame
+                ])
 
             # Hide interaction if marked not visible, or if complex frames don't line up.
             hide_interaction = not form_data['visible'] or not line_in_frame
