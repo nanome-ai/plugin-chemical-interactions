@@ -344,7 +344,6 @@ class ChemInteractionsMenu():
         self.update_complex_data(complex)
         self.update_interaction_lines()
 
-    
     def update_complex_data(self, new_complex):
         """Replace complex self.complexes with updated data."""
         for i, comp in enumerate(self.complexes):

@@ -80,19 +80,23 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         await asyncio.create_task(self.destroy_lines(self._interaction_lines))
     
         # Convert complexes to frames if that setting is enabled
-        # if self.frames_mode:
-        #     update_required = False
-        #     if len(list(comp.molecules)) <= 1:
-        #         update_required = True
-        #         comp = ComplexUtils.convert_complex_to_frames(comp)
-        #     if len(list(ligand_complex.molecules)) <= 1 and ligand_complex.index != comp.index:
-        #         update_required = True
-        #         ligand_complex = ComplexUtils.convert_complex_to_frames(ligand_complex)
-        #     if update_required:
-        #         await self.update_structures_deep([comp, ligand_complex])
+        if self.frames_mode:
+            update_required = []
+            if len(list(comp.molecules)) <= 1:
+                comp = ComplexUtils.convert_complex_to_frames(comp)
+                update_required.append(comp)
+            if len(list(ligand_complex.molecules)) <= 1 and ligand_complex.index != comp.index:
+                ligand_complex = ComplexUtils.convert_complex_to_frames(ligand_complex)
+                update_required.append(ligand_complex)
+            if update_required:
+                await self.update_structures_deep(update_required)
+                updates = await self.request_complexes([c.index for c in update_required])
+                for c in updates:
+                    if c.index == comp.index:
+                        comp = c
+                    elif c.index == ligand_complex.index:
+                        ligand_complex = c
 
-        complex_mol = list(comp.molecules)[comp.current_frame]
-        ligand_mol = list(ligand_complex.molecules)[ligand_complex.current_frame]
         self._interaction_lines = []
 
         # If residue not part of selected complex, we need to combine the complexes into one pdb
@@ -114,8 +118,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         else:
             # Parse all residues from ligand complex
             resnames = []
-            ligand_residues = ligand_mol.residues
-
             for residue in ligand_complex.residues:
                 resnames.append(residue.name)
         
@@ -136,6 +138,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         zipfile = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
         with open(zipfile.name, 'wb') as f:
             f.write(response.content)
+
         extract_dir = tempfile.mkdtemp()
         archive_format = "zip"
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
@@ -144,7 +147,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.parse_and_upload(contacts_file, comp, ligand_complex, interaction_data)
 
     @staticmethod
-    def get_atom(complex, ligand_complex, atom_path):
+    def get_atom(complex, atom_path):
         """Return atom corresponding to atom path.
 
         complex: nanome.api.Complex object
@@ -153,8 +156,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         chain_name, res_id, atom_name = atom_path.split('/')
 
         current_molecule = list(complex.molecules)[complex.current_frame]
-        current_ligand_mol = list(ligand_complex.molecules)[ligand_complex.current_frame]
-
         nanome_residues = [
             r for r in current_molecule.residues if all([
                 str(r._serial) == str(res_id),
@@ -211,7 +212,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_list = []
             for a in atom_paths:
                 try:
-                    atom = self.get_atom(complex, ligand_complex, a)
+                    atom = self.get_atom(complex, a)
                     atom_list.append(atom)
                 except Exception:
                     invalid_atom_paths.add(a)
@@ -232,7 +233,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
                     line = self.draw_interaction_line(atom1, atom2, form_data)
                     line.interaction_type = interaction_type
-
                     line.frames = {
                         atom1.index: atom1.complex.current_frame,
                         atom2.index: atom2.complex.current_frame,
@@ -286,9 +286,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     if atom.index == atom1_index:
                         atom1 = atom
                     elif atom.index == atom2_index:
-                        atom2 = atom
+                        atom2 = atom            
 
-            # Determine if frames have changed
             line_type = line.interaction_type
             form_data = interaction_data[line_type]
             line_in_frame = all([
@@ -303,4 +302,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             color = Color(*form_data['color'])
             color.a = 0 if hide_interaction else 255
             new_colors.extend([color.r, color.g, color.b, color.a])
-        stream.update(new_colors)
+
+        if stream and new_colors:
+            stream.update(new_colors)
+        self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction Lines updated!")
