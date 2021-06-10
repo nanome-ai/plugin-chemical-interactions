@@ -223,8 +223,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Iterate through csv data and draw relevant lines
             for i, col in enumerate(row[2:], 2):
                 if col == '1':
-                    interaction_type = next(
-                        key for key, val in interaction_column_index.items() if val == i)
+                    interaction_type = next(key for key, val in interaction_column_index.items() if val == i)
                     form_data = form.data.get(interaction_type)
                     if not form_data:
                         continue
@@ -266,38 +265,31 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for line in line_list:
             line.destroy()
 
-    async def update_interaction_lines(self, interaction_data):
+    async def update_interaction_lines(self, interaction_data, complexes=None):
+        complexes = complexes or []
         stream_type = nanome.api.streams.Stream.Type.shape_color.value
         line_indices = [line.index for line in self._interaction_lines]
         stream, _ = await self.create_writing_stream(line_indices, stream_type)
 
         new_colors = []
         for line in self._interaction_lines:
-            # Get atoms connected to line
-            atom1_index = line.anchors[0].target
-            atom2_index = line.anchors[1].target
+            # Make sure that line is relevant to the current complex frames
+            line_atoms = [anchor.target for anchor in line.anchors]
+            line_in_frame = True
+            for comp in complexes:
+                filtered_atoms = filter(lambda atom: atom.index in line_atoms, comp.atoms)
 
-            atom1 = atom2 = None
-            for comp in self.menu.complexes:
-                filtered_atoms = filter(lambda atom: atom.index in [atom1_index, atom2_index], comp.atoms)
                 for atom in filtered_atoms:
-                    if atom.index == atom1_index:
-                        atom1 = atom
-                    elif atom.index == atom2_index:
-                        atom2 = atom
-        
+                    if atom.complex.name == 'tyl lig' and 'O' in atom.name:
+                        print('hiiii')
+
+                    line_in_frame = line.frames.get(atom.index) == atom.complex.current_frame
+                    if not line_in_frame:
+                        break
+
+            # Parse forms, and add line data to stream
             line_type = line.interaction_type
             form_data = interaction_data[line_type]
-            
-            line_in_frame = False
-            atoms_found = atom1 is not None and atom2 is not None
-            if atoms_found:
-                line_in_frame = all([
-                    line.frames.get(atom1_index, None) == atom1.complex.current_frame,
-                    line.frames.get(atom2_index, None) == atom2.complex.current_frame
-                ])
-
-            # Hide interaction if marked not visible, or if complex frames don't line up.
             hide_interaction = not form_data['visible'] or not line_in_frame
             color = Color(*form_data['color'])
             color.a = 0 if hide_interaction else 255
@@ -305,4 +297,5 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         if stream and new_colors:
             stream.update(new_colors)
+
         self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction Lines updated!")

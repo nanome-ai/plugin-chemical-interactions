@@ -255,7 +255,7 @@ class ChemInteractionsMenu():
     @async_callback
     async def update_interaction_lines(self):
         interaction_data = self.collect_interaction_data()
-        await self.plugin.update_interaction_lines(interaction_data)
+        await self.plugin.update_interaction_lines(interaction_data, self.complexes)
 
     @property
     def index(self):
