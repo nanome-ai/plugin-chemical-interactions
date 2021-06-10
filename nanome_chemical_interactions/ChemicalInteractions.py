@@ -232,27 +232,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     continue
 
                 # See if we've already drawn this line
-                existing_line = False
-                possible_lines = [
+                line_exists = next((
                     lin for lin in self._interaction_lines
-                    if sorted([atom1.index, atom2.index]) == sorted(lin.frames.keys())
-                ]
-                if possible_lines:
-                    print('')
-
-                for l in possible_lines:
-                    # print(l.frames.get(atom1.index), atom1.complex.current_frame)
-                    # print(l.frames.get(atom2.index), atom2.complex.current_frame)
-                    # print(l.interaction_type, interaction_type)
-
                     if (
-                        l.interaction_type == interaction_type
-                        and l.frames.get(atom1.index) == atom1.complex.current_frame
-                            and l.frames.get(atom2.index) == atom2.complex.current_frame):
-                        existing_line = l
-                        break
-                if existing_line:
-                    print("line already exists.")
+                        lin.frames.get(atom1.index) == atom1.complex.current_frame
+                        and lin.frames.get(atom2.index) == atom2.complex.current_frame
+                        and lin.interaction_type == interaction_type
+                    )), None
+                )
+                if line_exists:
                     continue
 
                 line = self.draw_interaction_line(atom1, atom2, form_data)
@@ -265,8 +253,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 asyncio.create_task(self.upload_line(line))
         self._interaction_lines.extend(new_lines)
 
-        print(valid_atom_paths)
-        print(invalid_atom_paths)
+        # print(valid_atom_paths)
+        # print(invalid_atom_paths)
 
         async def send_notification(plugin):
             plugin.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
