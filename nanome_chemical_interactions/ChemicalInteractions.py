@@ -278,14 +278,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             line_in_frame = True
             for comp in complexes:
                 filtered_atoms = filter(lambda atom: atom.index in line_atoms, comp.atoms)
-
                 for atom in filtered_atoms:
-                    if atom.complex.name == 'tyl lig' and 'O' in atom.name:
-                        print('hiiii')
-
                     line_in_frame = line.frames.get(atom.index) == atom.complex.current_frame
                     if not line_in_frame:
                         break
+                if not line_in_frame:
+                    break
 
             # Parse forms, and add line data to stream
             line_type = line.interaction_type
