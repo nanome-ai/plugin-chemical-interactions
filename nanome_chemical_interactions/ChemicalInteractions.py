@@ -203,6 +203,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         valid_atom_paths = set()
         invalid_atom_paths = set()
 
+        new_lines = []
         for i, row in enumerate(interaction_data):
             print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
@@ -222,20 +223,47 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom1, atom2 = atom_list
             # Iterate through csv data and draw relevant lines
             for i, col in enumerate(row[2:], 2):
-                if col == '1':
-                    interaction_type = next(key for key, val in interaction_column_index.items() if val == i)
-                    form_data = form.data.get(interaction_type)
-                    if not form_data:
-                        continue
+                if col != '1':
+                    continue
 
-                    line = self.draw_interaction_line(atom1, atom2, form_data)
-                    line.interaction_type = interaction_type
-                    line.frames = {
-                        atom1.index: atom1.complex.current_frame,
-                        atom2.index: atom2.complex.current_frame,
-                    }
-                    self._interaction_lines.append(line)
-                    asyncio.create_task(self.upload_line(line))
+                interaction_type = next(key for key, val in interaction_column_index.items() if val == i)
+                form_data = form.data.get(interaction_type)
+                if not form_data:
+                    continue
+
+                # See if we've already drawn this line
+                existing_line = False
+                possible_lines = [
+                    lin for lin in self._interaction_lines
+                    if sorted([atom1.index, atom2.index]) == sorted(lin.frames.keys())
+                ]
+                if possible_lines:
+                    print('')
+
+                for l in possible_lines:
+                    # print(l.frames.get(atom1.index), atom1.complex.current_frame)
+                    # print(l.frames.get(atom2.index), atom2.complex.current_frame)
+                    # print(l.interaction_type, interaction_type)
+
+                    if (
+                        l.interaction_type == interaction_type
+                        and l.frames.get(atom1.index) == atom1.complex.current_frame
+                            and l.frames.get(atom2.index) == atom2.complex.current_frame):
+                        existing_line = l
+                        break
+                if existing_line:
+                    print("line already exists.")
+                    continue
+
+                line = self.draw_interaction_line(atom1, atom2, form_data)
+                line.interaction_type = interaction_type
+                line.frames = {
+                    atom1.index: atom1.complex.current_frame,
+                    atom2.index: atom2.complex.current_frame,
+                }
+                new_lines.append(line)
+                asyncio.create_task(self.upload_line(line))
+        self._interaction_lines.extend(new_lines)
 
         print(valid_atom_paths)
         print(invalid_atom_paths)
@@ -272,20 +300,37 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         stream, _ = await self.create_writing_stream(line_indices, stream_type)
 
         new_colors = []
+        in_frame_count = 0
+        out_of_frame_count = 0
+
         for line in self._interaction_lines:
-            # Make sure that line is relevant to the current complex frames
+            
+            # Make sure that both atoms connected by line are in frame.
             line_atoms = [anchor.target for anchor in line.anchors]
+            
             line_in_frame = True
+            atoms_found = 0
             for comp in complexes:
                 filtered_atoms = filter(lambda atom: atom.index in line_atoms, comp.atoms)
+                # As soon as we find an atom not in frame, we can stop looping
                 for atom in filtered_atoms:
-                    line_in_frame = line.frames.get(atom.index) == atom.complex.current_frame
+                    atoms_found += 1
+                    line_in_frame = line.frames[atom.index] == atom.complex.current_frame
                     if not line_in_frame:
                         break
                 if not line_in_frame:
                     break
+            
+            if line_in_frame and atoms_found != 2:
+                print(f'missing {2 - atoms_found} atoms')
+
+            if atoms_found == 2 and line_in_frame:
+                in_frame_count +=1
+            else:
+                out_of_frame_count += 1
 
             # Parse forms, and add line data to stream
+
             line_type = line.interaction_type
             form_data = interaction_data[line_type]
             hide_interaction = not form_data['visible'] or not line_in_frame
@@ -293,7 +338,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             color.a = 0 if hide_interaction else 255
             new_colors.extend([color.r, color.g, color.b, color.a])
 
-        if stream and new_colors:
+        print(f'in frame: {in_frame_count}')
+        print(f'out of frame: {out_of_frame_count}')
+        if stream:
             stream.update(new_colors)
-
-        self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction Lines updated!")
+        # self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction Lines updated!")
