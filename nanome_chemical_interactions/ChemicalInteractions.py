@@ -68,52 +68,43 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
 
+    async def enable_frames_mode(self, complexes):
+        """Convert a list of complexes into frames."""
+        update_required = []
+        for comp in complexes:
+            if len(list(comp.molecules)) <= 1:
+                comp = ComplexUtils.convert_complex_to_frames(comp)
+                update_required.append(comp)
+
+        if update_required:
+            await self.update_structures_deep(update_required)
+            updated_comlexes = await self.request_complexes([c.index for c in update_required])
+            for c in updated_comlexes:
+                if c.index == comp.index:
+                    comp = c
+        return 
+
     @async_callback
-    async def get_interactions(self, comp, selected_ligand, ligand_complex, interaction_data):
+    async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None):
         """Collect Form data, and render Interactions in nanome.
 
-        comp: Nanome Complex object
-        selected_ligand: Biopython Residue object. Can be None
-        ligand_complex: Complex object. Can be the same as comp.
+        selected_complex: Nanome Complex object
+        ligand_complex: Complex object containing the ligand. Often is the same as comp.
         interactions data: Data accepted by InteractionsForm.
+        ligand: Biopython Residue object. Can be None
         """
         # await asyncio.create_task(self.destroy_lines(self._interaction_lines))
     
         # Convert complexes to frames if that setting is enabled
-        if self.frames_mode:
-            update_required = []
-            if len(list(comp.molecules)) <= 1:
-                comp = ComplexUtils.convert_complex_to_frames(comp)
-                update_required.append(comp)
-            if len(list(ligand_complex.molecules)) <= 1 and ligand_complex.index != comp.index:
-                ligand_complex = ComplexUtils.convert_complex_to_frames(ligand_complex)
-                update_required.append(ligand_complex)
-            if update_required:
-                await self.update_structures_deep(update_required)
-                updates = await self.request_complexes([c.index for c in update_required])
-                for c in updates:
-                    if c.index == comp.index:
-                        comp = c
-                    elif c.index == ligand_complex.index:
-                        ligand_complex = c
+        # if self.frames_mode:
+        #     self.enable_frames_mode([selected_complex, ligand_complex])
 
-        # If residue not part of selected complex, we need to combine the complexes into one pdb
-        if ligand_complex.index != comp.index:
-            comp = ComplexUtils.combine_ligands(comp, [ligand_complex], comp)
-            pass
+        # If the ligand is not part of selected complex, merge it in. into one.
+        if ligand_complex.index != selected_complex.index:
+            comp = ComplexUtils.combine_ligands(selected_complex, [ligand_complex], selected_complex)
+
         # Clean complex and return as TempFile
-        cleaned_file = self.clean_complex(comp)
-        
-        # map cleaned ligand to ligand_complex if we previously combined complexes.
-        if ligand_complex.index != comp.index:
-            comp_mol = list(comp.molecules)[comp.current_frame]
-            ligand_mol = list(ligand_complex.molecules)[ligand_complex.current_frame]
-            for chain in ligand_mol.chains:
-                cleaned_chain = next(ch for ch in comp_mol.chains if ch.name == chain.name and ch.index == -1)
-                comp_mol.remove_chain(cleaned_chain)
-                ligand_mol.remove_chain(chain)
-                ligand_mol.add_chain(cleaned_chain)
-                cleaned_chain.index = chain.index
+        cleaned_file = self.clean_complex(selected_complex)
 
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
@@ -122,9 +113,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         filename = cleaned_file.name.split('/')[-1]
         files = {filename: cleaned_data}
 
-        if selected_ligand:
+        # Set up data for request to interactions service
+        if ligand:
             # Biopython Residue
-            resnames = [selected_ligand.resname]
+            resnames = [ligand.resname]
         else:
             # Parse all residues from ligand complex
             resnames = []
@@ -141,7 +133,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if response.status_code != 200:
             self.send_notification(NotificationTypes.error, 'Error =(')
             return
-
         self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction data retrieved!")
 
         # Unpack the zip file from response
@@ -154,7 +145,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
         contacts_file = f'{extract_dir}/{contacts_filename}'
-        self.parse_and_upload(contacts_file, comp, ligand_complex, interaction_data)
+        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data)
 
     @staticmethod
     def get_atom(complex, ligand_complex, atom_path):

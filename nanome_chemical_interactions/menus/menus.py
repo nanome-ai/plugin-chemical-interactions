@@ -168,7 +168,7 @@ class ChemInteractionsMenu():
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
         interaction_data = self.collect_interaction_data()
-        await self.plugin.get_interactions(selected_complex, self.residue, residue_complex, interaction_data)
+        await self.plugin.get_interactions(selected_complex, residue_complex, interaction_data, self.residue)
         
         btn.unusable = False
         btn.text.value.set_all('Calculate')
