@@ -94,16 +94,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         interactions data: Data accepted by InteractionsForm.
         ligand: Biopython Residue object. Can be None
         """
-        # await asyncio.create_task(self.destroy_lines(self._interaction_lines))
-
         # Convert complexes to frames if that setting is enabled
         if self.frames_mode:
             selected_complex, ligand_complex = await self.enable_frames_mode(selected_complex, ligand_complex)
 
         # If the ligand is not part of selected complex, merge it in.
+        ligand_chain_names = []
         if ligand_complex.index != selected_complex.index:
+            ligand_chain_names = [ch.name for ch in ligand.chains]
             selected_complex = ComplexUtils.combine_ligands(selected_complex, [ligand_complex], selected_complex)
-
+            
         # Clean complex and return as tempfile
         cleaned_file = self.clean_complex(selected_complex)
 
@@ -145,7 +145,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
         contacts_file = f'{extract_dir}/{contacts_filename}'
-        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data)
+        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data, ligand_chain_names)
 
     @staticmethod
     def get_atom(complex, ligand_complex, atom_path):
@@ -180,13 +180,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             raise Exception
         return atom
 
-    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
+    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form, ligand_chain_names=[]):
         """Parse .contacts file, and draw relevant interaction lines in workspace.
-        
+
         interactions_file: Path to .contacts file containing interactions data
         complex: main complex selected.
         ligand_complex: complex containing the ligand. May be same as complex arg
         interaction_form. InteractionsForms data describing color and visibility of interactions.
+        ligand_chain_names: In event we needed to merge complexes, use this list to map chains back to ligand complex atoms.
         """
         interaction_data = []
         with open(interactions_file, 'r') as f:
@@ -251,12 +252,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 # See if we've already drawn this line
                 line_exists = next((
                     lin for lin in self._interaction_lines
-                    if (
-                        lin.frames.get(atom1.index) == atom1.complex.current_frame
-                        and lin.frames.get(atom2.index) == atom2.complex.current_frame
-                        and lin.interaction_type == interaction_type
-                    )), None
-                )
+                    if all([
+                        lin.frames.get(atom1.index) == atom1.complex.current_frame,
+                        lin.frames.get(atom2.index) == atom2.complex.current_frame,
+                        lin.interaction_type == interaction_type
+                    ])
+                ), False)
                 if line_exists:
                     continue
 
@@ -266,6 +267,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     atom1.index: atom1.complex.current_frame,
                     atom2.index: atom2.complex.current_frame,
                 }
+                print(line.frames)
                 new_lines.append(line)
                 asyncio.create_task(self.upload_line(line))
         self._interaction_lines.extend(new_lines)
@@ -303,6 +305,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         stream_type = nanome.api.streams.Stream.Type.shape_color.value
         line_indices = [line.index for line in self._interaction_lines]
         stream, _ = await self.create_writing_stream(line_indices, stream_type)
+        if not stream:
+            return
 
         new_colors = []
         in_frame_count = 0
@@ -310,22 +314,32 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         for line in self._interaction_lines:
             # Make sure that both atoms connected by line are in frame.
+            print(line.frames)
             line_atoms = [anchor.target for anchor in line.anchors]
 
             line_in_frame = True
             atoms_found = 0
+            # Loop through all complexes, and make sure both atoms are in frame
             for comp in complexes:
-                filtered_atoms = filter(lambda atom: atom.index in line_atoms, comp.atoms)
+                current_mol = list(comp.molecules)[comp.current_frame]
+                filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
                 # As soon as we find an atom not in frame, we can stop looping
                 for atom in filtered_atoms:
                     atoms_found += 1
                     line_in_frame = line.frames[atom.index] == atom.complex.current_frame
                     if not line_in_frame:
+                        if atom.complex.current_frame == 1:
+                            print('')
+                        # print('mismatched frame line')
                         break
                 if not line_in_frame:
                     break
 
-            if atoms_found == 2 and line_in_frame:
+            if atoms_found != 2:
+                # print(f'{2 - atoms_found} atom(s) missing')
+                line_in_frame = False
+
+            if line_in_frame:
                 in_frame_count += 1
             else:
                 out_of_frame_count += 1
