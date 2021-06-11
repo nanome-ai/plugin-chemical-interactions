@@ -100,9 +100,21 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # If residue not part of selected complex, we need to combine the complexes into one pdb
         if ligand_complex.index != comp.index:
             comp = ComplexUtils.combine_ligands(comp, [ligand_complex], comp)
-
+            pass
         # Clean complex and return as TempFile
         cleaned_file = self.clean_complex(comp)
+        
+        # map cleaned ligand to ligand_complex if we previously combined complexes.
+        if ligand_complex.index != comp.index:
+            comp_mol = list(comp.molecules)[comp.current_frame]
+            ligand_mol = list(ligand_complex.molecules)[ligand_complex.current_frame]
+            for chain in ligand_mol.chains:
+                cleaned_chain = next(ch for ch in comp_mol.chains if ch.name == chain.name and ch.index == -1)
+                comp_mol.remove_chain(cleaned_chain)
+                ligand_mol.remove_chain(chain)
+                ligand_mol.add_chain(cleaned_chain)
+                cleaned_chain.index = chain.index
+
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
             cleaned_data = f.read()
@@ -145,7 +157,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.parse_and_upload(contacts_file, comp, ligand_complex, interaction_data)
 
     @staticmethod
-    def get_atom(complex, atom_path):
+    def get_atom(complex, ligand_complex, atom_path):
         """Return atom corresponding to atom path.
 
         complex: nanome.api.Complex object
@@ -153,21 +165,29 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         chain_name, res_id, atom_name = atom_path.split('/')
 
-        current_molecule = list(complex.molecules)[complex.current_frame]
-        nanome_residues = [
-            r for r in current_molecule.residues if all([
-                str(r._serial) == str(res_id),
-                r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
-            ])
-        ]
-        if len(nanome_residues) != 1:
-            raise Exception
+        complex_molecule = list(complex.molecules)[complex.current_frame]
+        ligand_molecule = list(ligand_complex.molecules)[ligand_complex.current_frame]
 
-        nanome_residue = nanome_residues[0]
-        atoms = [a for a in nanome_residue.atoms if a._name == atom_name]
-        if len(atoms) != 1:
+        atom = None 
+        for mol in [complex_molecule, ligand_molecule]:
+            nanome_residues = [
+                r for r in mol.residues if all([
+                    str(r._serial) == str(res_id),
+                    r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
+                ])
+            ]
+            if len(nanome_residues) != 1:
+                continue
+
+            nanome_residue = nanome_residues[0]
+            atoms = [a for a in nanome_residue.atoms if a._name == atom_name]
+            if len(atoms) != 1:
+                continue
+            atom = atoms[0]
+            break
+        if not atom:
             raise Exception
-        return atoms[0]
+        return atom
 
     def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
         """Parse .contacts file, and draw relevant interaction lines in workspace."""
@@ -211,7 +231,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_list = []
             for a in atom_paths:
                 try:
-                    atom = self.get_atom(complex, a)
+                    atom = self.get_atom(complex, ligand_complex, a)
                     atom_list.append(atom)
                 except Exception:
                     invalid_atom_paths.add(a)
@@ -308,9 +328,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         break
                 if not line_in_frame:
                     break
-            
-            if line_in_frame and atoms_found != 2:
-                print(f'missing {2 - atoms_found} atoms')
 
             if atoms_found == 2 and line_in_frame:
                 in_frame_count +=1
