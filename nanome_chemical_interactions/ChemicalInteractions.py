@@ -78,11 +78,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         if update_required:
             await self.update_structures_deep(update_required)
-            updated_comlexes = await self.request_complexes([c.index for c in update_required])
-            for c in updated_comlexes:
-                if c.index == comp.index:
-                    comp = c
-        return 
+            updated_complexes = await self.request_complexes([c.index for c in update_required])
+        return updated_complexes
 
     @async_callback
     async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None):
@@ -93,17 +90,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         interactions data: Data accepted by InteractionsForm.
         ligand: Biopython Residue object. Can be None
         """
-        # await asyncio.create_task(self.destroy_lines(self._interaction_lines))
+        await asyncio.create_task(self.destroy_lines(self._interaction_lines))
     
         # Convert complexes to frames if that setting is enabled
-        # if self.frames_mode:
-        #     self.enable_frames_mode([selected_complex, ligand_complex])
+        if self.frames_mode:
+            self.enable_frames_mode([selected_complex, ligand_complex])
 
-        # If the ligand is not part of selected complex, merge it in. into one.
+        # If the ligand is not part of selected complex, merge it in.
         if ligand_complex.index != selected_complex.index:
             comp = ComplexUtils.combine_ligands(selected_complex, [ligand_complex], selected_complex)
 
-        # Clean complex and return as TempFile
+        # Clean complex and return as tempfile
         cleaned_file = self.clean_complex(selected_complex)
 
         cleaned_data = ''
@@ -115,14 +112,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Set up data for request to interactions service
         if ligand:
-            # Biopython Residue
             resnames = [ligand.resname]
         else:
             # Parse all residues from ligand complex
             resnames = []
             for residue in ligand_complex.residues:
                 resnames.append(residue.name)
-        
+
         selection = ','.join([f'RESNAME:{resname}' for resname in resnames])
         data = {
             'selection': selection
