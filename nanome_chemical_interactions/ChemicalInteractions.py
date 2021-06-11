@@ -28,7 +28,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # TODO: Make advanced Setting
         self.frames_mode = True
 
-
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
@@ -96,7 +95,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         ligand: Biopython Residue object. Can be None
         """
         # await asyncio.create_task(self.destroy_lines(self._interaction_lines))
-    
+
         # Convert complexes to frames if that setting is enabled
         if self.frames_mode:
             selected_complex, ligand_complex = await self.enable_frames_mode(selected_complex, ligand_complex)
@@ -160,8 +159,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complex_molecule = list(complex.molecules)[complex.current_frame]
         ligand_molecule = list(ligand_complex.molecules)[ligand_complex.current_frame]
 
-        atom = None 
-        for mol in [complex_molecule, ligand_molecule]:
+        atom = None
+        for mol in [ligand_molecule, complex_molecule]:
             nanome_residues = [
                 r for r in mol.residues if all([
                     str(r._serial) == str(res_id),
@@ -310,10 +309,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         out_of_frame_count = 0
 
         for line in self._interaction_lines:
-            
             # Make sure that both atoms connected by line are in frame.
             line_atoms = [anchor.target for anchor in line.anchors]
-            
+
             line_in_frame = True
             atoms_found = 0
             for comp in complexes:
@@ -328,7 +326,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     break
 
             if atoms_found == 2 and line_in_frame:
-                in_frame_count +=1
+                in_frame_count += 1
             else:
                 out_of_frame_count += 1
 
