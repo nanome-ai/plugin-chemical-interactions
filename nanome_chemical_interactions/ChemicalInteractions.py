@@ -68,10 +68,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
 
-    async def enable_frames_mode(self, complexes):
+    async def enable_frames_mode(self, selected_complex, ligand_complex):
         """Convert a list of complexes into frames."""
         update_required = []
-        for comp in complexes:
+        for comp in [selected_complex, ligand_complex]:
             if len(list(comp.molecules)) <= 1:
                 comp = ComplexUtils.convert_complex_to_frames(comp)
                 update_required.append(comp)
@@ -79,7 +79,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if update_required:
             await self.update_structures_deep(update_required)
             updated_complexes = await self.request_complexes([c.index for c in update_required])
-        return updated_complexes
+            for c in updated_complexes:
+                if c.index == selected_complex.index:
+                    selected_complex = c
+                elif c.index == ligand_complex.index:
+                    ligand_complex = c
+        return selected_complex, ligand_complex
 
     @async_callback
     async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None):
@@ -94,11 +99,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     
         # Convert complexes to frames if that setting is enabled
         if self.frames_mode:
-            self.enable_frames_mode([selected_complex, ligand_complex])
+            selected_complex, ligand_complex = await self.enable_frames_mode(selected_complex, ligand_complex)
 
         # If the ligand is not part of selected complex, merge it in.
         if ligand_complex.index != selected_complex.index:
-            comp = ComplexUtils.combine_ligands(selected_complex, [ligand_complex], selected_complex)
+            selected_complex = ComplexUtils.combine_ligands(selected_complex, [ligand_complex], selected_complex)
 
         # Clean complex and return as tempfile
         cleaned_file = self.clean_complex(selected_complex)
