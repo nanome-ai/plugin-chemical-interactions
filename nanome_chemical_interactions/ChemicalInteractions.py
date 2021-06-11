@@ -90,7 +90,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         interactions data: Data accepted by InteractionsForm.
         ligand: Biopython Residue object. Can be None
         """
-        await asyncio.create_task(self.destroy_lines(self._interaction_lines))
+        # await asyncio.create_task(self.destroy_lines(self._interaction_lines))
     
         # Convert complexes to frames if that setting is enabled
         if self.frames_mode:
@@ -177,7 +177,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return atom
 
     def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
-        """Parse .contacts file, and draw relevant interaction lines in workspace."""
+        """Parse .contacts file, and draw relevant interaction lines in workspace.
+        
+        interactions_file: Path to .contacts file containing interactions data
+        complex: main complex selected.
+        ligand_complex: complex containing the ligand. May be same as complex arg
+        interaction_form. InteractionsForms data describing color and visibility of interactions.
+        """
         interaction_data = []
         with open(interactions_file, 'r') as f:
             reader = csv.reader(f, delimiter="\t")
