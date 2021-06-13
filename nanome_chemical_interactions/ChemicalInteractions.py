@@ -25,8 +25,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self.menu = ChemInteractionsMenu(self)
         self._interaction_lines = []
-        # TODO: Make advanced Setting
-        self.frames_mode = False
+        self.frames_mode = True
 
     @async_callback
     async def on_run(self):
@@ -100,10 +99,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # If the ligand is not part of selected complex, merge it in.
         if ligand_complex.index != selected_complex.index:
-            selected_complex = ComplexUtils.combine_ligands(selected_complex, [ligand_complex], selected_complex)
+            full_complex = ComplexUtils.combine_ligands(selected_complex, [selected_complex, ligand_complex])
+        else:
+            full_complex = selected_complex
 
         # Clean complex and return as tempfile
-        cleaned_file = self.clean_complex(selected_complex)
+        cleaned_file = self.clean_complex(full_complex)
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
             cleaned_data = f.read()
@@ -207,9 +208,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if form.errors:
             raise Exception
 
-        valid_atom_paths = set()
-        invalid_atom_paths = set()
-
         new_lines = []
         for i, row in enumerate(interaction_data):
             print(f"row {i}")
@@ -221,7 +219,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     atom = self.get_atom(ligand_complex, atompath)
                 except Exception:
                     atom = self.get_atom(complex, atompath)
-
                 if atom.index == -1:
                     raise Exception
 
@@ -242,11 +239,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     continue
 
                 # See if we've already drawn this line
+
+                # atom1_frame = next(c for c in [ligand_complex, complex] if c.index == atom1.complex.index).current_frame
+                # atom2_frame = next(c for c in [ligand_complex, complex] if c.index == atom2.complex.index).current_frame
+                atom1_frame = atom1.complex.current_frame
+                atom2_frame = atom2.complex.current_frame
+                if 1 in [atom1_frame, atom2_frame]:
+                    print('?')
                 line_exists = next((
                     lin for lin in self._interaction_lines
                     if all([
-                        lin.frames.get(atom1.index) == atom1.complex.current_frame,
-                        lin.frames.get(atom2.index) == atom2.complex.current_frame,
+                        lin.frames.get(atom1.index) == atom1_frame,
+                        lin.frames.get(atom2.index) == atom2_frame,
                         lin.interaction_type == interaction_type
                     ])
                 ), False)
@@ -256,11 +260,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 line = self.draw_interaction_line(atom1, atom2, form_data)
                 line.interaction_type = interaction_type
                 line.frames = {
-                    atom1.index: atom1.complex.current_frame,
-                    atom2.index: atom2.complex.current_frame,
+                    atom1.index: atom1_frame,
+                    atom2.index: atom2_frame,
                 }
                 new_lines.append(line)
                 asyncio.create_task(self.upload_line(line))
+        print(f'adding {len(new_lines)} new lines')
         self._interaction_lines.extend(new_lines)
 
         async def send_notification(plugin):
