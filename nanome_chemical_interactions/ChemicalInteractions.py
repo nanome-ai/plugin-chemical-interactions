@@ -99,9 +99,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             selected_complex, ligand_complex = await self.enable_frames_mode(selected_complex, ligand_complex)
 
         # If the ligand is not part of selected complex, merge it in.
-        ligand_chain_names = []
         if ligand_complex.index != selected_complex.index:
-            ligand_chain_names = [ch.name for ch in ligand.chains]
             selected_complex = ComplexUtils.combine_ligands(selected_complex, [ligand_complex], selected_complex)
             
         # Clean complex and return as tempfile
@@ -145,7 +143,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
         contacts_file = f'{extract_dir}/{contacts_filename}'
-        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data, ligand_chain_names)
+        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data)
 
     @staticmethod
     def get_atom(complex, ligand_complex, atom_path):
@@ -180,14 +178,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             raise Exception
         return atom
 
-    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form, ligand_chain_names=[]):
+    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
         """Parse .contacts file, and draw relevant interaction lines in workspace.
 
         interactions_file: Path to .contacts file containing interactions data
         complex: main complex selected.
         ligand_complex: complex containing the ligand. May be same as complex arg
         interaction_form. InteractionsForms data describing color and visibility of interactions.
-        ligand_chain_names: In event we needed to merge complexes, use this list to map chains back to ligand complex atoms.
         """
         interaction_data = []
         with open(interactions_file, 'r') as f:
