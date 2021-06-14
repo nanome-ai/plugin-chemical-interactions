@@ -154,7 +154,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         chain_name, res_id, atom_name = atom_path.split('/')
         complex_molecule = list(complex.molecules)[complex.current_frame]
-        
+
         nanome_residues = [
             r for r in complex_molecule.residues if all([
                 str(r._serial) == str(res_id),
@@ -162,14 +162,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             ])
         ]
         if not nanome_residues or len(nanome_residues) != 1:
-            raise Exception
+            return
 
         nanome_residue = nanome_residues[0]
         atoms = [a for a in nanome_residue.atoms if a._name == atom_name]
 
         if not atoms or len(atoms) != 1:
-            raise Exception
-        return atoms[0]
+            return
+
+        atom = atoms[0]
+        if atom.index == -1:
+            return
+
+        return atom
 
     def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
         """Parse .contacts file, and draw relevant interaction lines in workspace.
@@ -210,14 +215,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         new_lines = []
         for i, row in enumerate(interaction_data):
-            print(f"row {i}")
+            # print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
             atom_paths = row[:2]
             atom_list = []
+
             for atompath in atom_paths:
-                try:
-                    atom = self.get_atom(ligand_complex, atompath)
-                except Exception:
+                atom = self.get_atom(ligand_complex, atompath)
+                if not atom:
                     atom = self.get_atom(complex, atompath)
                 if atom.index == -1:
                     raise Exception
@@ -226,8 +231,25 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             if len(atom_list) != 2:
                 continue
-
+            
             atom1, atom2 = atom_list
+            
+            # For some reason atom.complex.current_frame returns the wrong frame number.
+            # Look in top level complexes for frame.
+            atom1_frame = atom2_frame = None
+            atom1_comp = next((
+                comp for comp in [ligand_complex, complex]
+                if atom1.index in (a.index for a in comp.atoms)
+            ), None)
+            atom2_comp = next((
+                comp for comp in [ligand_complex, complex]
+                if atom2.index in (a.index for a in comp.atoms)
+            ), None)
+            atom1_frame = atom1_comp.current_frame
+            atom2_frame = atom2_comp.current_frame
+
+            if None in [atom1_frame, atom2_frame]:
+                print('huh?')
             # Iterate through csv data and draw relevant lines
             for i, col in enumerate(row[2:], 2):
                 if col != '1':
@@ -239,13 +261,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     continue
 
                 # See if we've already drawn this line
-
-                # atom1_frame = next(c for c in [ligand_complex, complex] if c.index == atom1.complex.index).current_frame
-                # atom2_frame = next(c for c in [ligand_complex, complex] if c.index == atom2.complex.index).current_frame
-                atom1_frame = atom1.complex.current_frame
-                atom2_frame = atom2.complex.current_frame
-                if 1 in [atom1_frame, atom2_frame]:
-                    print('?')
                 line_exists = next((
                     lin for lin in self._interaction_lines
                     if all([
@@ -264,6 +279,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     atom2.index: atom2_frame,
                 }
                 new_lines.append(line)
+                print(line.frames)
                 asyncio.create_task(self.upload_line(line))
         print(f'adding {len(new_lines)} new lines')
         self._interaction_lines.extend(new_lines)
@@ -318,9 +334,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 # As soon as we find an atom not in frame, we can stop looping
                 for atom in filtered_atoms:
                     atoms_found += 1
-                    line_in_frame = line.frames[atom.index] == atom.complex.current_frame
+                    line_in_frame = line.frames[atom.index] == comp.current_frame
                     if not line_in_frame:
                         break
+
                 if not line_in_frame or atoms_found == 2:
                     break
 
