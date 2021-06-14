@@ -1,0 +1,24 @@
+# Optimized for debugging.
+
+version: "3.9"
+
+services:
+  chem_interactions:
+    build:
+      context: chem_interactions
+    environment:
+      NTS_HOST: ${NTS_HOST:-}
+      NTS_PORT: ${NTS_PORT:-}
+      ARGS: ${ARGS:-}
+      INTERACTIONS_URL: http://arpeggio:8000
+    command: python run.py ${ARGS}
+    depends_on:
+      - arpeggio
+  arpeggio:
+    build:
+      context: arpeggio-service
+    ports:
+      - 8000:8000
+    environment:
+      FLASK_ENV: production
+      FLASK_APP: wsgi.py
