@@ -8,17 +8,17 @@ BASE_PATH = path.dirname(path.realpath(__file__))
 
 color_map = {
     "red": (255, 0, 0),
-    "orange": (242, 128, 0),
+    "orange": (255, 128, 0),
     "yellow": (255, 255, 0),
     "green": (0, 128, 0),
-    "blue": (0, 80, 90),
+    "blue": (0, 0, 255),
     "indigo": (75, 0, 130),
     "violet": (238, 130, 238),
     "black": (0, 0, 0),
     "plum": (221, 160, 221),
     "white": (255, 255, 255),
     "maroon": (128, 0, 0),
-    "cyan": (0, 255, 255),
+    "cyan": (0, 204, 230),
     "slategrey": (112, 128, 144),
     "purple": (104, 0, 104),
     "grey": (192, 192, 192),
@@ -59,7 +59,7 @@ class LineForm(Form):
 disc_line_settings = dict(thickness=0.2, dash_length=0.1, dash_distance=0.25)
 line_settings = {
     'covalent': {'visible': True, 'color': color_map['yellow']},
-    'hbond': {'visible': True, 'color': color_map['blue']},
+    'hbond': {'visible': True, 'color': color_map['cyan']},
     'ionic': {'visible': True, 'color': color_map['red']},
     'xbond': {'visible': True, 'color': color_map['green']},
     'metal_complex': {'visible': True, 'color': color_map['grey']},
@@ -68,7 +68,7 @@ line_settings = {
     'vdw': {'visible': False, 'color': color_map['sienna']},
     'vdw_clash': {'visible': False, 'color': color_map['plum']},
     'weak_hbond': {'visible': False, 'color': color_map['orange']},
-    'polar': {'visible': False, 'color': color_map['cyan']},
+    'polar': {'visible': False, 'color': color_map['blue']},
     'weak_polar': {'visible': False, 'color': color_map['steelblue']},
     'clash': {'visible': False, 'color': color_map['white']},
     'carbonyl': {'visible': False, 'color': color_map['slategrey']},
