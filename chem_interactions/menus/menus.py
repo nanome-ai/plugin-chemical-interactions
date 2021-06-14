@@ -288,34 +288,38 @@ class ChemInteractionsMenu():
             item.get_content().selected = False
         self.plugin.update_content(self.ls_complexes)
 
+
+        # Reset ligands list to default if nothing is selected
+        ligand_btns = []
         if btn.selected:
+            # Pull out ligands from complex and add them to ligands list
             self.btn_calculate.unusable = True
             self.btn_calculate.text.value.set_all('Extracting Ligands...')
             self.plugin.update_content(self.btn_calculate)
-            # Pull out ligands from complex and add them to ligands list
+            ligand_btns = self.create_structure_btns(self.complexes)
             comp = btn.complex
             deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
             self.update_complex_data(deep_complex)
             btn.complex = deep_complex
             # Remove selected complex from ligands list
-            for ln in self.ls_ligands.items:
+            for ln in ligand_btns:
                 if ln.get_content().complex.index == comp.index:
-                    self.ls_ligands.items.remove(ln)
+                    ligand_btns.remove(ln)
 
+            # Find ligands nested inside of complex, and add buttons for them.
             temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
             deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
             ligands = extract_ligands(temp_file)
-            ligand_btns = self.create_structure_btns(ligands)
-            for ln_btn in ligand_btns:
+            new_ligand_btns = self.create_structure_btns(ligands)
+            for ln_btn in new_ligand_btns:
                 lig_btn = ln_btn.get_content()
                 lig_btn.complex = deep_complex
                 lig_btn.register_pressed_callback(self.toggle_ligand)
-            self.ls_ligands.items.extend(ligand_btns)
+            ligand_btns.extend(new_ligand_btns)
         else:
-            # Reset ligands list to default if nothing is selected
             ligand_btns = self.create_structure_btns(self.complexes)
-            self.ls_ligands.items = ligand_btns
 
+        self.ls_ligands.items = ligand_btns
         self.btn_calculate.unusable = False
         self.btn_calculate.text.value.set_all('Calculate')
         self.plugin.update_content(self.btn_calculate)
