@@ -8,7 +8,7 @@ import asyncio
 import nanome
 from nanome.api.structure import Complex
 from nanome.util.enums import NotificationTypes
-from nanome.util import async_callback, Color
+from nanome.util import async_callback, Color, Logs
 from menus.forms import InteractionsForm, LineForm
 from menus import ChemInteractionsMenu
 from utils import ComplexUtils
@@ -25,7 +25,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self.menu = ChemInteractionsMenu(self)
         self._interaction_lines = []
-        self.frames_mode = True
+        self.frames_mode = False
 
     @async_callback
     async def on_run(self):
@@ -215,7 +215,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         new_lines = []
         for i, row in enumerate(interaction_data):
-            # print(f"row {i}")
+            print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
             atom_paths = row[:2]
             atom_list = []
@@ -233,10 +233,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
             
             atom1, atom2 = atom_list
-            
             # For some reason atom.complex.current_frame returns the wrong frame number.
             # Look in top level complexes for frame.
-            atom1_frame = atom2_frame = None
             atom1_comp = next((
                 comp for comp in [ligand_complex, complex]
                 if atom1.index in (a.index for a in comp.atoms)
@@ -249,7 +247,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2_frame = atom2_comp.current_frame
 
             if None in [atom1_frame, atom2_frame]:
-                print('huh?')
+                raise Exception
+
             # Iterate through csv data and draw relevant lines
             for i, col in enumerate(row[2:], 2):
                 if col != '1':
@@ -261,14 +260,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     continue
 
                 # See if we've already drawn this line
-                line_exists = next((
-                    lin for lin in self._interaction_lines
+                line_exists = False
+                for lin in self._interaction_lines:
                     if all([
                         lin.frames.get(atom1.index) == atom1_frame,
                         lin.frames.get(atom2.index) == atom2_frame,
-                        lin.interaction_type == interaction_type
-                    ])
-                ), False)
+                            lin.interaction_type == interaction_type]):
+                        line_exists = True
+                        break
+
                 if line_exists:
                     continue
 
@@ -279,9 +279,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     atom2.index: atom2_frame,
                 }
                 new_lines.append(line)
-                print(line.frames)
                 asyncio.create_task(self.upload_line(line))
-        print(f'adding {len(new_lines)} new lines')
+
+        Logs.debug(f'adding {len(new_lines)} new lines')
         self._interaction_lines.extend(new_lines)
 
         async def send_notification(plugin):
@@ -342,7 +342,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     break
 
             if atoms_found != 2:
-                print(f'{2 - atoms_found} atom(s) missing')
+                Logs.debug(f'{2 - atoms_found} atom(s) missing')
                 line_in_frame = False
 
             if line_in_frame:
@@ -358,8 +358,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             color.a = 0 if hide_interaction else 255
             new_colors.extend([color.r, color.g, color.b, color.a])
 
-        print(f'in frame: {in_frame_count}')
-        print(f'out of frame: {out_of_frame_count}')
+        Logs.debug(f'in frame: {in_frame_count}')
+        Logs.debug(f'out of frame: {out_of_frame_count}')
         if stream:
             stream.update(new_colors)
-        # self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction Lines updated!")
