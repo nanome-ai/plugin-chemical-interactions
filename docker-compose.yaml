@@ -3,7 +3,7 @@
 version: "3.9"
 
 services:
-  plugin:
+  chem_interactions:
     build:
       context: chem_interactions
     environment:
