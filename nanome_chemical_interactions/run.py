@@ -15,7 +15,7 @@ def main():
     category = 'Interactions'
     advanced_settings = False
     plugin = nanome.Plugin(
-        title, description, category, advanced_settings, integrations=Integrations.interactions)
+        title, description, category, advanced_settings, integrations=[Integrations.interactions])
     plugin.set_plugin_class(ChemicalInteractions.ChemicalInteractions)
 
     host = os.environ.get('NTS_HOST')
