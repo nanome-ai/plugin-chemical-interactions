@@ -14,8 +14,16 @@ def main():
     )
     category = 'Interactions'
     advanced_settings = False
+
+    # temporary hack until nanome-lib 1.22 release
+    try:
+        integrations = [Integrations.interactions]
+    except AttributeError:
+        integrations = []
+
     plugin = nanome.Plugin(
-        title, description, category, advanced_settings, integrations=[Integrations.interactions])
+        title, description, category, advanced_settings, integrations=integrations)
+
     plugin.set_plugin_class(ChemicalInteractions.ChemicalInteractions)
 
     host = os.environ.get('NTS_HOST')
@@ -27,7 +35,6 @@ def main():
     items = list(configs.items())
     for key, value in items:
         configs.pop(key) if not value else None
-
     plugin.run(**configs)
 
 
