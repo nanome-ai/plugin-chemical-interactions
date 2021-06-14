@@ -5,7 +5,7 @@ version: "3.9"
 services:
   plugin:
     build:
-      context: nanome_chemical_interactions
+      context: chem_interactions
     environment:
       NTS_HOST: ${NTS_HOST:-}
       NTS_PORT: ${NTS_PORT:-}
@@ -15,7 +15,7 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - "./nanome_chemical_interactions:/app"
+      - "./chem_interactions:/app"
       # - "../nanome-lib/nanome:/opt/conda/lib/python3.7/site-packages/nanome"
     depends_on:
       - arpeggio
