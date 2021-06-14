@@ -295,8 +295,8 @@ class ChemInteractionsMenu():
             # Pull out ligands from complex and add them to ligands list
             self.btn_calculate.unusable = True
             self.btn_calculate.text.value.set_all('Extracting Ligands...')
-            ligand_btns = self.create_structure_btns(self.complexes)
             self.plugin.update_content(self.btn_calculate)
+            ligand_btns = self.create_structure_btns(self.complexes)
             comp = btn.complex
             deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
             self.update_complex_data(deep_complex)
