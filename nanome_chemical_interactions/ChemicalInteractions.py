@@ -231,7 +231,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             if len(atom_list) != 2:
                 continue
-            
+
             atom1, atom2 = atom_list
             # For some reason atom.complex.current_frame returns the wrong frame number.
             # Look in top level complexes for frame.
