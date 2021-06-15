@@ -4,7 +4,7 @@ A plugin to display various types of interatomic contacts between small- and mac
 
 ### Preparation
 
-First thing you need to do is create a `.env` file in the toplevel directory containing NTS connection information
+First thing you need to do is create a `.env` file in the top-level directory containing NTS connection information
 
 ```
 NTS_HOST=nts-foobar.example.com
@@ -15,31 +15,20 @@ And then running the plugin is as simple as
 ```sh
 docker-compose build
 docker-compose --env-file .env up
-
 ```
+
 ### Dependencies
-The host must support docker and docker-compose
+The host must support docker and docker-compose. All other dependencies are handled within the individual docker containers.
 
 ### Architecture
-
-
-
-### Usage
-
-To start Chemical Interactions:
-
-```sh
-$ nanome-chemical-interactions -a <plugin_server_address> [optional args]
-```
-
-#### Optional arguments:
-
-- `-x arg`
-
-  Example argument documentation
-
-**TODO**: Add any optional argument documentation here, or remove section entirely.
-
+The Plugin is broken into two separate containers.
+- **chem_interactions**: Runs the Nanome Plugin Instance.
+  - Handles all interactions with Nanome application
+  - Renders menus
+  - Submits data to arpeggio-services, and visualizes results in VR.
+- **arpeggio-services**:
+  - Wrapper API for Arpeggio library, which calculates interactions between molecules.
+  - Returns a zip file of interaction results, which is consumed by chem_interactions.
 
 ### Development
 
