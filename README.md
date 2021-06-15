@@ -3,7 +3,7 @@
 A plugin to display various types of interatomic contacts between small- and macromolecules
 
 ![screenshot](https://github.com/nanome-ai/plugin-chemical-interactions/blob/README-updates/menu-screenshot.png?raw=true)
-(Main menu as seen in VR)
+<br>(Main menu as seen in VR)
 ### Preparation
 
 First thing you need to do is create a `.env` file in the top-level directory containing NTS connection information
