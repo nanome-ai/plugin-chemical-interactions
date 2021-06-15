@@ -329,7 +329,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atoms_found = 0
             # Loop through all complexes, and make sure both atoms are in frame
             for comp in complexes:
-                current_mol = list(comp.molecules)[comp.current_frame]
+                try:
+                    current_mol = list(comp.molecules)[comp.current_frame]
+                except IndexError:
+                    # In case of empty complex, its safe to continue
+                    continue
+
                 filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
                 # As soon as we find an atom not in frame, we can stop looping
                 for atom in filtered_atoms:
