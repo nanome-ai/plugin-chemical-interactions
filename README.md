@@ -1,6 +1,7 @@
 # Nanome - Chemical Interactions
 
 A plugin to display various types of interatomic contacts between small- and macromolecules
+![alt text](https://github.com/nanome-ai/plugin-chemical-interactions/README-updates/menu-screenshot.png?raw=true)
 
 ### Preparation
 
@@ -18,16 +19,18 @@ docker-compose --env-file .env up
 ```
 
 ### Dependencies
-The host must support docker and docker-compose. All other dependencies are handled within the individual docker containers.
+The host must support `docker` and `docker-compose`. All other dependencies are handled within the individual docker containers.
 
 ### Architecture
 The Plugin is broken into two separate containers.
 - **chem_interactions**: Runs the Nanome Plugin Instance.
   - Handles all interactions with Nanome application
   - Renders menus
-  - Submits data to arpeggio-services, and visualizes results in VR.
+  - Submits data to arpeggio-services
+  - Visualizes interactions data in VR.
 - **arpeggio-services**:
   - Wrapper API for Arpeggio library, which calculates interactions between molecules.
+  - Cleans data to be compatible with interactions command
   - Returns a zip file of interaction results, which is consumed by chem_interactions.
 
 ### Development
