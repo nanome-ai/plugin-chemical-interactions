@@ -3,7 +3,7 @@
 A Nanome plugin that displays various types of interatomic contacts between small and macro molecules
 
 <p align="center">
-  <img width="460" height="300" src="https://github.com/nanome-ai/plugin-chemical-interactions/blob/README-updates/menu-screenshot.png?raw=true">
+  <img src="https://github.com/nanome-ai/plugin-chemical-interactions/blob/README-updates/menu-screenshot.png?raw=true">
 </p>
 <br>(Main menu as seen in VR)
 
