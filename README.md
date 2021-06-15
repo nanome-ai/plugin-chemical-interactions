@@ -1,7 +1,7 @@
 # Nanome - Chemical Interactions
 
 A plugin to display various types of interatomic contacts between small- and macromolecules
-![alt text](https://github.com/nanome-ai/plugin-chemical-interactions/README-updates/menu-screenshot.png?raw=true)
+![screenshot](https://github.com/nanome-ai/plugin-chemical-interactions/blob/README-updates/menu-screenshot.png?raw=true)
 
 ### Preparation
 
