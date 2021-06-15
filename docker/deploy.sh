@@ -14,4 +14,4 @@ if [ -n "$ARGS" ];  then
     ENV_FILE=$tmpfile
 fi 
 
-docker-compose --env-file $ENV_FILE up  
+docker-compose -f ../docker-compose-prod.yaml --env-file $ENV_FILE up -d
