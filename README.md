@@ -1,8 +1,9 @@
 # Nanome - Chemical Interactions
 
 A plugin to display various types of interatomic contacts between small- and macromolecules
-![screenshot](https://github.com/nanome-ai/plugin-chemical-interactions/blob/README-updates/menu-screenshot.png?raw=true)
 
+![screenshot](https://github.com/nanome-ai/plugin-chemical-interactions/blob/README-updates/menu-screenshot.png?raw=true)
+(Main menu as seen in VR)
 ### Preparation
 
 First thing you need to do is create a `.env` file in the top-level directory containing NTS connection information
@@ -16,6 +17,10 @@ And then running the plugin is as simple as
 ```sh
 docker-compose build
 docker-compose --env-file .env up
+```
+The deyofault `docker-compose.yaml` is optimized for development, with ssh enabled and the code mounted as volumes. For a deployment, we recommend you use
+```sh
+docker-compose -f docker-compose-prod.yaml --env-file .env up
 ```
 
 ### Dependencies
