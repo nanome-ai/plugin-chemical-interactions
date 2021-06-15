@@ -153,12 +153,6 @@ class ChemInteractionsMenu():
         selected_residue = getattr(self, 'residue', None)
         residue_complex = getattr(self, 'residue_complex', None)
 
-        # Get deep residue complex
-        if len(list(residue_complex.molecules)) ==  0:
-            residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
-            # Update self.complexes with deep complex
-            self.update_complex_data(residue_complex)
-
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
@@ -167,6 +161,13 @@ class ChemInteractionsMenu():
         if error_msg:
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
+
+        # Get deep residue complex
+        if len(list(residue_complex.molecules)) ==  0:
+            residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
+            # Update self.complexes with deep complex
+            self.update_complex_data(residue_complex)
+
         interaction_data = self.collect_interaction_data()
         await self.plugin.get_interactions(selected_complex, residue_complex, interaction_data, self.residue)
         
@@ -288,7 +289,6 @@ class ChemInteractionsMenu():
             item.get_content().selected = False
         self.plugin.update_content(self.ls_complexes)
 
-
         # Reset ligands list to default if nothing is selected
         ligand_btns = []
         if btn.selected:
@@ -301,6 +301,7 @@ class ChemInteractionsMenu():
             deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
             self.update_complex_data(deep_complex)
             btn.complex = deep_complex
+
             # Remove selected complex from ligands list
             for ln in ligand_btns:
                 if ln.get_content().complex.index == comp.index:
@@ -314,10 +315,12 @@ class ChemInteractionsMenu():
             for ln_btn in new_ligand_btns:
                 lig_btn = ln_btn.get_content()
                 lig_btn.complex = deep_complex
-                lig_btn.register_pressed_callback(self.toggle_ligand)
             ligand_btns.extend(new_ligand_btns)
         else:
             ligand_btns = self.create_structure_btns(self.complexes)
+
+        for ln in ligand_btns:
+            ln.get_content().register_pressed_callback(self.toggle_ligand)
 
         self.ls_ligands.items = ligand_btns
         self.btn_calculate.unusable = False
@@ -326,7 +329,7 @@ class ChemInteractionsMenu():
         self.plugin.update_content(self.ls_ligands)
 
     def toggle_ligand(self, btn_ligand):
-        # toggle the button
+        # toggle button
         btn_ligand.selected = not btn_ligand.selected
 
         # deselect everything else
