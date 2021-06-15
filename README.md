@@ -4,31 +4,25 @@ A plugin to display various types of interatomic contacts between small- and mac
 
 ### Preparation
 
-Install the latest version of [Python 3](https://www.python.org/downloads/)
+First thing you need to do is create a `.env` file in the toplevel directory containing NTS connection information
 
-| NOTE for Windows: replace `python3` in the following commands with `python` |
-| --------------------------------------------------------------------------- |
-
-
-Install the latest `nanome` lib:
-
-```sh
-$ python3 -m pip install nanome --upgrade
 ```
+NTS_HOST=nts-foobar.example.com
+NTS_PORT=5555
+``` 
 
+And then running the plugin is as simple as
+```sh
+docker-compose build
+docker-compose --env-file .env up
+
+```
 ### Dependencies
+The host must support docker and docker-compose
 
-**TODO**: Provide instructions on how to install and link any external dependencies for this plugin.
+### Architecture
 
-**TODO**: Update docker/Dockerfile to install any necessary dependencies.
 
-### Installation
-
-To install Chemical Interactions:
-
-```sh
-$ python3 -m pip install nanome-chemical-interactions
-```
 
 ### Usage
 
@@ -46,15 +40,6 @@ $ nanome-chemical-interactions -a <plugin_server_address> [optional args]
 
 **TODO**: Add any optional argument documentation here, or remove section entirely.
 
-### Docker Usage
-
-To run Chemical Interactions in a Docker container:
-
-```sh
-$ cd docker
-$ ./build.sh
-$ ./deploy.sh -a <plugin_server_address> [optional args]
-```
 
 ### Development
 
