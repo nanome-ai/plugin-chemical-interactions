@@ -19,10 +19,11 @@ And then running the plugin is as simple as
 docker-compose build
 docker-compose --env-file .env up
 ```
-The deyofault `docker-compose.yaml` is optimized for development, with ssh enabled and the code mounted as volumes. For a deployment, we recommend you use
+The default `docker-compose.yaml` is optimized for development, with debug enabled and the code mounted as volumes. For a deployment, we recommend you use `-f docker-compose-prod.yaml`
 ```sh
 docker-compose -f docker-compose-prod.yaml --env-file .env up
 ```
+
 
 ### Dependencies
 The host must support `docker` and `docker-compose`. All other dependencies are handled within the individual docker containers.
@@ -40,12 +41,8 @@ The Plugin is broken into two separate containers.
   - Returns a zip file of interaction results, which is consumed by chem_interactions.
 
 ### Development
+For VSCode
 
-To run Chemical Interactions with autoreload:
-
-```sh
-$ python3 run.py -r -a <plugin_server_address> [optional args]
-```
 
 ### License
 
