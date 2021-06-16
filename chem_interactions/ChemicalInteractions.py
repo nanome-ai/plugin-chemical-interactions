@@ -1,9 +1,10 @@
-from os import environ, path
 import csv
 import requests
 import tempfile
 import shutil
 import asyncio
+from collections import defaultdict
+from os import environ, path
 
 import nanome
 from nanome.api.structure import Complex
@@ -208,6 +209,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             raise Exception
 
         new_lines = []
+        
+        position_counter = defaultdict(lambda: 0)
         for i, row in enumerate(interaction_data):
             # print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
@@ -270,6 +273,24 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if line_exists:
                     continue
 
+                test_a = None
+                test_comp = None
+                for a in [atom1, atom2]:
+                    if atom1.position.x == 10.73449993133545:
+                        test_a = atom1
+                        test_comp = atom1_comp
+                    elif atom2.position.x == 10.73449993133545:
+                        test_a = atom2
+                        test_comp = atom2_comp
+                if test_a:
+                    print(test_comp.name)
+                    print(test_a.name)
+                    print(test_a.current_conformer)
+                    print(test_a.conformer_count)
+                    print(test_comp.current_frame)
+                    print(test_a.positions)
+
+
                 line = self.draw_interaction_line(atom1, atom2, form_data)
                 line.interaction_type = interaction_type
                 line.frames = {
@@ -277,10 +298,25 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     atom2.index: atom2_frame,
                 }
                 new_lines.append(line)
+                atom1_pos = ','.join([str(atom1.position.x), str(atom1.position.y), str(atom1.position.z)])
+                atom2_pos = ','.join([str(atom2.position.x), str(atom2.position.y), str(atom2.position.z)])
+
+                position_counter[atom1_pos] += 1
+                position_counter[atom2_pos] += 1
+
                 asyncio.create_task(self.upload_line(line))
 
         Logs.debug(f'adding {len(new_lines)} new lines')
         self._interaction_lines.extend(new_lines)
+
+        max_count_key = ''
+        max_count_value = 0
+        for key, value in position_counter.items():
+            if value >= max_count_value:
+                max_count_key = key
+                max_count_value = value
+
+        print(max_count_key, max_count_value)
 
         async def send_notification(plugin):
             plugin.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
