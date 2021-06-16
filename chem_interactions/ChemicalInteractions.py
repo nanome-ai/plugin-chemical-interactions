@@ -156,27 +156,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         chain_name, res_id, atom_name = atom_path.split('/')
         complex_molecule = list(complex.molecules)[complex.current_frame]
 
-        nanome_residues = [
-            r for r in complex_molecule.residues if all([
-                str(r._serial) == str(res_id),
-                r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
-            ])
-        ]
-        if not nanome_residues or len(nanome_residues) != 1:
-            if atom_path == 'H/60/CE2':
-                print(f'Complex has {len(list(complex.molecules))} molecules')
+        # r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
+        chain = next((
+            chain for chain in complex_molecule.chains
+            if chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
+        ), None)
+
+        if not chain:
             return
-
-        nanome_residue = nanome_residues[0]
-        atoms = [a for a in nanome_residue.atoms if a._name == atom_name]
-
-        if not atoms or len(atoms) != 1:
+        residue = next((r for r in chain.residues if str(r.serial) == str(res_id)), None)
+        if not residue:
             return
-
-        atom = atoms[0]
-        if atom.index == -1:
-            return
-
+        atom = next((a for a in residue.atoms if a.name == atom_name), None)
         return atom
 
     def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form, cleaned_complex):
@@ -224,22 +215,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_list = []
 
             for atompath in atom_paths:
-                atom = self.get_atom(ligand_complex, atompath)
-                if not atom:
-                    atom = self.get_atom(complex, atompath)
+                atom = self.get_atom(complex, atompath)
+                if not atom and ligand_complex.index != complex.index:
+                    atom = self.get_atom(ligand_complex, atompath)
 
                 if not atom:
-                    print(atompath)
-                    print(list(r._serial for r in complex.residues))
-                    print(list(r._serial for r in ligand_complex.residues))
-                    # print([c.name for c in complex.chains])
-                    # print(list(r._serial for r in chain.residues))
-                    chain = next(c for c in complex.chains if c.name == 'H')
-                    residue = next(r for r in chain.residues if r._serial == 60)
-                    # print(residue._serial)
-                    # print(sorted([a.name  for a in residue.atoms]))
-
-                    raise Exception('Atom not found')
+                    raise Exception(f'Atom {atompath} not found')
 
                 if atom.index == -1:
                     raise Exception
