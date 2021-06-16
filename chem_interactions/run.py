@@ -3,9 +3,6 @@ import nanome
 import ChemicalInteractions
 from nanome.util.enums import Integrations
 
-# TODO: Make sure -r flag works
-
-
 def main():
     title = 'Chemical Interactions'
     description = (

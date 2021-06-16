@@ -72,6 +72,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for comp in [selected_complex, ligand_complex]:
             if len(list(comp.molecules)) <= 1:
                 comp = ComplexUtils.convert_complex_to_frames(comp)
+
                 update_required.append(comp)
 
         if update_required:
@@ -143,7 +144,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
         contacts_file = f'{extract_dir}/{contacts_filename}'
-        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data)
+        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data, full_complex)
 
     @staticmethod
     def get_atom(complex, atom_path):
@@ -162,6 +163,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             ])
         ]
         if not nanome_residues or len(nanome_residues) != 1:
+            if atom_path == 'H/60/CE2':
+                print(f'Complex has {len(list(complex.molecules))} molecules')
             return
 
         nanome_residue = nanome_residues[0]
@@ -176,7 +179,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         return atom
 
-    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
+    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form, cleaned_complex):
         """Parse .contacts file, and draw relevant interaction lines in workspace.
 
         interactions_file: Path to .contacts file containing interactions data
@@ -215,7 +218,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         new_lines = []
         for i, row in enumerate(interaction_data):
-            print(f"row {i}")
+            # print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
             atom_paths = row[:2]
             atom_list = []
@@ -224,6 +227,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 atom = self.get_atom(ligand_complex, atompath)
                 if not atom:
                     atom = self.get_atom(complex, atompath)
+
+                if not atom:
+                    print(atompath)
+                    print(list(r._serial for r in complex.residues))
+                    print(list(r._serial for r in ligand_complex.residues))
+                    # print([c.name for c in complex.chains])
+                    # print(list(r._serial for r in chain.residues))
+                    chain = next(c for c in complex.chains if c.name == 'H')
+                    residue = next(r for r in chain.residues if r._serial == 60)
+                    # print(residue._serial)
+                    # print(sorted([a.name  for a in residue.atoms]))
+
+                    raise Exception('Atom not found')
+
                 if atom.index == -1:
                     raise Exception
 
