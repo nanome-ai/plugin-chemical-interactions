@@ -1,9 +1,9 @@
-# Optimized for debugging.
+# Compose file to deploy plugin on a server
 
 version: "3.9"
 
 services:
-  chem_interactions:
+  plugin:
     build:
       context: chem_interactions
     environment:

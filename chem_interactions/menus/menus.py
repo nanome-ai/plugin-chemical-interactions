@@ -283,7 +283,6 @@ class ChemInteractionsMenu():
     async def toggle_complex(self, btn):
         # toggle the complex
         btn.selected = not btn.selected
-
         # deselect everything else
         for item in (set(self.ls_complexes.items) - {btn.ln}):
             item.get_content().selected = False
