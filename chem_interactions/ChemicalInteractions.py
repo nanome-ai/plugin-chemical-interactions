@@ -157,14 +157,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         chain_name, res_id, atom_name = atom_path.split('/')
         complex_molecule = list(complex.molecules)[complex.current_frame]
 
-        chain = next((
-            chain for chain in complex_molecule.chains
-            if chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
+        # Chain naming seems inconsistent, so we need to check the provided name,
+        # as well as heteroatom variations
+        residue = next((
+            r for r in complex_molecule.residues
+            if str(r.serial) == str(res_id)
+            and r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
         ), None)
-        if not chain:
-            return
 
-        residue = next((r for r in chain.residues if str(r.serial) == res_id), None)
         if not residue:
             return
 
@@ -211,11 +211,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         new_lines = []
         
         for i, row in enumerate(interaction_data):
-            print(f"row {i}")
+            # print(f"row {i}")
+            
             # Use atom paths to get matching atoms on Nanome Structure
             atom_paths = row[:2]
             atom_list = []
-
             for atompath in atom_paths:
                 atom = self.get_atom_from_path(complex, atompath)
                 if not atom and ligand_complex.index != complex.index:
@@ -233,28 +233,28 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             atom1, atom2 = atom_list
+            
             # For some reason atom.complex.current_frame returns the wrong frame number.
             # Look in top level complexes for frame.
-            atom1_comp = next((
+            atom1_comp = next(
                 comp for comp in [ligand_complex, complex]
                 if atom1.index in (a.index for a in comp.atoms)
-            ), None)
-            atom2_comp = next((
+            )
+            atom2_comp = next(
                 comp for comp in [ligand_complex, complex]
                 if atom2.index in (a.index for a in comp.atoms)
-            ), None)
+            )
+
             atom1_frame = atom1_comp.current_frame
             atom2_frame = atom2_comp.current_frame
-
-            if None in [atom1_frame, atom2_frame]:
-                raise Exception
 
             # Iterate through csv data and draw relevant lines
             for i, col in enumerate(row[2:], 2):
                 if col != '1':
                     continue
 
-                interaction_type = next(key for key, val in interaction_column_index.items() if val == i)
+                interaction_type = next(
+                    key for key, val in interaction_column_index.items() if val == i)
                 form_data = form.data.get(interaction_type)
                 if not form_data:
                     continue
@@ -272,6 +272,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if line_exists:
                     continue
 
+                print(atom1.index, atom1_frame)
+                print(atom2.index, atom2_frame)
+                print(interaction_type)
+                # Draw line and add data about interaction types and frames.
                 line = self.draw_interaction_line(atom1, atom2, form_data)
                 line.interaction_type = interaction_type
                 line.frames = {
