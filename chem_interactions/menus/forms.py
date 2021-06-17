@@ -40,6 +40,7 @@ class NanomeColorField(Field):
 
 class LineForm(Form):
     """Settings used to create a Line shape."""
+
     visible = BooleanField(default=True)
     color = NanomeColorField()
     thickness = FloatField(default=0.1)
@@ -56,7 +57,7 @@ class LineForm(Form):
             line.color.a = 0
         return line
 
-disc_line_settings = dict(thickness=0.2, dash_length=0.1, dash_distance=0.25)
+# If you want to change the default line settings, update here
 line_settings = {
     'covalent': {'visible': True, 'color': color_map['yellow']},
     'hbond': {'visible': True, 'color': color_map['cyan']},
@@ -64,12 +65,18 @@ line_settings = {
     'xbond': {'visible': True, 'color': color_map['green']},
     'metal_complex': {'visible': True, 'color': color_map['grey']},
     'aromatic': {'visible': True, 'color': color_map['magenta']},
-    'hydrophobic': {'visible': False, 'color': color_map['purple'], **disc_line_settings},
+    'hydrophobic': {'visible': False, 'color': color_map['purple'], 'dash_length': .1},
     'vdw': {'visible': False, 'color': color_map['sienna']},
     'vdw_clash': {'visible': False, 'color': color_map['plum']},
     'weak_hbond': {'visible': False, 'color': color_map['orange']},
     'polar': {'visible': False, 'color': color_map['blue']},
-    'weak_polar': {'visible': False, 'color': color_map['steelblue']},
+    'weak_polar': {
+        'visible': False,
+        'color': color_map['steelblue'],
+        'dash_thickness': .8,
+        'dash_distance': .4,
+        'dash_length': .1
+    },
     'clash': {'visible': False, 'color': color_map['white']},
     'carbonyl': {'visible': False, 'color': color_map['slategrey']},
     # 'proximal': {'visible': False, 'color': color_map['lavender']},
