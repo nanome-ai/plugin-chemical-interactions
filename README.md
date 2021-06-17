@@ -29,7 +29,7 @@ The host must support `docker` and `docker-compose`. All other dependencies are 
 
 ### Architecture
 The Plugin is broken into two separate containers.
-- **chem_interactions**: Runs the Nanome Plugin Instance.
+- **plugin**: Runs the Nanome Plugin Instance.
   - Handles all interactions with Nanome application
   - Renders menus
   - Submits data to arpeggio-services
