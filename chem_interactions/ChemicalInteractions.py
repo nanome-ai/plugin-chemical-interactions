@@ -148,26 +148,28 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data, full_complex)
 
     @staticmethod
-    def get_atom(complex, atom_path):
+    def get_atom_from_path(complex, atom_path):
         """Return atom corresponding to atom path.
 
-        complex: nanome.api.Complex object
-        atom_path: str (/C/20/O)
+        :arg complex: nanome.api.Complex object
+        :arg atom_path: str (/C/20/O)
+        
+        rtype: nanome.api.structure.Atom object, or None
         """
         chain_name, res_id, atom_name = atom_path.split('/')
         complex_molecule = list(complex.molecules)[complex.current_frame]
 
-        # r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
         chain = next((
             chain for chain in complex_molecule.chains
             if chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
         ), None)
-
         if not chain:
             return
-        residue = next((r for r in chain.residues if str(r.serial) == str(res_id)), None)
+
+        residue = next((r for r in chain.residues if str(r.serial) == res_id), None)
         if not residue:
             return
+
         atom = next((a for a in residue.atoms if a.name == atom_name), None)
         return atom
 
@@ -218,9 +220,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_list = []
 
             for atompath in atom_paths:
-                atom = self.get_atom(complex, atompath)
+                atom = self.get_atom_from_path(complex, atompath)
                 if not atom and ligand_complex.index != complex.index:
-                    atom = self.get_atom(ligand_complex, atompath)
+                    atom = self.get_atom_from_path(ligand_complex, atompath)
 
                 if not atom:
                     raise Exception(f'Atom {atompath} not found')
