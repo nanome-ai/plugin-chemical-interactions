@@ -25,7 +25,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self.menu = ChemInteractionsMenu(self)
         self._interaction_lines = []
-        self.frames_mode = False
 
     @async_callback
     async def on_run(self):
@@ -66,24 +65,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
 
-    async def enable_frames_mode(self, selected_complex, ligand_complex):
-        """Convert a list of complexes into frames."""
-        update_required = []
-        for comp in [selected_complex, ligand_complex]:
-            if len(list(comp.molecules)) <= 1:
-                comp = ComplexUtils.convert_complex_to_frames(comp)
-                update_required.append(comp)
-
-        if update_required:
-            await self.update_structures_deep(update_required)
-            updated_complexes = await self.request_complexes([c.index for c in update_required])
-            for c in updated_complexes:
-                if c.index == selected_complex.index:
-                    selected_complex = c
-                elif c.index == ligand_complex.index:
-                    ligand_complex = c
-        return selected_complex, ligand_complex
-
     @async_callback
     async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None):
         """Collect Form data, and render Interactions in nanome.
@@ -93,10 +74,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         interactions data: Data accepted by InteractionsForm.
         ligand: Biopython Residue object. Can be None
         """
-        # Convert complexes to frames if that setting is enabled
-        if self.frames_mode:
-            selected_complex, ligand_complex = await self.enable_frames_mode(selected_complex, ligand_complex)
-
         # If the ligand is not part of selected complex, merge it in.
         if ligand_complex.index != selected_complex.index:
             full_complex = ComplexUtils.combine_ligands(selected_complex, [selected_complex, ligand_complex])
@@ -159,14 +136,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Chain naming seems inconsistent, so we need to check the provided name,
         # as well as heteroatom variations
-        residue = next((
+        residues = [
             r for r in complex_molecule.residues
             if str(r.serial) == str(res_id)
             and r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
-        ), None)
-
-        if not residue:
+        ]
+        if len(residues) > 1:
+            raise Exception('Multiple Residues found')
+        elif not residues:
             return
+        residue = residues[0]
 
         atom = next((a for a in residue.atoms if a.name == atom_name), None)
         return atom
@@ -206,13 +185,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         form = InteractionsForm(data=interaction_form)
         form.validate()
         if form.errors:
-            raise Exception
+            raise Exception(form.errors)
 
         new_lines = []
         
         for i, row in enumerate(interaction_data):
             # print(f"row {i}")
-            
             # Use atom paths to get matching atoms on Nanome Structure
             atom_paths = row[:2]
             atom_list = []
@@ -225,7 +203,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     raise Exception(f'Atom {atompath} not found')
 
                 if atom.index == -1:
-                    raise Exception
+                    raise Exception(f'Somehow ended up with uninstantiated Atom')
 
                 atom_list.append(atom)
 
@@ -253,8 +231,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if col != '1':
                     continue
 
-                interaction_type = next(
-                    key for key, val in interaction_column_index.items() if val == i)
+                interaction_type = next(key for key, val in interaction_column_index.items() if val == i)
                 form_data = form.data.get(interaction_type)
                 if not form_data:
                     continue
@@ -272,9 +249,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if line_exists:
                     continue
 
-                print(atom1.index, atom1_frame)
-                print(atom2.index, atom2_frame)
-                print(interaction_type)
                 # Draw line and add data about interaction types and frames.
                 line = self.draw_interaction_line(atom1, atom2, form_data)
                 line.interaction_type = interaction_type
