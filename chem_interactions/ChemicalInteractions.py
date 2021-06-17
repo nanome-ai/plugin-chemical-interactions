@@ -3,7 +3,6 @@ import requests
 import tempfile
 import shutil
 import asyncio
-from collections import defaultdict
 from os import environ, path
 
 import nanome
@@ -73,7 +72,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for comp in [selected_complex, ligand_complex]:
             if len(list(comp.molecules)) <= 1:
                 comp = ComplexUtils.convert_complex_to_frames(comp)
-
                 update_required.append(comp)
 
         if update_required:
@@ -145,7 +143,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
         contacts_file = f'{extract_dir}/{contacts_filename}'
-        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data, full_complex)
+        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data)
 
     @staticmethod
     def get_atom_from_path(complex, atom_path):
@@ -154,7 +152,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :arg complex: nanome.api.Complex object
         :arg atom_path: str (/C/20/O)
         
-        rtype: nanome.api.structure.Atom object, or None
+        rtype: nanome.api.Atom object, or None
         """
         chain_name, res_id, atom_name = atom_path.split('/')
         complex_molecule = list(complex.molecules)[complex.current_frame]
@@ -173,7 +171,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = next((a for a in residue.atoms if a.name == atom_name), None)
         return atom
 
-    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form, cleaned_complex):
+    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
         """Parse .contacts file, and draw relevant interaction lines in workspace.
 
         interactions_file: Path to .contacts file containing interactions data
@@ -212,7 +210,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         new_lines = []
         
-        position_counter = defaultdict(lambda: 0)
         for i, row in enumerate(interaction_data):
             print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
