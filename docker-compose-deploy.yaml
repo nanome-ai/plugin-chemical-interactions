@@ -1,4 +1,4 @@
-# Optimized for debugging.
+# Compose file to deploy plugin on a server
 
 version: "3.9"
 
