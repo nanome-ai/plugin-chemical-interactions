@@ -154,7 +154,7 @@ class ChemInteractionsMenu():
 
         selected_residue = getattr(ligand_ddi, 'ligand', None)
         residue_complex = getattr(ligand_ddi, 'complex', None)
-        
+
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
