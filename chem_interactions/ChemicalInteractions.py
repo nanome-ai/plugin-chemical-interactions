@@ -128,7 +128,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         :arg complex: nanome.api.Complex object
         :arg atom_path: str (/C/20/O)
-        
+
         rtype: nanome.api.Atom object, or None
         """
         chain_name, res_id, atom_name = atom_path.split('/')
@@ -136,18 +136,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Chain naming seems inconsistent, so we need to check the provided name,
         # as well as heteroatom variations
-        residues = [
-            r for r in complex_molecule.residues
-            if str(r.serial) == str(res_id)
-            and r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
+        atoms = [
+            a for a in complex_molecule.atoms
+            if a.name == atom_name
+            and str(a.residue.serial) == str(res_id)
+            and a.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
         ]
-        if len(residues) > 1:
-            raise Exception('Multiple Residues found')
-        elif not residues:
-            return
-        residue = residues[0]
-
-        atom = next((a for a in residue.atoms if a.name == atom_name), None)
+        if len(atoms) > 1:
+            raise Exception(f'Too many Atoms found for {atom_path}')
+        if not atoms:
+            return 
+        atom = atoms[0]
         return atom
 
     def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
@@ -188,7 +187,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             raise Exception(form.errors)
 
         new_lines = []
-        
+
         for i, row in enumerate(interaction_data):
             # print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
@@ -211,7 +210,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             atom1, atom2 = atom_list
-            
+
             # For some reason atom.complex.current_frame returns the wrong frame number.
             # Look in top level complexes for frame.
             atom1_comp = next(

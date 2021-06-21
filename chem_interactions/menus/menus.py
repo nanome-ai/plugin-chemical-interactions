@@ -178,6 +178,11 @@ class ChemInteractionsMenu():
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
                 nanome.util.enums.NotificationTypes.error, msg)
+
+            btn.unusable = False
+            btn.text.value.set_all('Calculate')
+            self.plugin.update_content(btn)
+            raise
         btn.unusable = False
         btn.text.value.set_all('Calculate')
         self.plugin.update_content(btn)
