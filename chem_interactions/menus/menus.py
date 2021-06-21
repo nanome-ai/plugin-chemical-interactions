@@ -41,7 +41,7 @@ class ChemInteractionsMenu():
         self.complexes = complexes
 
         for comp in self.complexes:
-            comp.register_complex_updated_callback(self.on_complex_updated) 
+            comp.register_complex_updated_callback(self.on_complex_updated)
 
         self.render_interaction_form()
         self.display_structures(complexes, self.ln_complexes)
@@ -50,7 +50,6 @@ class ChemInteractionsMenu():
         self.dd_ligands = self.ln_ligands.get_content()
 
         self.dd_complexes.register_item_clicked_callback(self.toggle_complex)
-        self.dd_ligands.register_item_clicked_callback(self.toggle_ligand)
         self.plugin.update_menu(self._menu)
 
     def display_structures(self, complexes, layoutnode):
@@ -148,9 +147,14 @@ class ChemInteractionsMenu():
             raise Exception("Too many selected complexes.")
 
         selected_complex = selected_complexes[0]
-        selected_residue = getattr(self, 'residue', None)
-        residue_complex = getattr(self, 'residue_complex', None)
+        ligand_ddis = [item for item in self.dd_ligands.items if item.selected]
+        if len(ligand_ddis) != 1:
+            raise Exception(f"Invalid selected ligands count, expected 1, found {len(ligand_ddis)}.")
+        ligand_ddi = ligand_ddis[0]
 
+        selected_residue = getattr(ligand_ddi, 'ligand', None)
+        residue_complex = getattr(ligand_ddi, 'complex', None)
+        
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
@@ -161,14 +165,19 @@ class ChemInteractionsMenu():
             return
 
         # Get deep residue complex
-        if len(list(residue_complex.molecules)) ==  0:
+        if len(list(residue_complex.molecules)) == 0:
             residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
             # Update self.complexes with deep complex
             self.update_complex_data(residue_complex)
 
         interaction_data = self.collect_interaction_data()
-        await self.plugin.get_interactions(selected_complex, residue_complex, interaction_data, self.residue)
-        
+        try:
+            await self.plugin.get_interactions(
+                selected_complex, residue_complex, interaction_data, selected_residue)
+        except:
+            msg = 'Error occurred, please check logs'
+            self.plugin.send_notification(
+                nanome.util.enums.NotificationTypes.error, msg)
         btn.unusable = False
         btn.text.value.set_all('Calculate')
         self.plugin.update_content(btn)
@@ -310,14 +319,6 @@ class ChemInteractionsMenu():
         self.btn_calculate.text.value.set_all('Calculate')
         self.plugin.update_content(self.btn_calculate)
         self.plugin.update_content(self.dd_ligands)
-
-    def toggle_ligand(self, dropdown, item):
-        # Add residue data to button
-        if item.selected:
-            self.residue = getattr(item, 'ligand', None)
-            self.residue_complex = item.complex
-        else:
-            self.residue = ''
 
         # update ui
         self.plugin.update_content(self.ln_ligands)
