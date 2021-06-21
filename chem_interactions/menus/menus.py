@@ -283,21 +283,18 @@ class ChemInteractionsMenu():
         # Reset ligands list to default if nothing is selected
         ligand_ddis = []
         if item.selected:
-            print('item is selected')
             # Pull out ligands from complex and add them to ligands list
+            # Make button unusable until ligand extraction is done.
             self.btn_calculate.unusable = True
             self.btn_calculate.text.value.set_all('Extracting Ligands...')
             self.plugin.update_content(self.btn_calculate)
+
             ligand_ddis = self.create_structure_dropdown_items(self.complexes)
             comp = item.complex
-            deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
-            self.update_complex_data(deep_complex)
+            if len(list(comp.molecules)) == 0:
+                deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
+                self.update_complex_data(deep_complex)
             item.complex = deep_complex
-
-            # Remove selected complex from ligands list
-            # for ln in ligand_ddis:
-            #     if ln.get_content().complex.index == comp.index:
-            #         ligand_ddis.remove(ln)
 
             # Find ligands nested inside of complex, and add buttons for them.
             temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
@@ -310,20 +307,14 @@ class ChemInteractionsMenu():
         else:
             ligand_ddis = self.create_structure_dropdown_items(self.complexes)
 
-        # for ddi in ligand_ddis:
-        #     ddi(self.toggle_ligand)
-
-        print(ligand_ddis)
-        ligand_dd = self.ln_ligands.get_content()
-        ligand_dd.items = ligand_ddis
+        self.dd_ligands.items = ligand_ddis
         self.btn_calculate.unusable = False
         self.btn_calculate.text.value.set_all('Calculate')
         self.plugin.update_content(self.btn_calculate)
-        self.plugin.update_content(ligand_dd)
+        self.plugin.update_content(self.dd_ligands)
 
     def toggle_ligand(self, dropdown, item):
-
-        # # Add residue data to button
+        # Add residue data to button
         if item.selected:
             self.residue = getattr(item, 'ligand', None)
             self.residue_complex = item.complex
