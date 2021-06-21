@@ -26,6 +26,7 @@ class ChemInteractionsMenu():
 
         self.ln_complexes = self._menu.root.find_node('Complex Dropdown')
         self.ln_ligands = self._menu.root.find_node('Ligand Dropdown')
+
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
@@ -45,21 +46,17 @@ class ChemInteractionsMenu():
         self.render_interaction_form()
         self.display_structures(complexes, self.ln_complexes)
         self.display_structures(complexes, self.ln_ligands)
+        self.dd_complexes = self.ln_complexes.get_content()
+        self.dd_ligands = self.ln_ligands.get_content()
 
-        # for ln_btn in self.ln_complexes.items:
-        #     btn = ln_btn.get_content()
-        #     btn.register_pressed_callback(self.toggle_complex)
-
-        # for ln_btn in self.ln_ligands.items:
-        #     btn = ln_btn.get_content()
-        #     btn.register_pressed_callback(self.toggle_ligand)
-
+        self.dd_complexes.register_item_clicked_callback(self.toggle_complex)
+        self.dd_ligands.register_item_clicked_callback(self.toggle_ligand)
         self.plugin.update_menu(self._menu)
 
     def display_structures(self, complexes, layoutnode):
-
         dropdown_items = self.create_structure_dropdown_items(complexes)
         dropdown = Dropdown()
+        dropdown.max_displayed_items = 12
         dropdown.items = dropdown_items
         layoutnode.set_content(dropdown)
         self.plugin.update_content(layoutnode)
@@ -139,9 +136,9 @@ class ChemInteractionsMenu():
     @async_callback
     async def submit_form(self, btn):
         selected_complexes = [
-            item.get_content().complex
-            for item in self.ln_complexes.items
-            if item.get_content().selected
+            item.complex
+            for item in self.dd_complexes.items
+            if item.selected
         ]
 
         btn.unusable = True
@@ -281,65 +278,55 @@ class ChemInteractionsMenu():
         return chr((ord(s.upper()) + 1 - 65) % 26 + 65).lower()
 
     @async_callback
-    async def toggle_complex(self, btn):
-        # toggle the complex
-        btn.selected = not btn.selected
-        # deselect everything else
-        for item in (set(self.ln_complexes.items) - {btn.ln}):
-            item.get_content().selected = False
-        self.plugin.update_content(self.ln_complexes)
+    async def toggle_complex(self, dropdown, item):
 
         # Reset ligands list to default if nothing is selected
-        ligand_btns = []
-        if btn.selected:
+        ligand_ddis = []
+        if item.selected:
+            print('item is selected')
             # Pull out ligands from complex and add them to ligands list
             self.btn_calculate.unusable = True
             self.btn_calculate.text.value.set_all('Extracting Ligands...')
             self.plugin.update_content(self.btn_calculate)
-            ligand_btns = self.create_structure_dropdown_items(self.complexes)
-            comp = btn.complex
+            ligand_ddis = self.create_structure_dropdown_items(self.complexes)
+            comp = item.complex
             deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
             self.update_complex_data(deep_complex)
-            btn.complex = deep_complex
+            item.complex = deep_complex
 
             # Remove selected complex from ligands list
-            for ln in ligand_btns:
-                if ln.get_content().complex.index == comp.index:
-                    ligand_btns.remove(ln)
+            # for ln in ligand_ddis:
+            #     if ln.get_content().complex.index == comp.index:
+            #         ligand_ddis.remove(ln)
 
             # Find ligands nested inside of complex, and add buttons for them.
             temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
             deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
             ligands = extract_ligands(temp_file)
-            new_ligand_btns = self.create_structure_dropdown_items(ligands)
-            for ln_btn in new_ligand_btns:
-                lig_btn = ln_btn.get_content()
-                lig_btn.complex = deep_complex
-            ligand_btns.extend(new_ligand_btns)
+            new_ligand_ddis = self.create_structure_dropdown_items(ligands)
+            for ddi in new_ligand_ddis:
+                ddi.complex = deep_complex
+            ligand_ddis.extend(new_ligand_ddis)
         else:
-            ligand_btns = self.create_structure_dropdown_items(self.complexes)
+            ligand_ddis = self.create_structure_dropdown_items(self.complexes)
 
-        for ln in ligand_btns:
-            ln.get_content().register_pressed_callback(self.toggle_ligand)
+        # for ddi in ligand_ddis:
+        #     ddi(self.toggle_ligand)
 
-        self.ln_ligands.items = ligand_btns
+        print(ligand_ddis)
+        ligand_dd = self.ln_ligands.get_content()
+        ligand_dd.items = ligand_ddis
         self.btn_calculate.unusable = False
         self.btn_calculate.text.value.set_all('Calculate')
         self.plugin.update_content(self.btn_calculate)
-        self.plugin.update_content(self.ln_ligands)
+        self.plugin.update_content(ligand_dd)
 
-    def toggle_ligand(self, btn_ligand):
-        # toggle button
-        btn_ligand.selected = not btn_ligand.selected
+    def toggle_ligand(self, dropdown, item):
 
-        # deselect everything else
-        for ln in set(self.ln_ligands.items) - {btn_ligand.ln}:
-            ln.get_content().selected = False
-
-        # Add residue data to button
-        if btn_ligand.selected:
-            self.residue = getattr(btn_ligand, 'ligand', None)
-            self.residue_complex = btn_ligand.complex
+        # # Add residue data to button
+        if item.selected:
+            self.residue = getattr(item, 'ligand', None)
+            self.residue_complex = item.complex
         else:
             self.residue = ''
 
