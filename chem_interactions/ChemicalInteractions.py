@@ -90,18 +90,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         files = {filename: cleaned_data}
 
         # Set up data for request to interactions service
+        resnames = []
         if ligand:
-            resnames = [ligand.resname]
-        else:
-            # Parse all residues from ligand complex
-            resnames = []
-            for residue in ligand_complex.residues:
-                resnames.append(residue.name)
+            resnames.append(ligand.resname)
 
-        selection = ','.join([f'RESNAME:{resname}' for resname in resnames])
-        data = {
-            'selection': selection
-        }
+        data = {}
+        if resnames:
+            selection = ','.join([f'RESNAME:{resname}' for resname in resnames])
+            data = {
+                'selection': selection
+            }
 
         # make the request with the data and file
         response = requests.post(self.interactions_url, data=data, files=files)
@@ -142,10 +140,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             and str(a.residue.serial) == str(res_id)
             and a.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
         ]
+        if not atoms:
+            return
+
         if len(atoms) > 1:
             raise Exception(f'Too many Atoms found for {atom_path}')
-        if not atoms:
-            return 
         atom = atoms[0]
         return atom
 
@@ -189,7 +188,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         new_lines = []
 
         for i, row in enumerate(interaction_data):
-            # print(f"row {i}")
+            print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
             atom_paths = row[:2]
             atom_list = []
