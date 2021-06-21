@@ -54,6 +54,7 @@ class ChemInteractionsMenu():
         self.plugin.update_menu(self._menu)
 
     def display_structures(self, complexes, layoutnode):
+        """Create dropdown of complexes, and add to provided layoutnode."""
         dropdown_items = self.create_structure_dropdown_items(complexes)
         dropdown = Dropdown()
         dropdown.max_displayed_items = 12
@@ -86,7 +87,6 @@ class ChemInteractionsMenu():
 
             if isinstance(struct, Complex):
                 ddi.complex = struct
-                ddi.complex_index = struct.index
             elif isinstance(struct, BioResidue):
                 ddi.ligand = struct
             complex_ddis.append(ddi)
@@ -298,6 +298,7 @@ class ChemInteractionsMenu():
             deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
             ligands = extract_ligands(temp_file)
             new_ligand_ddis = self.create_structure_dropdown_items(ligands)
+            # Also store complex information on the dropdown items.
             for ddi in new_ligand_ddis:
                 ddi.complex = deep_complex
             ligand_ddis.extend(new_ligand_ddis)
