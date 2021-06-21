@@ -73,15 +73,15 @@ class ChemInteractionsMenu():
             elif isinstance(struct, BioResidue):
                 struct_name = struct.resname
 
+            # Make sure we have a unique name for every structure
             if struct_name not in ddi_labels:
                 ddi_label = struct_name
             else:
-                # Find unique struct name.
-                letter = 'a'
+                num = 1
                 while ddi_label in ddi_labels:
-                    ddi_label = f'{struct_name} {{{letter}}}'
-                    letter = self.next_alpha(letter)
-            ddi_labels.append(struct_name)
+                    ddi_label = f'{struct_name} {{{num}}}'
+                    num += 1
+            ddi_labels.append(ddi_label)
             ddi = DropdownItem(ddi_label)
 
             if isinstance(struct, Complex):
@@ -272,11 +272,6 @@ class ChemInteractionsMenu():
     def enabled(self, value):
         self._menu.enabled = value
 
-    @staticmethod
-    def next_alpha(s):
-        """return next letter alphabetically."""
-        return chr((ord(s.upper()) + 1 - 65) % 26 + 65).lower()
-
     @async_callback
     async def toggle_complex(self, dropdown, item):
 
@@ -294,6 +289,8 @@ class ChemInteractionsMenu():
             if len(list(comp.molecules)) == 0:
                 deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
                 self.update_complex_data(deep_complex)
+            else:
+                deep_complex = comp
             item.complex = deep_complex
 
             # Find ligands nested inside of complex, and add buttons for them.
