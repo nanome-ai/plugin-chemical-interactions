@@ -65,14 +65,29 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
 
+    def get_selected_atom_paths(self, comp):
+        """Return a set of atom paths for the selected atoms in the complex."""
+        selected_atoms = filter(lambda atom: atom.selected, comp.atoms)
+        selections = set()
+        for a in selected_atoms:
+            chain_name = a.chain.name
+            # Clean up chain names
+            if chain_name.startswith('H'):
+                chain_name = chain_name[1:]
+            elif chain_name.startswith('H_'):
+                chain_name = chain_name[2:]
+            selections.add(f'/{chain_name}/{a.residue.serial}/')
+        return selections
+
     @async_callback
-    async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None):
+    async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None, selected_atoms_only=False):
         """Collect Form data, and render Interactions in nanome.
 
         selected_complex: Nanome Complex object
         ligand_complex: Complex object containing the ligand. Often is the same as comp.
         interactions data: Data accepted by InteractionsForm.
         ligand: Biopython Residue object. Can be None
+        selected_atoms_only: bool. show interactions only for selected atoms.
         """
         # If the ligand is not part of selected complex, merge it in.
         if ligand_complex.index != selected_complex.index:
@@ -91,15 +106,26 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Set up data for request to interactions service
         data = {}
-        if ligand:
-            selection = f'RESNAME:{ligand.resname}'
+        selection = None
+        if ligand and not selected_atoms_only:
+            # If a ligand has been specified, get all interactions for residue
+            selections = [f'RESNAME:{ligand.resname}']
+        elif ligand and selected_atoms_only:
+            # If we only want specific atoms on the ligand, parse ligand complex
+            selections = self.get_selected_atom_paths(ligand_complex)
+        elif selected_atoms_only:
+            # Get all selected atoms from both the selected complex and ligand complex
+            selections = self.get_selected_atom_paths(selected_complex)
+            if ligand_complex.index != selected_complex.index:
+                ligand_selections = self.get_selected_atom_paths(ligand_complex)
+                selections = selections.union(ligand_selections)
         else:
-            # By default, only show interactions to any ligands in the complex.
-            # Checking the entire complex takes a long time.
-            # We'll probably change this when we can get interactions by atom selection.
-            selection = 'LIGANDS'
+            # Get all interactions for all atoms (provide no selections)
+            selections = []
 
-        data['selection'] = selection
+        selection = ','.join(selections)
+        if selection:
+            data['selection'] = selection
 
         # make the request with the data and file
         response = requests.post(self.interactions_url, data=data, files=files)
@@ -118,7 +144,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
         contacts_file = f'{extract_dir}/{contacts_filename}'
-        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data)
+        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data, selected_atoms_only)
 
     @staticmethod
     def get_atom_from_path(complex, atom_path):
@@ -165,7 +191,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = atoms[0]
         return atom
 
-    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
+    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form, selected_atoms_only=False):
         """Parse .contacts file, and draw relevant interaction lines in workspace.
 
         interactions_file: Path to .contacts file containing interactions data
@@ -224,6 +250,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 atom_list.append(atom)
 
             if len(atom_list) != 2:
+                continue
+
+            # if selected_atoms_only = True, and neither of the atoms are selected, don't draw line
+            if selected_atoms_only and not any([a.selected for a in atom_list]):
                 continue
 
             atom1, atom2 = atom_list

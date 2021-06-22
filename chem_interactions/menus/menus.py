@@ -1,6 +1,5 @@
 import tempfile
 from os import environ, path
-from utils.complex_utils import ComplexUtils
 from Bio.PDB.Residue import Residue as BioResidue
 
 import nanome
@@ -28,8 +27,13 @@ class ChemInteractionsMenu():
         self.ln_ligands = self._menu.root.find_node('Ligand Dropdown')
 
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
-        self.btn_calculate = self._menu.root.find_node('Button').get_content()
+        self.btn_calculate = self._menu.root.find_node('CalculateButton').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
+
+        self.btn_show_all_interactions = self._menu.root.find_node('Show All').get_content()
+        self.btn_show_selected_interactions = self._menu.root.find_node('Selected Atoms-Residues').get_content()
+        self.btn_show_all_interactions.register_pressed_callback(self.toggle_atom_selection)
+        self.btn_show_selected_interactions.register_pressed_callback(self.toggle_atom_selection)
 
         self.ln_loading_bar = self._menu.root.find_node('LoadingBar')
         self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
@@ -135,15 +139,13 @@ class ChemInteractionsMenu():
 
     @async_callback
     async def submit_form(self, btn):
+        """Collect data from menu, and pass to the Plugin to run get_interactions."""
         selected_complexes = [
             item.complex
             for item in self.dd_complexes.items
             if item.selected
         ]
 
-        btn.unusable = True
-        btn.text.value.set_all('Calculating...')
-        self.plugin.update_content(btn)
         if len(selected_complexes) != 1:
             raise Exception("Too many selected complexes.")
 
@@ -159,17 +161,29 @@ class ChemInteractionsMenu():
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
-        if selected_complexes and not (selected_residue or residue_complex):
+        elif not residue_complex:
             error_msg = 'Please Select a Ligand'
+
         if error_msg:
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
 
-        # Get deep residue complex
-        if len(list(residue_complex.molecules)) == 0:
-            residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
-            # Update self.complexes with deep complex
-            self.update_complex_data(residue_complex)
+        # Disable calculate button until we are done processing
+        btn.unusable = True
+        btn.text.value.set_all('Calculating...')
+        self.plugin.update_content(btn)
+
+        # Determine selection type (Show all interactions or only selected atoms)
+        selected_atoms_only = False
+        if self.btn_show_selected_interactions.selected:
+            selected_atoms_only = True
+
+        # Get up to date selected_complex
+        selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
+        self.update_complex_data(selected_complex)
+        # Get up to date residue_complex
+        residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
+        self.update_complex_data(residue_complex)
 
         loading_bar = LoadingBar()
         self.ln_loading_bar.set_content(loading_bar)
@@ -178,8 +192,9 @@ class ChemInteractionsMenu():
         interaction_data = self.collect_interaction_data()
         try:
             await self.plugin.get_interactions(
-                selected_complex, residue_complex, interaction_data, selected_residue)
-        except:
+                selected_complex, residue_complex, interaction_data,
+                ligand=selected_residue, selected_atoms_only=selected_atoms_only)
+        except Exception:
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
                 nanome.util.enums.NotificationTypes.error, msg)
@@ -188,7 +203,7 @@ class ChemInteractionsMenu():
             btn.text.value.set_all('Calculate')
             self.plugin.update_content(btn)
             raise
-        
+
         self.ln_loading_bar.set_content(None)
         self.plugin.update_node(self.ln_loading_bar)
 
@@ -198,7 +213,7 @@ class ChemInteractionsMenu():
 
     def update_loading_bar(self, current, total):
         loading_bar = self.ln_loading_bar.get_content()
-        loading_bar.percentage = current/total
+        loading_bar.percentage = current / total
         self.plugin.update_content(loading_bar)
 
     def color_dropdown(self):
@@ -350,3 +365,15 @@ class ChemInteractionsMenu():
                 self.complexes[i] = new_complex
                 self.complexes[i].register_complex_updated_callback(self.on_complex_updated)
                 return
+
+    def toggle_atom_selection(self, btn):
+        # Toggle selected button
+        btn.selected = not btn.selected
+        self.plugin.update_content(btn)
+
+        # Make sure other button is set to opposite of pressed button (Only one can be selected at a time)
+        button_group = [self.btn_show_all_interactions, self.btn_show_selected_interactions]
+        for button in button_group:
+            if button.name != btn.name:
+                button.selected = not btn.selected
+                self.plugin.update_content(button)
