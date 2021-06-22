@@ -90,16 +90,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         files = {filename: cleaned_data}
 
         # Set up data for request to interactions service
-        resnames = []
         if ligand:
-            resnames.append(ligand.resname)
+            selection = f'RESNAME:{ligand.resname}'
+        else:
+            selection = 'LIGANDS'
 
-        data = {}
-        if resnames:
-            selection = ','.join([f'RESNAME:{resname}' for resname in resnames])
-            data = {
-                'selection': selection
-            }
+        data = {
+            'selection': selection
+        }
 
         # make the request with the data and file
         response = requests.post(self.interactions_url, data=data, files=files)
@@ -125,7 +123,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Return atom corresponding to atom path.
 
         :arg complex: nanome.api.Complex object
-        :arg atom_path: str (/C/20/O)
+        :arg atom_path: str (e.g C/20/O)
 
         rtype: nanome.api.Atom object, or None
         """
@@ -136,15 +134,31 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # as well as heteroatom variations
         atoms = [
             a for a in complex_molecule.atoms
-            if a.name == atom_name
-            and str(a.residue.serial) == str(res_id)
-            and a.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
+            if all([
+                a.name == atom_name,
+                str(a.residue.serial) == str(res_id),
+                a.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
+            ])
         ]
         if not atoms:
             return
 
         if len(atoms) > 1:
-            raise Exception(f'Too many Atoms found for {atom_path}')
+            # If too many atoms found, only look at specified chain name (No heteroatoms)
+            atoms = [
+                a for a in complex_molecule.atoms
+                if all([
+                    a.name == atom_name,
+                    str(a.residue.serial) == str(res_id),
+                    a.chain.name == chain_name
+                ])
+            ]
+            if not atoms:
+                raise Exception(f"Error finding atom {atom_path}")
+
+            if len(atoms) > 1:
+                # Just pick the first one?
+                raise Exception(f'Too many Atoms found for {atom_path}')
         atom = atoms[0]
         return atom
 
@@ -201,7 +215,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     raise Exception(f'Atom {atompath} not found')
 
                 if atom.index == -1:
-                    raise Exception(f'Somehow ended up with uninstantiated Atom')
+                    raise Exception('Somehow ended up with uninstantiated Atom')
 
                 atom_list.append(atom)
 
