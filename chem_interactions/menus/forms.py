@@ -57,6 +57,7 @@ class LineForm(Form):
             line.color.a = 0
         return line
 
+
 # If you want to change the default line settings, update here
 line_settings = {
     'covalent': {'visible': True, 'color': color_map['yellow']},

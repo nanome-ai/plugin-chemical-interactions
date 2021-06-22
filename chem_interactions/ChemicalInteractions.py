@@ -91,14 +91,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Set up data for request to interactions service
         if ligand:
-            resnames = [ligand.resname]
+            selection = f'RESNAME:{ligand.resname}'
         else:
-            # Parse all residues from ligand complex
-            resnames = []
-            for residue in ligand_complex.residues:
-                resnames.append(residue.name)
+            selection = 'LIGANDS'
 
-        selection = ','.join([f'RESNAME:{resname}' for resname in resnames])
         data = {
             'selection': selection
         }
@@ -127,8 +123,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Return atom corresponding to atom path.
 
         :arg complex: nanome.api.Complex object
-        :arg atom_path: str (/C/20/O)
-        
+        :arg atom_path: str (e.g C/20/O)
+
         rtype: nanome.api.Atom object, or None
         """
         chain_name, res_id, atom_name = atom_path.split('/')
@@ -136,18 +132,34 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Chain naming seems inconsistent, so we need to check the provided name,
         # as well as heteroatom variations
-        residues = [
-            r for r in complex_molecule.residues
-            if str(r.serial) == str(res_id)
-            and r.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
+        atoms = [
+            a for a in complex_molecule.atoms
+            if all([
+                a.name == atom_name,
+                str(a.residue.serial) == str(res_id),
+                a.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
+            ])
         ]
-        if len(residues) > 1:
-            raise Exception('Multiple Residues found')
-        elif not residues:
+        if not atoms:
             return
-        residue = residues[0]
 
-        atom = next((a for a in residue.atoms if a.name == atom_name), None)
+        if len(atoms) > 1:
+            # If too many atoms found, only look at specified chain name (No heteroatoms)
+            atoms = [
+                a for a in complex_molecule.atoms
+                if all([
+                    a.name == atom_name,
+                    str(a.residue.serial) == str(res_id),
+                    a.chain.name == chain_name
+                ])
+            ]
+            if not atoms:
+                raise Exception(f"Error finding atom {atom_path}")
+
+            if len(atoms) > 1:
+                # Just pick the first one?
+                raise Exception(f'Too many Atoms found for {atom_path}')
+        atom = atoms[0]
         return atom
 
     def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
@@ -188,9 +200,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             raise Exception(form.errors)
 
         new_lines = []
-        
+
         for i, row in enumerate(interaction_data):
-            # print(f"row {i}")
+            print(f"row {i}")
             # Use atom paths to get matching atoms on Nanome Structure
             atom_paths = row[:2]
             atom_list = []
@@ -203,7 +215,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     raise Exception(f'Atom {atompath} not found')
 
                 if atom.index == -1:
-                    raise Exception(f'Somehow ended up with uninstantiated Atom')
+                    raise Exception('Somehow ended up with uninstantiated Atom')
 
                 atom_list.append(atom)
 
@@ -211,7 +223,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             atom1, atom2 = atom_list
-            
+
             # For some reason atom.complex.current_frame returns the wrong frame number.
             # Look in top level complexes for frame.
             atom1_comp = next(

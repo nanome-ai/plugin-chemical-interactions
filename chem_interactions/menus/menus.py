@@ -178,6 +178,11 @@ class ChemInteractionsMenu():
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
                 nanome.util.enums.NotificationTypes.error, msg)
+
+            btn.unusable = False
+            btn.text.value.set_all('Calculate')
+            self.plugin.update_content(btn)
+            raise
         btn.unusable = False
         btn.text.value.set_all('Calculate')
         self.plugin.update_content(btn)
@@ -283,8 +288,7 @@ class ChemInteractionsMenu():
 
     @async_callback
     async def toggle_complex(self, dropdown, item):
-
-        # Reset ligands list to default if nothing is selected
+        """When Complex selected, add complex ligands as structure choices."""
         ligand_ddis = []
         if item.selected:
             # Pull out ligands from complex and add them to ligands list
@@ -319,9 +323,6 @@ class ChemInteractionsMenu():
         self.btn_calculate.text.value.set_all('Calculate')
         self.plugin.update_content(self.btn_calculate)
         self.plugin.update_content(self.dd_ligands)
-
-        # update ui
-        self.plugin.update_content(self.ln_ligands)
 
     def on_complex_updated(self, complex):
         # Update complex in self.complexes, and redraw lines
