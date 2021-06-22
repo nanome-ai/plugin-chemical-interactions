@@ -6,7 +6,7 @@ from Bio.PDB.Residue import Residue as BioResidue
 import nanome
 from utils import extract_ligands
 from nanome.api.structure import Complex
-from nanome.api.ui import Dropdown, DropdownItem, Button, Label
+from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
 from nanome.util.asyncio import async_callback
 from .forms import InteractionsForm, color_map
 
@@ -31,6 +31,7 @@ class ChemInteractionsMenu():
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
 
+        self.ln_loading_bar = self._menu.root.find_node('LoadingBar')
         self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
         self.complex_indices = set()
@@ -170,6 +171,10 @@ class ChemInteractionsMenu():
             # Update self.complexes with deep complex
             self.update_complex_data(residue_complex)
 
+        loading_bar = LoadingBar()
+        self.ln_loading_bar.set_content(loading_bar)
+        self.plugin.update_node(self.ln_loading_bar)
+
         interaction_data = self.collect_interaction_data()
         try:
             await self.plugin.get_interactions(
@@ -183,9 +188,18 @@ class ChemInteractionsMenu():
             btn.text.value.set_all('Calculate')
             self.plugin.update_content(btn)
             raise
+        
+        self.ln_loading_bar.set_content(None)
+        self.plugin.update_node(self.ln_loading_bar)
+
         btn.unusable = False
         btn.text.value.set_all('Calculate')
         self.plugin.update_content(btn)
+
+    def update_loading_bar(self, current, total):
+        loading_bar = self.ln_loading_bar.get_content()
+        loading_bar.percentage = current/total
+        self.plugin.update_content(loading_bar)
 
     def color_dropdown(self):
         dropdown_items = []

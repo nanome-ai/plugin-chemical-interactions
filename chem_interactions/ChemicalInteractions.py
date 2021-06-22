@@ -90,14 +90,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         files = {filename: cleaned_data}
 
         # Set up data for request to interactions service
+        data = {}
         if ligand:
             selection = f'RESNAME:{ligand.resname}'
         else:
+            # By default, only show interactions to any ligands in the complex.
+            # Checking the entire complex takes a long time.
+            # We'll probably change this when we can get interactions by atom selection.
             selection = 'LIGANDS'
 
-        data = {
-            'selection': selection
-        }
+        data['selection'] = selection
 
         # make the request with the data and file
         response = requests.post(self.interactions_url, data=data, files=files)
@@ -157,8 +159,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 raise Exception(f"Error finding atom {atom_path}")
 
             if len(atoms) > 1:
-                # Just pick the first one?
-                raise Exception(f'Too many Atoms found for {atom_path}')
+                # Just pick the first one? :grimace:
+                Logs.error(f'Too many Atoms found for {atom_path}')
+                atoms = atoms[:1]
         atom = atoms[0]
         return atom
 
@@ -202,7 +205,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         new_lines = []
 
         for i, row in enumerate(interaction_data):
-            print(f"row {i}")
+            self.menu.update_loading_bar(i, len(interaction_data))
+
             # Use atom paths to get matching atoms on Nanome Structure
             atom_paths = row[:2]
             atom_list = []
@@ -239,11 +243,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2_frame = atom2_comp.current_frame
 
             # Iterate through csv data and draw relevant lines
-            for i, col in enumerate(row[2:], 2):
+            for j, col in enumerate(row[2:], 2):
                 if col != '1':
                     continue
 
-                interaction_type = next(key for key, val in interaction_column_index.items() if val == i)
+                interaction_type = next(key for key, val in interaction_column_index.items() if val == j)
                 form_data = form.data.get(interaction_type)
                 if not form_data:
                     continue
