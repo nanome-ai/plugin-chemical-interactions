@@ -1,6 +1,5 @@
 import tempfile
 from os import environ, path
-from utils.complex_utils import ComplexUtils
 from Bio.PDB.Residue import Residue as BioResidue
 
 import nanome
@@ -162,8 +161,9 @@ class ChemInteractionsMenu():
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
-        if not residue_complex:
+        elif not residue_complex:
             error_msg = 'Please Select a Ligand'
+
         if error_msg:
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
@@ -173,7 +173,7 @@ class ChemInteractionsMenu():
         btn.text.value.set_all('Calculating...')
         self.plugin.update_content(btn)
 
-        # Determine selection type (Show all interactions or only selected atoms) 
+        # Determine selection type (Show all interactions or only selected atoms)
         selected_atoms_only = False
         if self.btn_show_selected_interactions.selected:
             selected_atoms_only = True
@@ -213,7 +213,7 @@ class ChemInteractionsMenu():
 
     def update_loading_bar(self, current, total):
         loading_bar = self.ln_loading_bar.get_content()
-        loading_bar.percentage = current/total
+        loading_bar.percentage = current / total
         self.plugin.update_content(loading_bar)
 
     def color_dropdown(self):

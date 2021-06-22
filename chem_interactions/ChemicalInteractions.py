@@ -9,7 +9,6 @@ import nanome
 from nanome.api.structure import Complex
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs
-from wtforms.fields.core import SelectField
 from menus.forms import InteractionsForm, LineForm
 from menus import ChemInteractionsMenu
 from utils import ComplexUtils
@@ -66,6 +65,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
 
+    def get_selected_atom_paths(self, comp):
+        """Return a set of atom paths for the selected atoms in the complex."""
+        selected_atoms = filter(lambda atom: atom.selected, comp.atoms)
+        selections = set()
+        for a in selected_atoms:
+            chain_name = a.chain.name
+            # Clean up chain names
+            if chain_name.startswith('H'):
+                chain_name = chain_name[1:]
+            elif chain_name.startswith('H_'):
+                chain_name = chain_name[2:]
+            selections.add(f'/{chain_name}/{a.residue.serial}/')
+        return selections
+
     @async_callback
     async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None, selected_atoms_only=False):
         """Collect Form data, and render Interactions in nanome.
@@ -93,21 +106,24 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Set up data for request to interactions service
         data = {}
-        if ligand:
-            selection = f'RESNAME:{ligand.resname}'
+        selection = None
+        if ligand and not selected_atoms_only:
+            # If a ligand has been specified, get all interactions for residue
+            selections = [f'RESNAME:{ligand.resname}']
+        elif ligand and selected_atoms_only:
+            # If we only want specific atoms on the ligand, parse ligand complex
+            selections = self.get_selected_atom_paths(ligand_complex)
+        elif selected_atoms_only:
+            # Get all selected atoms from both the selected complex and ligand complex
+            selections = self.get_selected_atom_paths(selected_complex)
+            if ligand_complex.index != selected_complex.index:
+                ligand_selections = self.get_selected_atom_paths(ligand_complex)
+                selections = selections.union(ligand_selections)
         else:
-            selected_atoms = filter(lambda atom: atom.selected, selected_complex.atoms)
-            selections = set()
-            for a in selected_atoms:
-                chain_name = a.chain.name
-                # Clean up chain names
-                if chain_name.startswith('H'):
-                    chain_name = chain_name[1:]
-                elif chain_name.startswith('H_'):
-                    chain_name = chain_name[2:]
-                selections.add(f'/{chain_name}/{a.residue.serial}/')
-            selection = ','.join(selections)
+            # Get all interactions for all atoms (provide no selections)
+            selections = []
 
+        selection = ','.join(selections)
         if selection:
             data['selection'] = selection
 
@@ -235,7 +251,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             if len(atom_list) != 2:
                 continue
-      
+
             # if selected_atoms_only = True, and neither of the atoms are selected, don't draw line
             if selected_atoms_only and not any([a.selected for a in atom_list]):
                 continue
