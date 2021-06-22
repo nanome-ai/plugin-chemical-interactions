@@ -203,6 +203,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         for i, row in enumerate(interaction_data):
             print(f"row {i}")
+            self.menu.update_loading_bar(i, len(interaction_data))
             # Use atom paths to get matching atoms on Nanome Structure
             atom_paths = row[:2]
             atom_list = []

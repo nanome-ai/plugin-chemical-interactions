@@ -188,9 +188,15 @@ class ChemInteractionsMenu():
             btn.text.value.set_all('Calculate')
             self.plugin.update_content(btn)
             raise
+
         btn.unusable = False
         btn.text.value.set_all('Calculate')
         self.plugin.update_content(btn)
+
+    def update_loading_bar(self, current, total):
+        loading_bar = self.ln_loading_bar.get_content()
+        loading_bar.percentage = current/total
+        self.plugin.update_content(loading_bar)
 
     def color_dropdown(self):
         dropdown_items = []
