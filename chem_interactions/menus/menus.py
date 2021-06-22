@@ -178,11 +178,12 @@ class ChemInteractionsMenu():
         if self.btn_show_selected_interactions.selected:
             selected_atoms_only = True
 
-        # Get deep residue complex
-        if len(list(residue_complex.molecules)) == 0:
-            residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
-            # Update self.complexes with deep complex
-            self.update_complex_data(residue_complex)
+        # Get up to date selected_complex
+        selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
+        self.update_complex_data(selected_complex)
+        # Get up to date residue_complex
+        residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
+        self.update_complex_data(residue_complex)
 
         loading_bar = LoadingBar()
         self.ln_loading_bar.set_content(loading_bar)
@@ -193,7 +194,7 @@ class ChemInteractionsMenu():
             await self.plugin.get_interactions(
                 selected_complex, residue_complex, interaction_data,
                 ligand=selected_residue, selected_atoms_only=selected_atoms_only)
-        except:
+        except Exception:
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
                 nanome.util.enums.NotificationTypes.error, msg)
@@ -202,7 +203,7 @@ class ChemInteractionsMenu():
             btn.text.value.set_all('Calculate')
             self.plugin.update_content(btn)
             raise
-        
+
         self.ln_loading_bar.set_content(None)
         self.plugin.update_node(self.ln_loading_bar)
 
