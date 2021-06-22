@@ -79,6 +79,37 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             selections.add(f'/{chain_name}/{a.residue.serial}/')
         return selections
 
+    def get_arpeggio_selections(self, selected_complex, ligand_complex, ligand, selected_atoms_only):
+        """Generate valid list of selections to pass to arpeggio-service.
+
+        selected_complex: Nanome Complex object
+        ligand_complex: Complex object containing the ligand. Often is the same as comp.
+        interactions data: Data accepted by InteractionsForm.
+        ligand: Biopython Residue object. Can be None
+        selected_atoms_only: bool. show interactions only for selected atoms.
+
+        :rtype: str, comma separated list of atom paths (eg /C/20/O)
+        """
+        selection = None
+        if ligand and not selected_atoms_only:
+            # If a ligand has been specified, get all interactions for residue
+            selections = [f'RESNAME:{ligand.resname}']
+        elif ligand and selected_atoms_only:
+            # If we only want specific atoms on the ligand, parse ligand complex
+            selections = self.get_selected_atom_paths(ligand_complex)
+        elif selected_atoms_only:
+            # Get all selected atoms from both the selected complex and ligand complex
+            selections = self.get_selected_atom_paths(selected_complex)
+            if ligand_complex.index != selected_complex.index:
+                ligand_selections = self.get_selected_atom_paths(ligand_complex)
+                selections = selections.union(ligand_selections)
+        else:
+            # Get all interactions for all atoms (provide no selections)
+            selections = []
+
+        selection = ','.join(selections)
+        return selection
+
     @async_callback
     async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None, selected_atoms_only=False):
         """Collect Form data, and render Interactions in nanome.
@@ -106,24 +137,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Set up data for request to interactions service
         data = {}
-        selection = None
-        if ligand and not selected_atoms_only:
-            # If a ligand has been specified, get all interactions for residue
-            selections = [f'RESNAME:{ligand.resname}']
-        elif ligand and selected_atoms_only:
-            # If we only want specific atoms on the ligand, parse ligand complex
-            selections = self.get_selected_atom_paths(ligand_complex)
-        elif selected_atoms_only:
-            # Get all selected atoms from both the selected complex and ligand complex
-            selections = self.get_selected_atom_paths(selected_complex)
-            if ligand_complex.index != selected_complex.index:
-                ligand_selections = self.get_selected_atom_paths(ligand_complex)
-                selections = selections.union(ligand_selections)
-        else:
-            # Get all interactions for all atoms (provide no selections)
-            selections = []
-
-        selection = ','.join(selections)
+        selection = self.get_arpeggio_selections(selected_complex, ligand_complex, ligand, selected_atoms_only)
         if selection:
             data['selection'] = selection
 
