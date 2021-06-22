@@ -28,8 +28,13 @@ class ChemInteractionsMenu():
         self.ln_ligands = self._menu.root.find_node('Ligand Dropdown')
 
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
-        self.btn_calculate = self._menu.root.find_node('Button').get_content()
+        self.btn_calculate = self._menu.root.find_node('CalculateButton').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
+
+        self.btn_show_all_interactions = self._menu.root.find_node('Show All').get_content()
+        self.btn_show_selected_interactions = self._menu.root.find_node('Selected Atoms-Residues').get_content()
+        self.btn_show_all_interactions.register_pressed_callback(self.toggle_atom_selection)
+        self.btn_show_selected_interactions.register_pressed_callback(self.toggle_atom_selection)
 
         self.ln_loading_bar = self._menu.root.find_node('LoadingBar')
         self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
@@ -350,3 +355,15 @@ class ChemInteractionsMenu():
                 self.complexes[i] = new_complex
                 self.complexes[i].register_complex_updated_callback(self.on_complex_updated)
                 return
+
+    def toggle_atom_selection(self, btn):
+        # Toggle selected button
+        btn.selected = not btn.selected
+        self.plugin.update_content(btn)
+
+        # Make sure other button is set to opposite of pressed button (Only one can be selected at a time)
+        button_group = [self.btn_show_all_interactions, self.btn_show_selected_interactions]
+        for button in button_group:
+            if button.name != btn.name:
+                button.selected = not btn.selected
+                self.plugin.update_content(button)
