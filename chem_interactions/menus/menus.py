@@ -6,7 +6,7 @@ from Bio.PDB.Residue import Residue as BioResidue
 import nanome
 from utils import extract_ligands
 from nanome.api.structure import Complex
-from nanome.api.ui import Dropdown, DropdownItem, Button, Label
+from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
 from nanome.util.asyncio import async_callback
 from .forms import InteractionsForm, color_map
 
@@ -31,6 +31,7 @@ class ChemInteractionsMenu():
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
 
+        self.ln_loading_bar = self._menu.root.find_node('LoadingBar-Selection')
         self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
         self.complex_indices = set()
@@ -169,6 +170,10 @@ class ChemInteractionsMenu():
             residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
             # Update self.complexes with deep complex
             self.update_complex_data(residue_complex)
+
+        loading_bar = LoadingBar()
+        self.ln_loading_bar.set_content(loading_bar)
+        self.plugin.update_node(self.ln_loading_bar)
 
         interaction_data = self.collect_interaction_data()
         try:
