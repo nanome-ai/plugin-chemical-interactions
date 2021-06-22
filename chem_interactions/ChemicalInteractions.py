@@ -96,12 +96,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if ligand:
             selection = f'RESNAME:{ligand.resname}'
         else:
-            # By default, only show interactions to any ligands in the complex.
-            # Checking the entire complex takes a long time.
-            # We'll probably change this when we can get interactions by atom selection.
-            selection = 'LIGANDS'
+            selected_atoms = filter(lambda atom: atom.selected, selected_complex.atoms)
+            selections = set()
+            for a in selected_atoms:
+                chain_name = a.chain.name
+                # Clean up chain names
+                if chain_name.startswith('H'):
+                    chain_name = chain_name[1:]
+                elif chain_name.startswith('H_'):
+                    chain_name = chain_name[2:]
+                selections.add(f'/{chain_name}/{a.residue.serial}/')
+            selection = ','.join(selections)
 
-        data['selection'] = selection
+        if selection:
+            data['selection'] = selection
 
         # make the request with the data and file
         response = requests.post(self.interactions_url, data=data, files=files)
