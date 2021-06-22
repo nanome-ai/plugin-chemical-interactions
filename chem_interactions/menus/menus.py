@@ -140,15 +140,13 @@ class ChemInteractionsMenu():
 
     @async_callback
     async def submit_form(self, btn):
+        """Collect data from menu, and pass to the Plugin to run get_interactions."""
         selected_complexes = [
             item.complex
             for item in self.dd_complexes.items
             if item.selected
         ]
 
-        btn.unusable = True
-        btn.text.value.set_all('Calculating...')
-        self.plugin.update_content(btn)
         if len(selected_complexes) != 1:
             raise Exception("Too many selected complexes.")
 
@@ -164,11 +162,21 @@ class ChemInteractionsMenu():
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
-        if selected_complexes and not (selected_residue or residue_complex):
+        if not residue_complex:
             error_msg = 'Please Select a Ligand'
         if error_msg:
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
+
+        # Disable calculate button until we are done processing
+        btn.unusable = True
+        btn.text.value.set_all('Calculating...')
+        self.plugin.update_content(btn)
+
+        # Determine selection type (Show all interactions or only selected atoms) 
+        selected_atoms_only = False
+        if self.btn_show_selected_interactions.selected:
+            selected_atoms_only = True
 
         # Get deep residue complex
         if len(list(residue_complex.molecules)) == 0:
@@ -183,7 +191,8 @@ class ChemInteractionsMenu():
         interaction_data = self.collect_interaction_data()
         try:
             await self.plugin.get_interactions(
-                selected_complex, residue_complex, interaction_data, selected_residue)
+                selected_complex, residue_complex, interaction_data,
+                ligand=selected_residue, selected_atoms_only=selected_atoms_only)
         except:
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(

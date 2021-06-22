@@ -9,6 +9,7 @@ import nanome
 from nanome.api.structure import Complex
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs
+from wtforms.fields.core import SelectField
 from menus.forms import InteractionsForm, LineForm
 from menus import ChemInteractionsMenu
 from utils import ComplexUtils
@@ -66,13 +67,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return cleaned_file
 
     @async_callback
-    async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None):
+    async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None, selected_atoms_only=False):
         """Collect Form data, and render Interactions in nanome.
 
         selected_complex: Nanome Complex object
         ligand_complex: Complex object containing the ligand. Often is the same as comp.
         interactions data: Data accepted by InteractionsForm.
         ligand: Biopython Residue object. Can be None
+        selected_atoms_only: bool. show interactions only for selected atoms.
         """
         # If the ligand is not part of selected complex, merge it in.
         if ligand_complex.index != selected_complex.index:
@@ -118,7 +120,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
         contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
         contacts_file = f'{extract_dir}/{contacts_filename}'
-        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data)
+        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data, selected_atoms_only)
 
     @staticmethod
     def get_atom_from_path(complex, atom_path):
@@ -165,7 +167,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = atoms[0]
         return atom
 
-    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form):
+    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form, selected_atoms_only=False):
         """Parse .contacts file, and draw relevant interaction lines in workspace.
 
         interactions_file: Path to .contacts file containing interactions data
@@ -224,6 +226,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 atom_list.append(atom)
 
             if len(atom_list) != 2:
+                continue
+      
+            # if selected_atoms_only = True, and neither of the atoms are selected, don't draw line
+            if selected_atoms_only and not any([a.selected for a in atom_list]):
                 continue
 
             atom1, atom2 = atom_list
