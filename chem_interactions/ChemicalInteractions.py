@@ -202,8 +202,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         new_lines = []
 
         for i, row in enumerate(interaction_data):
-            print(f"row {i}")
             self.menu.update_loading_bar(i, len(interaction_data))
+
             # Use atom paths to get matching atoms on Nanome Structure
             atom_paths = row[:2]
             atom_list = []
@@ -240,11 +240,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2_frame = atom2_comp.current_frame
 
             # Iterate through csv data and draw relevant lines
-            for i, col in enumerate(row[2:], 2):
+            for j, col in enumerate(row[2:], 2):
                 if col != '1':
                     continue
 
-                interaction_type = next(key for key, val in interaction_column_index.items() if val == i)
+                interaction_type = next(key for key, val in interaction_column_index.items() if val == j)
                 form_data = form.data.get(interaction_type)
                 if not form_data:
                     continue
