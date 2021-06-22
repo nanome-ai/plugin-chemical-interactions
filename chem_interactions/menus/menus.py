@@ -31,7 +31,7 @@ class ChemInteractionsMenu():
         self.btn_calculate = self._menu.root.find_node('Button').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
 
-        self.ln_loading_bar = self._menu.root.find_node('LoadingBar-Selection')
+        self.ln_loading_bar = self._menu.root.find_node('LoadingBar')
         self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
         self.complex_indices = set()
@@ -188,6 +188,9 @@ class ChemInteractionsMenu():
             btn.text.value.set_all('Calculate')
             self.plugin.update_content(btn)
             raise
+        
+        self.ln_loading_bar.set_content(None)
+        self.plugin.update_node(self.ln_loading_bar)
 
         btn.unusable = False
         btn.text.value.set_all('Calculate')
