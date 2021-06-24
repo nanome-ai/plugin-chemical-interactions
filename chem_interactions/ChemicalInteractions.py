@@ -59,7 +59,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         Logs.message('Starting Interactions Calculation')
         start_time = time.time()
-        
+
         # If the ligand is not part of selected complex, merge into one complex.
         if ligand_complex.index != selected_complex.index:
             full_complex = ComplexUtils.combine_ligands(selected_complex, [selected_complex, ligand_complex])
@@ -104,19 +104,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
-            
+
             Done async to make sure elapsed time accounts for async tasks.
             """
             end_time = time.time()
             elapsed_time = end_time - start_time
             Logs.message(f'Interactions Calculation completed in {elapsed_time} seconds')
 
-        async def send_notification(plugin):
-            """Send notification after all previous async tasks finish."""
-            plugin.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
-
         asyncio.create_task(log_elapsed_time(start_time))
-        asyncio.create_task(send_notification(self))
+        asyncio.create_task(self.send_async_notification("Finished Calculating Interactions!"))
 
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
@@ -160,7 +156,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         ligand: Biopython Residue object. Can be None
         selected_atoms_only: bool. show interactions only for selected atoms.
 
-        :rtype: str, comma separated list of atom paths (eg /C/20/O,/A/60/C2)
+        :rtype: str, comma separated string of atom paths (eg '/C/20/O,/A/60/C2')
         """
         selection = None
         if ligand and not selected_atoms_only:
@@ -398,7 +394,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def line_in_frame(self, line, complexes):
         """Return boolean stating whether both atoms connected by line are in frame.
-        
+
         :arg line: Line object. The line in question.
         :arg complexes: List of complexes in workspace that can contain atoms.
         """
@@ -424,8 +420,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     break
             if not line_in_frame:
                 break
-        
-        # If one of the atoms is not found, then line is not in frame 
+
+        # If one of the atoms is not found, then line is not in frame
         if atoms_found != 2:
             line_in_frame = False
 
@@ -433,11 +429,22 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def clear_visible_lines(self, complexes):
         """Clear all interaction lines that are currently visible."""
+        line_count = len(self._interaction_lines)
         lines_to_destroy = []
-        for line in self._interaction_lines:
-            # Make sure that both atoms connected by line are in frame.
+        for i in range(line_count - 1, -1, -1):
+            line = self._interaction_lines[i]
             if self.line_in_frame(line, complexes):
                 lines_to_destroy.append(line)
+                self._interaction_lines.remove(line)
 
-        Logs.message(f'Deleting {len(lines_to_destroy)} lines')
+        destroyed_line_count = len(lines_to_destroy)
         asyncio.create_task(self.destroy_lines(lines_to_destroy))
+
+        message = f'Deleted {destroyed_line_count} interactions'
+        Logs.message(message)
+        asyncio.create_task(self.send_async_notification(message))
+
+    async def send_async_notification(self, message):
+        """Send notification after all previous async tasks finish."""
+        notifcation_type = nanome.util.enums.NotificationTypes.message
+        self.send_notification(notifcation_type, message)
