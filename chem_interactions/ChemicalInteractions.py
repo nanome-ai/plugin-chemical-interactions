@@ -421,7 +421,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if not line_in_frame:
                 break
 
-        # If one of the atoms is not found, then line is not in frame
+        # If either of the atoms is not found, then line is not in frame
         if atoms_found != 2:
             line_in_frame = False
 
