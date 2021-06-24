@@ -28,17 +28,17 @@ class ChemInteractionsMenu():
 
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('CalculateButton').get_content()
+        self.btn_clear_frame = self._menu.root.find_node('ClearFrameButton').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
 
         self.btn_show_all_interactions = self._menu.root.find_node('Show All').get_content()
         self.btn_show_selected_interactions = self._menu.root.find_node('Selected Atoms-Residues').get_content()
         self.btn_show_all_interactions.register_pressed_callback(self.toggle_atom_selection)
         self.btn_show_selected_interactions.register_pressed_callback(self.toggle_atom_selection)
-
         self.ln_loading_bar = self._menu.root.find_node('LoadingBar')
         self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
-        self.complex_indices = set()
+        self.btn_clear_frame.register_pressed_callback(self.clear_frame)
 
     @async_callback
     async def render(self, complexes=None):
@@ -113,6 +113,12 @@ class ChemInteractionsMenu():
             btn.selected = selected_value
         self.plugin.update_menu(self._menu)
         await self.update_interaction_lines()
+
+    @async_callback
+    async def clear_frame(self, btn):
+        """Clear all interactions that are currently visible."""
+        self.plugin.clear_visible_lines(self.complexes)
+        # await self.update_interaction_lines()
 
     def collect_interaction_data(self):
         """Collect Interaction data from various content widgets."""
