@@ -72,7 +72,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         filename = cleaned_file.name.split('/')[-1]
         files = {filename: cleaned_data}
         data = {}
-        selection = self.get_arpeggio_selections(selected_complex, ligand_complex, ligand, selected_atoms_only)
+        selection = self.get_interaction_selections(selected_complex, ligand_complex, ligand, selected_atoms_only)
         if selection:
             data['selection'] = selection
 
@@ -134,7 +134,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             selections.add(f'/{chain_name}/{a.residue.serial}/')
         return selections
 
-    def get_arpeggio_selections(self, selected_complex, ligand_complex, ligand, selected_atoms_only):
+    def get_interaction_selections(self, selected_complex, ligand_complex, ligand, selected_atoms_only):
         """Generate valid list of selections to send to interactions service.
 
         selected_complex: Nanome Complex object
@@ -229,7 +229,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         contacts_file: Path to .contacts file containing interactions data.
             For data format, see https://github.com/harryjubb/arpeggio#contacts
         complex: main complex selected.
-        lig\nd_complex: complex containing the ligand. May be same as complex arg
+        ligand_complex: complex containing the ligand. May be same as complex arg
         interaction_form. InteractionsForms data describing color and visibility of interactions.
         """
         # Convert tsv into list of dicts for each row
