@@ -406,3 +406,36 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.debug(f'out of frame: {out_of_frame_count}')
         if stream:
             stream.update(new_colors)
+
+    def clear_visible_lines(self, complexes):
+        """Clear all interaction lines that are currently visible."""
+        lines_to_destroy = []
+        for line in self._interaction_lines:
+            # Make sure that both atoms connected by line are in frame.
+            line_in_frame = True
+            line_atoms = [anchor.target for anchor in line.anchors]
+
+            # Loop through all complexes, and make sure both atoms are in frame
+            for comp in complexes:
+                try:
+                    current_mol = list(comp.molecules)[comp.current_frame]
+                except IndexError:
+                    # In case of empty complex, its safe to continue
+                    if len(list(comp.molecules)) == 0:
+                        continue
+                    raise
+
+                filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
+                # As soon as we find an atom not in frame, we can stop looping
+                for atom in filtered_atoms:
+                    line_in_frame = line.frames[atom.index] == comp.current_frame
+                    if not line_in_frame:
+                        break
+
+                if not line_in_frame:
+                    break
+
+            if line_in_frame:
+                lines_to_destroy.append(line)
+
+        asyncio.create_task(self.destroy_lines(lines_to_destroy))
