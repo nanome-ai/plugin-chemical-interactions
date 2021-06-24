@@ -118,7 +118,6 @@ class ChemInteractionsMenu():
     async def clear_frame(self, btn):
         """Clear all interactions that are currently visible."""
         self.plugin.clear_visible_lines(self.complexes)
-        # await self.update_interaction_lines()
 
     def collect_interaction_data(self):
         """Collect Interaction data from various content widgets."""
@@ -365,7 +364,7 @@ class ChemInteractionsMenu():
         self.update_interaction_lines()
 
     def update_complex_data(self, new_complex):
-        """Replace complex self.complexes with updated data."""
+        """Replace complex in self.complexes with updated data."""
         for i, comp in enumerate(self.complexes):
             if comp.index == new_complex.index:
                 self.complexes[i] = new_complex

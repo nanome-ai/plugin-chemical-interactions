@@ -175,7 +175,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # If comparing two different complexes, get interactions related to ligand complex.
             selections = self.get_selected_atom_paths(ligand_complex)
         else:
-            # Get all interactions for all atoms (provide no selections)
+            # Get interactions for all atoms (provide no selections)
             selections = []
 
         selection = ','.join(selections)
@@ -257,21 +257,21 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Represents the column number of the interactions in the .contacts file
         interaction_column_index = {
-            'clash': 2,
-            'covalent': 3,
-            'vdw_clash': 4,
-            'vdw': 5,
-            'proximal': 6,
-            'hbond': 7,
-            'weak_hbond': 8,
-            'xbond': 9,
-            'ionic': 10,
-            'metal_complex': 11,
-            'aromatic': 12,
-            'hydrophobic': 13,
-            'carbonyl': 14,
-            'polar': 15,
-            'weak_polar': 16,
+            2: 'clash',
+            3: 'covalent',
+            4: 'vdw_clash',
+            5: 'vdw',
+            6: 'proximal',
+            7: 'hbond',
+            8: 'weak_hbond',
+            9: 'xbond',
+            10: 'ionic',
+            11: 'metal_complex',
+            12: 'aromatic',
+            13: 'hydrophobic',
+            14: 'carbonyl',
+            15: 'polar',
+            16: 'weak_polar',
         }
         form = InteractionsForm(data=interaction_form)
         form.validate()
@@ -308,7 +308,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if col != '1':
                     continue
 
-                interaction_type = next(key for key, val in interaction_column_index.items() if val == j)
+                interaction_type = interaction_column_index.get(j)
                 form_data = form.data.get(interaction_type)
                 if not form_data:
                     continue
