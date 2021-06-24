@@ -158,6 +158,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if ligand_complex.index != selected_complex.index:
                 ligand_selections = self.get_selected_atom_paths(ligand_complex)
                 selections = selections.union(ligand_selections)
+        elif selected_complex.index != ligand_complex.index:
+            # If comparing two different complexes, get interactions related to ligand complex.
+            selections = self.get_selected_atom_paths(ligand_complex)
         else:
             # Get all interactions for all atoms (provide no selections)
             selections = []
