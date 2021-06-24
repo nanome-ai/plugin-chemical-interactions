@@ -1,8 +1,9 @@
+import asyncio
 import csv
 import requests
-import tempfile
 import shutil
-import asyncio
+import tempfile
+import time
 from os import environ, path
 
 import nanome
@@ -56,7 +57,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         ligand: Biopython Residue object. Can be None
         selected_atoms_only: bool. show interactions only for selected atoms.
         """
-        # If the ligand is not part of selected complex, merge it in.
+        Logs.message('Starting Interactions Calculation')
+        start_time = time.time()
+        
+        # If the ligand is not part of selected complex, merge into one complex.
         if ligand_complex.index != selected_complex.index:
             full_complex = ComplexUtils.combine_ligands(selected_complex, [selected_complex, ligand_complex])
         else:
@@ -72,7 +76,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         filename = cleaned_file.name.split('/')[-1]
         files = {filename: cleaned_data}
         data = {}
-        selection = self.get_interaction_selections(selected_complex, ligand_complex, ligand, selected_atoms_only)
+        selection = self.get_interaction_selections(
+            selected_complex, ligand_complex, ligand, selected_atoms_only)
+
         if selection:
             data['selection'] = selection
 
@@ -96,9 +102,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         self.create_new_lines(contacts_file, selected_complex, ligand_complex, interaction_data, selected_atoms_only)
 
-        # Send notification indicating calculations completed.
+        async def log_elapsed_time(start_time):
+            """Log the elapsed time since start time.
+            
+            Done async to make sure elapsed time accounts for async tasks.
+            """
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            Logs.message(f'Interactions Calculation completed in {elapsed_time} seconds')
+
         async def send_notification(plugin):
+            """Send notification after all previous async tasks finish."""
             plugin.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
+
+        asyncio.create_task(log_elapsed_time(start_time))
         asyncio.create_task(send_notification(self))
 
     def clean_complex(self, complex):
@@ -147,7 +164,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         selection = None
         if ligand and not selected_atoms_only:
-            # If a ligand has been specified, get all interactions for residue
+            # If a ligand has been specified, get all interactions for resname
             selections = [f'RESNAME:{ligand.resname}']
         elif ligand and selected_atoms_only:
             # If we only want specific atoms on the ligand, parse ligand complex
@@ -421,4 +438,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Make sure that both atoms connected by line are in frame.
             if self.line_in_frame(line, complexes):
                 lines_to_destroy.append(line)
+
+        Logs.message(f'Deleting {len(lines_to_destroy)} lines')
         asyncio.create_task(self.destroy_lines(lines_to_destroy))
