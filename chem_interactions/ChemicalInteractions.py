@@ -360,35 +360,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         for line in self._interaction_lines:
             # Make sure that both atoms connected by line are in frame.
-            line_atoms = [anchor.target for anchor in line.anchors]
-
-            line_in_frame = True
-            atoms_found = 0
-            # Loop through all complexes, and make sure both atoms are in frame
-            for comp in complexes:
-                try:
-                    current_mol = list(comp.molecules)[comp.current_frame]
-                except IndexError:
-                    # In case of empty complex, its safe to continue
-                    if len(list(comp.molecules)) == 0:
-                        continue
-                    raise
-
-                filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
-                # As soon as we find an atom not in frame, we can stop looping
-                for atom in filtered_atoms:
-                    atoms_found += 1
-                    line_in_frame = line.frames[atom.index] == comp.current_frame
-                    if not line_in_frame:
-                        break
-
-                if not line_in_frame or atoms_found == 2:
-                    break
-
-            if atoms_found != 2:
-                Logs.debug(f'{2 - atoms_found} atom(s) missing')
-                line_in_frame = False
-
+            line_in_frame = self.line_in_frame(line, complexes)
             if line_in_frame:
                 in_frame_count += 1
             else:
@@ -407,35 +379,46 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if stream:
             stream.update(new_colors)
 
+    def line_in_frame(self, line, complexes):
+        """Return boolean stating whether both atoms connected by line are in frame.
+        
+        :arg line: Line object. The line in question.
+        :arg complexes: List of complexes in workspace that can contain atoms.
+        """
+        line_in_frame = True
+        line_atoms = [anchor.target for anchor in line.anchors]
+
+        atoms_found = 0
+        for comp in complexes:
+            try:
+                current_mol = list(comp.molecules)[comp.current_frame]
+            except IndexError:
+                # In case of empty complex, its safe to continue
+                if len(list(comp.molecules)) == 0:
+                    continue
+                raise
+
+            # As soon as we find an atom not in frame, we can break from loop.
+            filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
+            for atom in filtered_atoms:
+                atoms_found += 1
+                line_in_frame = line.frames[atom.index] == comp.current_frame
+                if not line_in_frame:
+                    break
+            if not line_in_frame:
+                break
+        
+        # If one of the atoms is not found, then line is not in frame 
+        if atoms_found != 2:
+            line_in_frame = False
+
+        return line_in_frame
+
     def clear_visible_lines(self, complexes):
         """Clear all interaction lines that are currently visible."""
         lines_to_destroy = []
         for line in self._interaction_lines:
             # Make sure that both atoms connected by line are in frame.
-            line_in_frame = True
-            line_atoms = [anchor.target for anchor in line.anchors]
-
-            # Loop through all complexes, and make sure both atoms are in frame
-            for comp in complexes:
-                try:
-                    current_mol = list(comp.molecules)[comp.current_frame]
-                except IndexError:
-                    # In case of empty complex, its safe to continue
-                    if len(list(comp.molecules)) == 0:
-                        continue
-                    raise
-
-                filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
-                # As soon as we find an atom not in frame, we can stop looping
-                for atom in filtered_atoms:
-                    line_in_frame = line.frames[atom.index] == comp.current_frame
-                    if not line_in_frame:
-                        break
-
-                if not line_in_frame:
-                    break
-
-            if line_in_frame:
+            if self.line_in_frame(line, complexes):
                 lines_to_destroy.append(line)
-
         asyncio.create_task(self.destroy_lines(lines_to_destroy))
