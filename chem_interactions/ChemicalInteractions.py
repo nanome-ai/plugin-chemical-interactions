@@ -135,7 +135,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return selections
 
     def get_arpeggio_selections(self, selected_complex, ligand_complex, ligand, selected_atoms_only):
-        """Generate valid list of selections to pass to arpeggio-service.
+        """Generate valid list of selections to send to interactions service.
 
         selected_complex: Nanome Complex object
         ligand_complex: Complex object containing the ligand. Often is the same as comp.
