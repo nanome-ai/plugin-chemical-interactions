@@ -191,7 +191,7 @@ class ChemInteractionsMenu():
 
         interaction_data = self.collect_interaction_data()
         try:
-            await self.plugin.get_interactions(
+            await self.plugin.calculate_interactions(
                 selected_complex, residue_complex, interaction_data,
                 ligand=selected_residue, selected_atoms_only=selected_atoms_only)
         except Exception:

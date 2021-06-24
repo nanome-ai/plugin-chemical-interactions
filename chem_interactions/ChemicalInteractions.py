@@ -46,6 +46,61 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complexes = await self.request_complex_list()
         await self.menu.render(complexes=complexes)
 
+    @async_callback
+    async def calculate_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None, selected_atoms_only=False):
+        """Calculate interactions between complexes, and upload interaction lines to Nanome.
+
+        selected_complex: Nanome Complex object
+        ligand_complex: Complex object containing the ligand. Often is the same as comp.
+        interactions data: Data accepted by InteractionsForm.
+        ligand: Biopython Residue object. Can be None
+        selected_atoms_only: bool. show interactions only for selected atoms.
+        """
+        # If the ligand is not part of selected complex, merge it in.
+        if ligand_complex.index != selected_complex.index:
+            full_complex = ComplexUtils.combine_ligands(selected_complex, [selected_complex, ligand_complex])
+        else:
+            full_complex = selected_complex
+
+        # Clean complex and return as tempfile
+        cleaned_file = self.clean_complex(full_complex)
+        cleaned_data = ''
+        with open(cleaned_file.name, 'r') as f:
+            cleaned_data = f.read()
+
+        # Set up data for request to interactions service
+        filename = cleaned_file.name.split('/')[-1]
+        files = {filename: cleaned_data}
+        data = {}
+        selection = self.get_interaction_selections(selected_complex, ligand_complex, ligand, selected_atoms_only)
+        if selection:
+            data['selection'] = selection
+
+        # make the request to get interactions
+        response = requests.post(self.interactions_url, data=data, files=files)
+        if response.status_code != 200:
+            self.send_notification(NotificationTypes.error, 'Error =(')
+            return
+        self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction data retrieved!")
+
+        # Unpack the zip file from response
+        zipfile = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+        with open(zipfile.name, 'wb') as f:
+            f.write(response.content)
+
+        extract_dir = tempfile.mkdtemp()
+        archive_format = "zip"
+        shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
+        contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
+        contacts_file = f'{extract_dir}/{contacts_filename}'
+
+        self.create_new_lines(contacts_file, selected_complex, ligand_complex, interaction_data, selected_atoms_only)
+
+        # Send notification indicating calculations completed.
+        async def send_notification(plugin):
+            plugin.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
+        asyncio.create_task(send_notification(self))
+
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
         temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
@@ -71,7 +126,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         selections = set()
         for a in selected_atoms:
             chain_name = a.chain.name
-            # Clean up chain names
+            # Clean up chain name
             if chain_name.startswith('H'):
                 chain_name = chain_name[1:]
             elif chain_name.startswith('H_'):
@@ -79,33 +134,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             selections.add(f'/{chain_name}/{a.residue.serial}/')
         return selections
 
-    @async_callback
-    async def get_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None, selected_atoms_only=False):
-        """Collect Form data, and render Interactions in nanome.
+    def get_interaction_selections(self, selected_complex, ligand_complex, ligand, selected_atoms_only):
+        """Generate valid list of selections to send to interactions service.
 
         selected_complex: Nanome Complex object
         ligand_complex: Complex object containing the ligand. Often is the same as comp.
         interactions data: Data accepted by InteractionsForm.
         ligand: Biopython Residue object. Can be None
         selected_atoms_only: bool. show interactions only for selected atoms.
+
+        :rtype: str, comma separated list of atom paths (eg /C/20/O,/A/60/C2)
         """
-        # If the ligand is not part of selected complex, merge it in.
-        if ligand_complex.index != selected_complex.index:
-            full_complex = ComplexUtils.combine_ligands(selected_complex, [selected_complex, ligand_complex])
-        else:
-            full_complex = selected_complex
-
-        # Clean complex and return as tempfile
-        cleaned_file = self.clean_complex(full_complex)
-        cleaned_data = ''
-        with open(cleaned_file.name, 'r') as f:
-            cleaned_data = f.read()
-
-        filename = cleaned_file.name.split('/')[-1]
-        files = {filename: cleaned_data}
-
-        # Set up data for request to interactions service
-        data = {}
         selection = None
         if ligand and not selected_atoms_only:
             # If a ligand has been specified, get all interactions for residue
@@ -119,32 +158,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if ligand_complex.index != selected_complex.index:
                 ligand_selections = self.get_selected_atom_paths(ligand_complex)
                 selections = selections.union(ligand_selections)
+        elif selected_complex.index != ligand_complex.index:
+            # If comparing two different complexes, get interactions related to ligand complex.
+            selections = self.get_selected_atom_paths(ligand_complex)
         else:
             # Get all interactions for all atoms (provide no selections)
             selections = []
 
         selection = ','.join(selections)
-        if selection:
-            data['selection'] = selection
-
-        # make the request with the data and file
-        response = requests.post(self.interactions_url, data=data, files=files)
-        if response.status_code != 200:
-            self.send_notification(NotificationTypes.error, 'Error =(')
-            return
-        self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction data retrieved!")
-
-        # Unpack the zip file from response
-        zipfile = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
-        with open(zipfile.name, 'wb') as f:
-            f.write(response.content)
-
-        extract_dir = tempfile.mkdtemp()
-        archive_format = "zip"
-        shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
-        contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
-        contacts_file = f'{extract_dir}/{contacts_filename}'
-        self.parse_and_upload(contacts_file, selected_complex, ligand_complex, interaction_data, selected_atoms_only)
+        return selection
 
     @staticmethod
     def get_atom_from_path(complex, atom_path):
@@ -191,19 +213,34 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = atoms[0]
         return atom
 
-    def parse_and_upload(self, interactions_file, complex, ligand_complex, interaction_form, selected_atoms_only=False):
-        """Parse .contacts file, and draw relevant interaction lines in workspace.
+    def parse_atoms_from_atompaths(self, atom_paths, complex, ligand_complex):
+        """Return a list of atoms from the complexes based on the atom_paths."""
+        atom_list = []
+        for atompath in atom_paths:
+            atom = self.get_atom_from_path(complex, atompath)
+            if not atom and ligand_complex.index != complex.index:
+                atom = self.get_atom_from_path(ligand_complex, atompath)
 
-        interactions_file: Path to .contacts file containing interactions data
+            if not atom:
+                raise Exception(f'Atom {atompath} not found')
+            atom_list.append(atom)
+        return atom_list
+
+    def create_new_lines(self, contacts_file, complex, ligand_complex, interaction_form, selected_atoms_only=False):
+        """Parse .contacts file, and return list of new lines to render.
+
+        contacts_file: Path to .contacts file containing interactions data.
+            For data format, see https://github.com/harryjubb/arpeggio#contacts
         complex: main complex selected.
         ligand_complex: complex containing the ligand. May be same as complex arg
         interaction_form. InteractionsForms data describing color and visibility of interactions.
         """
-        interaction_data = []
-        with open(interactions_file, 'r') as f:
+        # Convert tsv into list of dicts for each row
+        contacts_data = []
+        with open(contacts_file, 'r') as f:
             reader = csv.reader(f, delimiter="\t")
             for row in reader:
-                interaction_data.append(row)
+                contacts_data.append(row)
 
         # Represents the column number of the interactions in the .contacts file
         interaction_column_index = {
@@ -229,25 +266,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             raise Exception(form.errors)
 
         new_lines = []
+        # Each row represents all the interactions between two atoms.
+        for i, row in enumerate(contacts_data):
+            self.menu.update_loading_bar(i, len(contacts_data))
 
-        for i, row in enumerate(interaction_data):
-            self.menu.update_loading_bar(i, len(interaction_data))
-
-            # Use atom paths to get matching atoms on Nanome Structure
+            # Atom paths that current row is describing interactions between
             atom_paths = row[:2]
-            atom_list = []
-            for atompath in atom_paths:
-                atom = self.get_atom_from_path(complex, atompath)
-                if not atom and ligand_complex.index != complex.index:
-                    atom = self.get_atom_from_path(ligand_complex, atompath)
-
-                if not atom:
-                    raise Exception(f'Atom {atompath} not found')
-
-                if atom.index == -1:
-                    raise Exception('Somehow ended up with uninstantiated Atom')
-
-                atom_list.append(atom)
+            atom_list = self.parse_atoms_from_atompaths(atom_paths, complex, ligand_complex)
 
             if len(atom_list) != 2:
                 continue
@@ -257,22 +282,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             atom1, atom2 = atom_list
+            # Get the current frame of the complex corresponding to each atom
+            atom1_frame = atom2_frame = None
+            for comp in [complex, ligand_complex]:
+                if atom1.index in (a.index for a in comp.atoms):
+                    atom1_frame = comp.current_frame
+                if atom2.index in (a.index for a in comp.atoms):
+                    atom2_frame = comp.current_frame
 
-            # For some reason atom.complex.current_frame returns the wrong frame number.
-            # Look in top level complexes for frame.
-            atom1_comp = next(
-                comp for comp in [ligand_complex, complex]
-                if atom1.index in (a.index for a in comp.atoms)
-            )
-            atom2_comp = next(
-                comp for comp in [ligand_complex, complex]
-                if atom2.index in (a.index for a in comp.atoms)
-            )
-
-            atom1_frame = atom1_comp.current_frame
-            atom2_frame = atom2_comp.current_frame
-
-            # Iterate through csv data and draw relevant lines
+            # For all the interactions between atom1 and atom2, draw interaction line
             for j, col in enumerate(row[2:], 2):
                 if col != '1':
                     continue
@@ -291,11 +309,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                             lin.interaction_type == interaction_type]):
                         line_exists = True
                         break
-
                 if line_exists:
                     continue
 
-                # Draw line and add data about interaction types and frames.
+                # Draw line and add data about interaction type and frames.
                 line = self.draw_interaction_line(atom1, atom2, form_data)
                 line.interaction_type = interaction_type
                 line.frames = {
@@ -307,10 +324,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         Logs.debug(f'adding {len(new_lines)} new lines')
         self._interaction_lines.extend(new_lines)
-
-        async def send_notification(plugin):
-            plugin.send_notification(nanome.util.enums.NotificationTypes.message, "Finished Calculating Interactions!")
-        asyncio.create_task(send_notification(self))
 
     def draw_interaction_line(self, atom1, atom2, form_data):
         """Draw line connecting two atoms.
@@ -333,7 +346,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for line in line_list:
             line.destroy()
 
-    async def update_interaction_lines(self, interaction_data, complexes=None):
+    async def update_interaction_lines(self, interactions_data, complexes=None):
         complexes = complexes or []
         stream_type = nanome.api.streams.Stream.Type.shape_color.value
         line_indices = [line.index for line in self._interaction_lines]
@@ -357,7 +370,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     current_mol = list(comp.molecules)[comp.current_frame]
                 except IndexError:
                     # In case of empty complex, its safe to continue
-                    continue
+                    if len(list(comp.molecules)) == 0:
+                        continue
+                    raise
 
                 filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
                 # As soon as we find an atom not in frame, we can stop looping
@@ -381,7 +396,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # Parse forms, and add line data to stream
             line_type = line.interaction_type
-            form_data = interaction_data[line_type]
+            form_data = interactions_data[line_type]
             hide_interaction = not form_data['visible'] or not line_in_frame
             color = Color(*form_data['color'])
             color.a = 0 if hide_interaction else 255
