@@ -335,7 +335,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 new_lines.append(line)
                 asyncio.create_task(self.upload_line(line))
 
-        Logs.debug(f'adding {len(new_lines)} new lines')
+        Logs.message(f'adding {len(new_lines)} new lines')
         self._interaction_lines.extend(new_lines)
 
     def draw_interaction_line(self, atom1, atom2, form_data):
