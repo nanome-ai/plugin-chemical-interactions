@@ -106,7 +106,7 @@ class ChemInteractionsMenu():
         hide_all_state = 2
         # The text shown on the button in given state.
         # A little unintuitive, because the text describes the action in the following state
-        # i.e when text in default state, the button says "Show all"
+        # i.e when button in default state, the the text says "Show all"
         txt_default = 'Show All'
         txt_show_all = 'Hide All'
         txt_hide_all = 'Show Default'
