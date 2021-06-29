@@ -7,7 +7,7 @@ from utils import extract_ligands
 from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
 from nanome.util.asyncio import async_callback
-from .forms import InteractionsForm, color_map, line_settings
+from .forms import InteractionsForm, color_map, default_line_settings
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -126,16 +126,16 @@ class ChemInteractionsMenu():
         btn.text.value.set_all(btn_text)
 
         if new_state == default_state:
-            # Show default
+            # Show default values
             for row in self.ls_interactions.items:
                 content = [ch.get_content() for ch in row.get_children()]
                 btn = next(c for c in content if isinstance(c, Button))
                 lbl_interaction_type = next(c for c in content if isinstance(c, Label))
                 interaction_type = lbl_interaction_type.field_name
-                selected_value = line_settings[interaction_type]['visible']
+                selected_value = default_line_settings[interaction_type]['visible']
                 btn.selected = selected_value
         else:
-            # Find all the interaction buttons and enable or disable them
+            # Get all the interaction buttons and enable or disable them
             selected_value = new_state == show_all_state
             for row in self.ls_interactions.items:
                 content = [ch.get_content() for ch in row.get_children()]
