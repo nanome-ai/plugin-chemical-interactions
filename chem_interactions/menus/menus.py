@@ -7,7 +7,7 @@ from utils import extract_ligands
 from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
 from nanome.util.asyncio import async_callback
-from .forms import InteractionsForm, color_map
+from .forms import InteractionsForm, color_map, line_settings
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -32,10 +32,12 @@ class ChemInteractionsMenu():
         self.btn_calculate.register_pressed_callback(self.submit_form)
 
         self.btn_show_all_interactions = self._menu.root.find_node('Show All').get_content()
-        self.btn_show_selected_interactions = self._menu.root.find_node('Selected Atoms-Residues').get_content()
         self.btn_show_all_interactions.register_pressed_callback(self.toggle_atom_selection)
+
+        self.btn_show_selected_interactions = self._menu.root.find_node('Selected Atoms-Residues').get_content()
         self.btn_show_selected_interactions.register_pressed_callback(self.toggle_atom_selection)
         self.ln_loading_bar = self._menu.root.find_node('LoadingBar')
+        
         self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
         self.btn_clear_frame.register_pressed_callback(self.clear_frame)
@@ -99,18 +101,46 @@ class ChemInteractionsMenu():
 
     @async_callback
     async def toggle_all_interactions(self, btn):
-        btn.selected = not btn.selected
-        txt_selected = 'Hide All'
-        txt_unselected = 'Show all'
-        btn_text = txt_selected if btn.selected else txt_unselected
+        default_state = 0
+        show_all_state = 1
+        hide_all_state = 2
+        # The text shown on the button in given state.
+        # A little unintuitive, because the text describes the action in the following state
+        # i.e when text in default state, the button says "Show all"
+        txt_default = 'Show All'
+        txt_show_all = 'Hide All'
+        txt_hide_all = 'Show Default'
+        btn_text_map = {
+            default_state: txt_default,
+            show_all_state: txt_show_all,
+            hide_all_state: txt_hide_all,
+        }
+
+        if not hasattr(btn, 'state'):
+            btn.state = 0
+
+        current_value = btn.state
+        new_state = (current_value + 1) % len(btn_text_map.keys())
+        btn.state = new_state
+        btn_text = btn_text_map[new_state]
         btn.text.value.set_all(btn_text)
 
-        # Find all the interaction buttons and disable them
-        selected_value = btn.selected
-        for row in self.ls_interactions.items:
-            content = [ch.get_content() for ch in row.get_children()]
-            btn = next(c for c in content if isinstance(c, Button))
-            btn.selected = selected_value
+        if new_state == default_state:
+            # Show default
+            for row in self.ls_interactions.items:
+                content = [ch.get_content() for ch in row.get_children()]
+                btn = next(c for c in content if isinstance(c, Button))
+                lbl_interaction_type = next(c for c in content if isinstance(c, Label))
+                interaction_type = lbl_interaction_type.field_name
+                selected_value = line_settings[interaction_type]['visible']
+                btn.selected = selected_value
+        else:
+            # Find all the interaction buttons and enable or disable them
+            selected_value = new_state == show_all_state
+            for row in self.ls_interactions.items:
+                content = [ch.get_content() for ch in row.get_children()]
+                btn = next(c for c in content if isinstance(c, Button))
+                btn.selected = selected_value
         self.plugin.update_menu(self._menu)
         await self.update_interaction_lines()
 
