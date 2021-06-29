@@ -125,22 +125,22 @@ class ChemInteractionsMenu():
         btn_text = btn_text_map[new_state]
         btn.text.value.set_all(btn_text)
 
-        if new_state == default_state:
-            # Show default values
-            for row in self.ls_interactions.items:
-                content = [ch.get_content() for ch in row.get_children()]
-                btn = next(c for c in content if isinstance(c, Button))
+        # Show default values
+        for row in self.ls_interactions.items:
+            content = [ch.get_content() for ch in row.get_children()]
+            btn = next(c for c in content if isinstance(c, Button))
+
+            if new_state == default_state:
+                # If resetting to default state, lookup visibility from default_line_settings
                 lbl_interaction_type = next(c for c in content if isinstance(c, Label))
                 interaction_type = lbl_interaction_type.field_name
                 selected_value = default_line_settings[interaction_type]['visible']
-                btn.selected = selected_value
-        else:
-            # Get all the interaction buttons and enable or disable them
-            selected_value = new_state == show_all_state
-            for row in self.ls_interactions.items:
-                content = [ch.get_content() for ch in row.get_children()]
-                btn = next(c for c in content if isinstance(c, Button))
-                btn.selected = selected_value
+            else:
+                # Show all and hide all states will always be True or False respectively
+                selected_value = new_state == show_all_state
+            
+            btn.selected = selected_value
+        
         self.plugin.update_menu(self._menu)
         await self.update_interaction_lines()
 
