@@ -5,6 +5,7 @@ version: "3.9"
 
 services:
   plugin:
+    container_name: chemical-interactions-plugin
     build:
       context: chem_interactions
     environment:
@@ -21,6 +22,7 @@ services:
     depends_on:
       - arpeggio
   arpeggio:
+    container_name: chemical-interactions-server
     build:
       context: arpeggio-service
     ports:
