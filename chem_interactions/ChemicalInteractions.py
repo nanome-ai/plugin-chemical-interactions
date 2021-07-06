@@ -27,7 +27,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.residue = ''
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self.menu = ChemInteractionsMenu(self)
-        self._interaction_lines = []
+        self.interaction_lines = []
         self.integration.calculate_interactions = self.integrated_calculate_interactions
 
     @async_callback
@@ -49,6 +49,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_complex_removed(self):
         complexes = await self.request_complex_list()
         await self.menu.render(complexes=complexes)
+
+    @property
+    def interaction_lines(self):
+        """Maintain a list of all interaction lines stored in memory."""
+        if not hasattr(self, '_interaction_lines'):
+            self._interaction_lines = []
+        return self._interaction_lines
+
+    @interaction_lines.setter
+    def interaction_lines(self, value):
+        self._interaction_lines = value
 
     @async_callback
     async def calculate_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None, selected_atoms_only=False):
@@ -318,7 +329,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
                 # See if we've already drawn this line
                 line_exists = False
-                for lin in self._interaction_lines:
+                for lin in self.interaction_lines:
                     if all([
                         lin.frames.get(atom1.index) == atom1_frame,
                         lin.frames.get(atom2.index) == atom2_frame,
@@ -339,7 +350,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         Logs.message(f'adding {len(new_lines)} new lines')
         Shape.upload_multiple(new_lines)
-        self._interaction_lines.extend(new_lines)
+        self.interaction_lines.extend(new_lines)
 
     def draw_interaction_line(self, atom1, atom2, form_data):
         """Draw line connecting two atoms.
@@ -361,7 +372,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def update_interaction_lines(self, interactions_data, complexes=None):
         complexes = complexes or []
         stream_type = nanome.api.streams.Stream.Type.shape_color.value
-        line_indices = [line.index for line in self._interaction_lines]
+        line_indices = [line.index for line in self.interaction_lines]
         stream, _ = await self.create_writing_stream(line_indices, stream_type)
         if not stream:
             return
@@ -370,7 +381,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         in_frame_count = 0
         out_of_frame_count = 0
 
-        for line in self._interaction_lines:
+        for line in self.interaction_lines:
             # Make sure that both atoms connected by line are in frame.
             line_in_frame = self.line_in_frame(line, complexes)
             if line_in_frame:
@@ -428,13 +439,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def clear_visible_lines(self, complexes):
         """Clear all interaction lines that are currently visible."""
-        line_count = len(self._interaction_lines)
+        line_count = len(self.interaction_lines)
         lines_to_destroy = []
         for i in range(line_count - 1, -1, -1):
-            line = self._interaction_lines[i]
+            line = self.interaction_lines[i]
             if self.line_in_frame(line, complexes):
                 lines_to_destroy.append(line)
-                self._interaction_lines.remove(line)
+                self.interaction_lines.remove(line)
 
         destroyed_line_count = len(lines_to_destroy)
         asyncio.create_task(self.destroy_lines(lines_to_destroy))
