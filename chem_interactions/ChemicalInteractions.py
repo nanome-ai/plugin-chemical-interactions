@@ -352,10 +352,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
         return line
 
-    @staticmethod
-    async def upload_line(line):
-        line.upload()
-
     async def destroy_lines(self, line_list):
         for line in line_list:
             line.destroy()
