@@ -13,12 +13,7 @@ def main():
     category = 'Interactions'
     advanced_settings = False
 
-    # temporary hack until nanome-lib 1.22 release
-    try:
-        integrations = [Integrations.interactions]
-    except AttributeError:
-        integrations = []
-
+    integrations = [Integrations.interactions]
     plugin = nanome.Plugin(
         title, description, category, advanced_settings, integrations=integrations)
 
