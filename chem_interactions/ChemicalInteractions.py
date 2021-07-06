@@ -11,7 +11,8 @@ from nanome.api.structure import Complex
 from nanome.api.shapes import Shape
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs
-from menus.forms import InteractionsForm, LineForm
+
+from menus.forms import InteractionsForm, LineForm, default_line_settings
 from menus import ChemInteractionsMenu
 from utils import ComplexUtils
 
@@ -27,6 +28,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self.menu = ChemInteractionsMenu(self)
         self._interaction_lines = []
+        self.integration.calculate_interactions = self.integrated_calculate_interactions
 
     @async_callback
     async def on_run(self):
@@ -445,3 +447,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Send notification after all previous async tasks finish."""
         notifcation_type = nanome.util.enums.NotificationTypes.message
         self.send_notification(notifcation_type, message)
+    
+    async def integrated_calculate_interactions(self, selected_complex, ligand_complex, ligand=None, selected_atoms_only=False):
+        """Render interactions based on provided info, with default line settings."""
+        await self.calculate_interactions(
+            selected_complex, ligand_complex, default_line_settings, ligand=ligand, selected_atoms_only=selected_atoms_only)
