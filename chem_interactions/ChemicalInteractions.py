@@ -8,6 +8,7 @@ from os import environ, path
 
 import nanome
 from nanome.api.structure import Complex
+from nanome.api.shapes import Shape
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs
 from menus.forms import InteractionsForm, LineForm
@@ -333,9 +334,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     atom2.index: atom2_frame,
                 }
                 new_lines.append(line)
-                asyncio.create_task(self.upload_line(line))
 
         Logs.message(f'adding {len(new_lines)} new lines')
+        Shape.upload_multiple(new_lines)
         self._interaction_lines.extend(new_lines)
 
     def draw_interaction_line(self, atom1, atom2, form_data):
@@ -350,10 +351,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
         line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
         return line
-
-    @staticmethod
-    async def upload_line(line):
-        line.upload()
 
     async def destroy_lines(self, line_list):
         for line in line_list:
