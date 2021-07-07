@@ -297,7 +297,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         new_lines = []
         # Each row represents all the interactions between two atoms.
-        print(len(contacts_data))
         for i, row in enumerate(contacts_data):
             self.menu.update_loading_bar(i, len(contacts_data))
 

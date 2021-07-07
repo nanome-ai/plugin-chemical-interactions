@@ -2,7 +2,6 @@ import os
 import subprocess
 import shutil
 import uuid
-import tempfile
 
 from flask import Flask, request, send_file
 
