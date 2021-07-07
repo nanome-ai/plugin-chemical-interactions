@@ -297,6 +297,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         new_lines = []
         # Each row represents all the interactions between two atoms.
+        print(len(contacts_data))
         for i, row in enumerate(contacts_data):
             self.menu.update_loading_bar(i, len(contacts_data))
 
@@ -349,7 +350,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     atom1.index: atom1_frame,
                     atom2.index: atom2_frame,
                 }
-                print(f'{atom1.chain.name}, {atom2.chain.name}')
+                print(f'{atom1.chain.name}, {atom1.residue._serial}| {atom2.chain.name}')
                 new_lines.append(line)
 
         Logs.message(f'adding {len(new_lines)} new lines')
