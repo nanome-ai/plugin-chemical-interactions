@@ -43,7 +43,7 @@ class ChemInteractionsMenu():
         self.btn_clear_frame.register_pressed_callback(self.clear_frame)
 
     @async_callback
-    async def render(self, complexes=None):
+    async def render(self, complexes=None, default_values=False):
         complexes = complexes or []
         self.complexes = complexes
 
@@ -51,7 +51,16 @@ class ChemInteractionsMenu():
             comp.register_complex_updated_callback(self.on_complex_updated)
 
         self.render_interaction_form()
-        self.display_structures(complexes, self.ln_complexes)
+
+        # If we are rendering with default values, get default complex and ligand
+        default_complex = None
+        default_ligand = None
+        if default_values:
+            # Find the first complex with selected atoms, and make that the default.
+            # I guess that works for now.
+            default_complex = next((comp for comp in complexes if any(a.selected for a in comp.atoms)), None)
+
+        self.display_structures(complexes, self.ln_complexes, default_structure=default_complex)
         self.display_structures(complexes, self.ln_ligands)
         self.dd_complexes = self.ln_complexes.get_content()
         self.dd_ligands = self.ln_ligands.get_content()
@@ -59,12 +68,20 @@ class ChemInteractionsMenu():
         self.dd_complexes.register_item_clicked_callback(self.toggle_complex)
         self.plugin.update_menu(self._menu)
 
-    def display_structures(self, complexes, layoutnode):
+    def display_structures(self, complexes, layoutnode, default_structure=False):
         """Create dropdown of complexes, and add to provided layoutnode."""
         dropdown_items = self.create_structure_dropdown_items(complexes)
         dropdown = Dropdown()
         dropdown.max_displayed_items = 12
         dropdown.items = dropdown_items
+
+        # set selected default item.
+        if default_structure:
+            for ddi in dropdown.items:
+                if hasattr(default_structure, 'index') and ddi.complex.index == default_structure.index:
+                    ddi.selected = True
+                    pass
+
         layoutnode.set_content(dropdown)
         self.plugin.update_content(layoutnode)
 
@@ -88,6 +105,7 @@ class ChemInteractionsMenu():
                 while ddi_label in ddi_labels:
                     ddi_label = f'{struct_name} {{{num}}}'
                     num += 1
+
             ddi_labels.append(ddi_label)
             ddi = DropdownItem(ddi_label)
 

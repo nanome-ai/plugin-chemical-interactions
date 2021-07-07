@@ -32,8 +32,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
-        complexes = await self.request_complex_list()
-        self.menu.render(complexes=complexes)
+        shallow_complexes = await self.request_complex_list()
+
+        complexes = await self.request_complexes([c.index for c in shallow_complexes])
+        self.menu.render(complexes=complexes, default_values=True)
 
     @async_callback
     async def on_complex_list_updated(self, complexes):
@@ -454,6 +456,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         asyncio.create_task(self.send_async_notification(message))
 
     async def send_async_notification(self, message):
-        """Send notification after all previous async tasks finish."""
+        """Send notification asynchronously."""
         notifcation_type = nanome.util.enums.NotificationTypes.message
         self.send_notification(notifcation_type, message)
