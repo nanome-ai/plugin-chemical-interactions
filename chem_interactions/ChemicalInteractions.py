@@ -159,7 +159,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 chain_name = chain_name[1:]
             elif chain_name.startswith('H_'):
                 chain_name = chain_name[2:]
-            selections.add(f'/{chain_name}/{a.residue.serial}/')
+            selections.add(f'/{chain_name}/{a.residue.serial}/{a.name}')
         return selections
 
     def get_interaction_selections(self, selected_complex, ligand_complex, ligands, selected_atoms_only):
