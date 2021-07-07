@@ -54,7 +54,6 @@ class ChemInteractionsMenu():
 
         # If we are rendering with default values, get default complex and ligand
         default_complex = None
-        default_ligand = None
         if default_values:
             # Find the first complex with selected atoms, and make that the default.
             # I guess that works for now.
@@ -211,16 +210,21 @@ class ChemInteractionsMenu():
         selected_complex = selected_complexes[0]
         ligand_ddis = [item for item in self.dd_ligands.items if item.selected]
     
+
+        residues = []
         if ligand_ddis:
             ligand_ddi = ligand_ddis[0]
-            selected_residue = getattr(ligand_ddi, 'ligand', None)
+
+            selected_ligand = getattr(ligand_ddi, 'ligand', None)
+            if selected_ligand: 
+                residues.append(selected_ligand)
             residue_complex = getattr(ligand_ddi, 'complex', None)
         else:
             # If no ligand selected, Try to get from selected complex.
             residue_complex = selected_complex
             temp = tempfile.NamedTemporaryFile()
             residue_complex.io.to_pdb(temp.name)
-            selected_residue = next(iter(extract_ligands(temp)), None)
+            residues = extract_ligands(temp)
 
         error_msg = ''
         if not selected_complexes:
@@ -257,7 +261,7 @@ class ChemInteractionsMenu():
         try:
             await self.plugin.calculate_interactions(
                 selected_complex, residue_complex, interaction_data,
-                ligand=selected_residue, selected_atoms_only=selected_atoms_only)
+                ligands=residues, selected_atoms_only=selected_atoms_only)
         except Exception:
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
