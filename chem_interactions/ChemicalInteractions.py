@@ -32,9 +32,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
-        shallow_complexes = await self.request_complex_list()
-
-        complexes = await self.request_complexes([c.index for c in shallow_complexes])
+        complexes = await self.request_complex_list()
+        complexes = await self.request_complexes([c.index for c in complexes])
         self.menu.render(complexes=complexes, default_values=True)
 
     @async_callback

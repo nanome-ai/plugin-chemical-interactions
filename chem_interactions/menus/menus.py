@@ -60,13 +60,8 @@ class ChemInteractionsMenu():
             # I guess that works for now.
             default_complex = next((comp for comp in complexes if any(a.selected for a in comp.atoms)), None)
 
-            temp = tempfile.NamedTemporaryFile()
-            default_complex.io.to_pdb(temp.name)
-            ligands = extract_ligands(temp)
-            default_ligand = next(iter(ligands), None)
-
         self.display_structures(complexes, self.ln_complexes, default_structure=default_complex)
-        self.display_structures(complexes, self.ln_ligands, default_structure=default_ligand)
+        self.display_structures(complexes, self.ln_ligands)
         self.dd_complexes = self.ln_complexes.get_content()
         self.dd_ligands = self.ln_ligands.get_content()
 
@@ -85,12 +80,10 @@ class ChemInteractionsMenu():
         # set default item selected.
         if default_structure:
             for ddi in dropdown.items:
-                select_ddi = False
-                if isinstance(default_structure, BioResidue):
-                    select_ddi = ddi.name.startswith(default_structure.resname)                    
-                elif isinstance(default_structure, BioResidue):
-                    select_ddi = ddi.complex.index == default_structure.resname
-                
+                select_ddi = False               
+                if isinstance(default_structure, Complex):
+                    select_ddi = ddi.complex.index == default_structure.index
+
                 if select_ddi:
                     ddi.selected = True
                     break
@@ -213,16 +206,21 @@ class ChemInteractionsMenu():
         ]
 
         if len(selected_complexes) != 1:
-            raise Exception("Too many selected complexes.")
+            raise Exception(f'Invalid selected complex count, expected 1, found {len(selected_complexes)}.')
 
         selected_complex = selected_complexes[0]
         ligand_ddis = [item for item in self.dd_ligands.items if item.selected]
-        if len(ligand_ddis) != 1:
-            raise Exception(f"Invalid selected ligands count, expected 1, found {len(ligand_ddis)}.")
-        ligand_ddi = ligand_ddis[0]
-
-        selected_residue = getattr(ligand_ddi, 'ligand', None)
-        residue_complex = getattr(ligand_ddi, 'complex', None)
+    
+        if ligand_ddis:
+            ligand_ddi = ligand_ddis[0]
+            selected_residue = getattr(ligand_ddi, 'ligand', None)
+            residue_complex = getattr(ligand_ddi, 'complex', None)
+        else:
+            # If no ligand selected, Try to get from selected complex.
+            residue_complex = selected_complex
+            temp = tempfile.NamedTemporaryFile()
+            residue_complex.io.to_pdb(temp.name)
+            selected_residue = next(iter(extract_ligands(temp)), None)
 
         error_msg = ''
         if not selected_complexes:
