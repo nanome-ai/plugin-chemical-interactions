@@ -80,12 +80,20 @@ class ChemInteractionsMenu():
         dropdown.max_displayed_items = 12
         dropdown.items = dropdown_items
 
-        # set selected default item.
+        is_ligand = isinstance(default_structure, BioResidue)
+
+        # set default item selected.
         if default_structure:
             for ddi in dropdown.items:
-                if hasattr(default_structure, 'index') and ddi.complex.index == default_structure.index:
+                select_ddi = False
+                if isinstance(default_structure, BioResidue):
+                    select_ddi = ddi.name.startswith(default_structure.resname)                    
+                elif isinstance(default_structure, BioResidue):
+                    select_ddi = ddi.complex.index == default_structure.resname
+                
+                if select_ddi:
                     ddi.selected = True
-                    pass
+                    break
 
         layoutnode.set_content(dropdown)
         self.plugin.update_content(layoutnode)
