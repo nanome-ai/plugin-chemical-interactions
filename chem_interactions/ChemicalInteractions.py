@@ -12,7 +12,7 @@ from nanome.api.shapes import Shape
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs
 
-from menus.forms import InteractionsForm, LineForm, default_line_settings
+from menus.forms import InteractionsForm, LineForm
 from menus import ChemInteractionsMenu
 from utils import ComplexUtils
 
@@ -174,14 +174,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :rtype: str, comma separated string of atom paths (eg '/C/20/O,/A/60/C2')
         """
         selection = None
-        if ligands:
+        if ligands and not selected_atoms_only:
             selections = []
             # If a ligand has been specified, get all interactions for resname
             for lig in ligands:
                 selections.append(f'RESNAME:{lig.resname}')
-        # elif ligands and selected_atoms_only:
-        #     # If we only want specific atoms on the ligand, parse ligand complex
-        #     selections = self.get_selected_atom_paths(ligand_complex)
+        elif ligands and selected_atoms_only:
+            # If we only want specific atoms on the ligand, parse ligand complex
+            selections = self.get_selected_atom_paths(ligand_complex)
         elif selected_atoms_only:
             # Get all selected atoms from both the selected complex and ligand complex
             selections = self.get_selected_atom_paths(selected_complex)
@@ -350,7 +350,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     atom1.index: atom1_frame,
                     atom2.index: atom2_frame,
                 }
-                print(f'{atom1.chain.name}, {atom1.residue._serial}| {atom2.chain.name}, {atom2.residue._serial}')
                 new_lines.append(line)
 
         Logs.message(f'adding {len(new_lines)} new lines')

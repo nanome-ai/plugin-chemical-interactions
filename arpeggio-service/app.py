@@ -2,6 +2,7 @@ import os
 import subprocess
 import shutil
 import uuid
+import tempfile
 
 from flask import Flask, request, send_file
 
@@ -62,9 +63,7 @@ def index():
     cmd = ['python', arpeggio_path, input_filepath, '-v']
     if 'selection' in request.form:
         selections = request.form['selection'].split(',')
-        for sel in selections:
-            cmd.extend(['-s', sel])
-
+        cmd.extend(['-s', *selections])
     subprocess.call(cmd)
     zipfile = shutil.make_archive('/tmp/{}'.format(input_filename), 'zip', temp_dir)
     shutil.rmtree(temp_dir)

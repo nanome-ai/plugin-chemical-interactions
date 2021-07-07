@@ -74,12 +74,10 @@ class ChemInteractionsMenu():
         dropdown.max_displayed_items = 12
         dropdown.items = dropdown_items
 
-        is_ligand = isinstance(default_structure, BioResidue)
-
         # set default item selected.
         if default_structure:
             for ddi in dropdown.items:
-                select_ddi = False               
+                select_ddi = False
                 if isinstance(default_structure, Complex):
                     select_ddi = ddi.complex.index == default_structure.index
 
@@ -209,7 +207,6 @@ class ChemInteractionsMenu():
 
         selected_complex = selected_complexes[0]
         ligand_ddis = [item for item in self.dd_ligands.items if item.selected]
-    
 
         residues = []
         if ligand_ddis:
