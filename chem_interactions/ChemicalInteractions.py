@@ -168,7 +168,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         selected_complex: Nanome Complex object
         ligand_complex: Complex object containing the ligand. Often is the same as comp.
         interactions data: Data accepted by InteractionsForm.
-        ligand: Biopython Residue object. Can be None
+        ligands: List, Biopython Residue object. Can be empty
         selected_atoms_only: bool. show interactions only for selected atoms.
 
         :rtype: str, comma separated string of atom paths (eg '/C/20/O,/A/60/C2')
