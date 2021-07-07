@@ -60,8 +60,13 @@ class ChemInteractionsMenu():
             # I guess that works for now.
             default_complex = next((comp for comp in complexes if any(a.selected for a in comp.atoms)), None)
 
+            temp = tempfile.NamedTemporaryFile()
+            default_complex.io.to_pdb(temp.name)
+            ligands = extract_ligands(temp)
+            default_ligand = next(iter(ligands), None)
+
         self.display_structures(complexes, self.ln_complexes, default_structure=default_complex)
-        self.display_structures(complexes, self.ln_ligands)
+        self.display_structures(complexes, self.ln_ligands, default_structure=default_ligand)
         self.dd_complexes = self.ln_complexes.get_content()
         self.dd_ligands = self.ln_ligands.get_content()
 
