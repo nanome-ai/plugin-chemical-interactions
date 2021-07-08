@@ -393,7 +393,7 @@ class ChemInteractionsMenu():
     async def toggle_complex(self, dropdown, item):
         """When Complex selected, add complex ligands as structure choices."""
         ligand_ddis = []
-        if item.selected:
+        if item and item.selected and self.ln_ligands.enabled:
             # Pull out ligands from complex and add them to ligands list
             # Make button unusable until ligand extraction is done.
             self.btn_calculate.unusable = True
@@ -455,7 +455,7 @@ class ChemInteractionsMenu():
         # Make sure ligand label and dropdown are usable when show all interactions is selected.
         enable_ligands_node = self.btn_show_all_interactions.selected 
         if enable_ligands_node:
-            item = next(ddi for ddi in self.dd_complexes.items if ddi.selected)
+            item = next((ddi for ddi in self.dd_complexes.items if ddi.selected), None)
             self.toggle_complex(self.dd_complexes, item)
 
         for ln in self.ln_ligands.parent._children:
