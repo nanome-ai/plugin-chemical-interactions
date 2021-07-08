@@ -451,11 +451,13 @@ class ChemInteractionsMenu():
                 button.selected = not btn.selected
                 self.plugin.update_content(button)
 
-        # Make sure ligand dropdown is usable when show all interactions is selected.
-        # Hack. Clean this up.
+        # Make sure ligand label and dropdown are usable when show all interactions is selected.
         enable_ligands_node = self.btn_show_all_interactions.selected 
+        if enable_ligands_node:
+            item = next(ddi for ddi in self.dd_complexes.items if ddi.selected)
+            self.toggle_complex(self.dd_complexes, item)
+
         for ln in self.ln_ligands.parent._children:
             ln.enabled = enable_ligands_node
-        # self.plugin.update_node(self.ln_ligands.parent)
+
         self.plugin.update_menu(self._menu)
-        
