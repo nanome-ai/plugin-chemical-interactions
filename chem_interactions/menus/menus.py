@@ -99,7 +99,7 @@ class ChemInteractionsMenu():
     def create_structure_dropdown_items(self, structures):
         """Generate list of buttons corresponding to provided complexes."""
         complex_ddis = []
-        ddi_labels = []
+        ddi_labels = set()
 
         for struct in structures:
             struct_name = ''
@@ -108,23 +108,24 @@ class ChemInteractionsMenu():
             elif isinstance(struct, BioResidue):
                 struct_name = struct.resname
 
-            # Make sure we have a unique name for every structure
+            # # Make sure we have a unique name for every structure
+            # if struct_name not in ddi_labels:
+            #     ddi_label = struct_name
+            # else:
+            #     num = 1
+            #     while ddi_label in ddi_labels:
+            #         ddi_label = f'{struct_name} {{{num}}}'
+            #         num += 1
             if struct_name not in ddi_labels:
-                ddi_label = struct_name
-            else:
-                num = 1
-                while ddi_label in ddi_labels:
-                    ddi_label = f'{struct_name} {{{num}}}'
-                    num += 1
+                ddi_labels.add(struct_name)
+                ddi = DropdownItem(struct_name)
 
-            ddi_labels.append(ddi_label)
-            ddi = DropdownItem(ddi_label)
-
-            if isinstance(struct, Complex):
-                ddi.complex = struct
-            elif isinstance(struct, BioResidue):
-                ddi.ligand = struct
-            complex_ddis.append(ddi)
+                if isinstance(struct, Complex):
+                    ddi.complex = struct
+                elif isinstance(struct, BioResidue):
+                    ddi.ligand = struct
+                
+                complex_ddis.append(ddi)
 
         return complex_ddis
 
