@@ -458,3 +458,4 @@ class ChemInteractionsMenu():
             ln.enabled = enable_ligands_node
         # self.plugin.update_node(self.ln_ligands.parent)
         self.plugin.update_menu(self._menu)
+        
