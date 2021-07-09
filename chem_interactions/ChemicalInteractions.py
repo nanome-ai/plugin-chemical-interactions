@@ -148,18 +148,32 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
 
+    @staticmethod
+    def clean_chain_name(original_name):
+        chain_name = str(original_name)
+        if chain_name.startswith('H'):
+            chain_name = chain_name[1:]
+        elif chain_name.startswith('H_'):
+            chain_name = chain_name[2:]
+        return chain_name
+
+    def get_residue_path(self, residue):
+        chain_name = self.clean_chain_name(residue.chain.name)
+        path = f'/{chain_name}/{residue.serial}/'
+        return path
+    
+    def get_atom_path(self, atom):
+        chain_name = self.clean_chain_name(atom.chain.name)
+        path = f'/{chain_name}/{atom.residue.serial}/{atom.name}'
+        return path
+
     def get_selected_atom_paths(self, comp):
         """Return a set of atom paths for the selected atoms in the complex."""
         selected_atoms = filter(lambda atom: atom.selected, comp.atoms)
         selections = set()
         for a in selected_atoms:
-            chain_name = a.chain.name
-            # Clean up chain name
-            if chain_name.startswith('H'):
-                chain_name = chain_name[1:]
-            elif chain_name.startswith('H_'):
-                chain_name = chain_name[2:]
-            selections.add(f'/{chain_name}/{a.residue.serial}/{a.name}')
+            atompath = self.get_atom_path(a)
+            selections.add(atompath)
         return selections
 
     def get_interaction_selections(self, selected_complex, ligand_complex, ligands, selected_atoms_only):
@@ -176,9 +190,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         selection = None
         if ligands and not selected_atoms_only:
             selections = []
-            # If a ligand has been specified, get all interactions for resname
-            for lig in ligands:
-                selections.append(f'RESNAME:{lig.resname}')
+            # If a ligand has been specified, get residue path based on residue serial.
+            for lig_id in ligands:
+                residue = next(res for res in ligand_complex.residues if res.serial == lig_id)
+                residue_path = self.get_residue_path(residue)
+                selections.append(residue_path)
         elif ligands and selected_atoms_only:
             # If we only want specific atoms on the ligand, parse ligand complex
             selections = self.get_selected_atom_paths(ligand_complex)
@@ -188,9 +204,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if ligand_complex.index != selected_complex.index:
                 ligand_selections = self.get_selected_atom_paths(ligand_complex)
                 selections = selections.union(ligand_selections)
-        elif selected_complex.index != ligand_complex.index:
-            # If comparing two different complexes, get interactions related to ligand complex.
-            selections = self.get_selected_atom_paths(ligand_complex)
+            elif selected_complex.index != ligand_complex.index:
+                # If comparing two different complexes, get interactions related to ligand complex.
+                selections = self.get_selected_atom_paths(ligand_complex)
         else:
             # Get interactions for all atoms (provide no selections)
             selections = []

@@ -109,23 +109,22 @@ class ChemInteractionsMenu():
                 struct_name = struct.resname
 
             # # Make sure we have a unique name for every structure
-            # if struct_name not in ddi_labels:
-            #     ddi_label = struct_name
-            # else:
-            #     num = 1
-            #     while ddi_label in ddi_labels:
-            #         ddi_label = f'{struct_name} {{{num}}}'
-            #         num += 1
-            if struct_name not in ddi_labels:
-                ddi_labels.add(struct_name)
-                ddi = DropdownItem(struct_name)
+            ddi_label = struct_name
+            if ddi_label in ddi_labels:
+                num = 1
+                while ddi_label in ddi_labels:
+                    ddi_label = f'{struct_name} {{{num}}}'
+                    num += 1
 
-                if isinstance(struct, Complex):
-                    ddi.complex = struct
-                elif isinstance(struct, BioResidue):
-                    ddi.ligand = struct
-                
-                complex_ddis.append(ddi)
+            ddi_labels.add(ddi_label)
+            ddi = DropdownItem(ddi_label)
+
+            if isinstance(struct, Complex):
+                ddi.complex = struct
+            elif isinstance(struct, BioResidue):
+                ddi.ligand = struct
+            
+            complex_ddis.append(ddi)
 
         return complex_ddis
 
@@ -219,18 +218,18 @@ class ChemInteractionsMenu():
 
         residues = []
         if ligand_ddis:
-            ligand_ddi = ligand_ddis[0]
-
-            selected_ligand = getattr(ligand_ddi, 'ligand', None)
-            if selected_ligand: 
-                residues.append(selected_ligand)
-            residue_complex = getattr(ligand_ddi, 'complex', None)
+            for ligand_ddi in ligand_ddis:
+                selected_ligand = getattr(ligand_ddi, 'ligand', None)
+                if selected_ligand:
+                    res_serial = selected_ligand._id[1] 
+                    residues.append(res_serial)
+                residue_complex = getattr(ligand_ddi, 'complex', None)
         else:
             # If no ligand selected, Try to get from selected complex.
             residue_complex = selected_complex
-            temp = tempfile.NamedTemporaryFile()
-            residue_complex.io.to_pdb(temp.name)
-            residues = extract_ligands(temp)
+            # temp = tempfile.NamedTemporaryFile()
+            # residue_complex.io.to_pdb(temp.name)
+            # residues = extract_ligands(temp)
 
         error_msg = ''
         if not selected_complexes:
