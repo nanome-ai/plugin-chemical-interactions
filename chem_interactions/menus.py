@@ -7,13 +7,13 @@ from utils import extract_ligands
 from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
 from nanome.util.asyncio import async_callback
-from .forms import InteractionsForm, color_map, default_line_settings
+from forms import InteractionsForm, color_map, default_line_settings
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
 BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
-MENU_PATH = path.join(BASE_PATH, 'json', 'menu.json')
+MENU_PATH = path.join(BASE_PATH, 'menu_json', 'menu.json')
 
 
 class ChemInteractionsMenu():
