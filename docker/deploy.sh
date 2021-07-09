@@ -12,6 +12,6 @@ if [ -n "$ARGS" ];  then
     tmpfile=$(mktemp)
     echo ARGS=${ARGS} > $tmpfile
     ENV_FILE=$tmpfile
-fi 
+fi
 
 docker-compose -f ../docker-compose-deploy.yaml --env-file $ENV_FILE up -d

@@ -37,7 +37,7 @@ class ChemInteractionsMenu():
         self.btn_show_selected_interactions = self._menu.root.find_node('Selected Atoms-Residues').get_content()
         self.btn_show_selected_interactions.register_pressed_callback(self.toggle_atom_selection)
         self.ln_loading_bar = self._menu.root.find_node('LoadingBar')
-        
+
         self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
         self.btn_clear_frame.register_pressed_callback(self.clear_frame)
@@ -58,6 +58,8 @@ class ChemInteractionsMenu():
             # Find the first complex with selected atoms, and make that the default.
             # I guess that works for now.
             default_complex = next((comp for comp in complexes if any(a.selected for a in comp.atoms)), None)
+            if not default_complex and complexes:
+                default_complex = complexes[0]
 
         self.display_structures(complexes, self.ln_complexes, default_structure=default_complex)
         self.display_structures(complexes, self.ln_ligands)
@@ -451,7 +453,7 @@ class ChemInteractionsMenu():
                 self.plugin.update_content(button)
 
         # Make sure ligand label and dropdown are usable when show all interactions is selected.
-        enable_ligands_node = self.btn_show_all_interactions.selected 
+        enable_ligands_node = self.btn_show_all_interactions.selected
         if enable_ligands_node:
             item = next((ddi for ddi in self.dd_complexes.items if ddi.selected), None)
             self.toggle_complex(self.dd_complexes, item)
