@@ -1,7 +1,6 @@
-import os
 import subprocess
 import shutil
-import uuid
+import tempfile
 
 from flask import Flask, request, send_file
 
@@ -15,12 +14,7 @@ def clean():
         raise Exception("Invalid data")
 
     input_file = request.files.values()[0]
-    temp_dir = '/var/{}'.format(str(uuid.uuid4()))
-    try:
-        os.mkdir(temp_dir)
-    except OSError:
-        shutil.rmtree(temp_dir)
-        os.mkdir(temp_dir)
+    temp_dir = tempfile.mkdtemp()
 
     input_filename = input_file.filename
     input_filepath = '{}/{}'.format(temp_dir, input_filename)
@@ -33,8 +27,6 @@ def clean():
     data = ''
     with open(cleaned_filepath, 'r') as f:
         data = f.read()
-
-    shutil.rmtree(temp_dir)
     return data
 
 
@@ -44,13 +36,7 @@ def index():
         raise Exception("Invalid data")
 
     input_file = request.files.values()[0]
-    temp_dir = '/var/{}'.format(str(uuid.uuid4()))
-
-    try:
-        os.mkdir(temp_dir)
-    except OSError:
-        shutil.rmtree(temp_dir)
-        os.mkdir(temp_dir)
+    temp_dir = tempfile.mkdtemp()
 
     input_filename = input_file.filename
     input_filepath = '{}/{}'.format(temp_dir, input_filename)
@@ -66,5 +52,4 @@ def index():
         cmd.extend(selections)
     subprocess.call(cmd)
     zipfile = shutil.make_archive('/tmp/{}'.format(input_filename), 'zip', temp_dir)
-    shutil.rmtree(temp_dir)
     return send_file(zipfile)
