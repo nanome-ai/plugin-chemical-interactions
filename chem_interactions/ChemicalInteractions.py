@@ -43,7 +43,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @async_callback
     async def on_complex_added(self):
         complexes = await self.request_complex_list()
-        await self.menu.render(complexes=complexes)
+        await self.menu.render(complexes=complexes, default_values=True)
 
     @async_callback
     async def on_complex_removed(self):
