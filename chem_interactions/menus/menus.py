@@ -221,8 +221,7 @@ class ChemInteractionsMenu():
             for ligand_ddi in ligand_ddis:
                 selected_ligand = getattr(ligand_ddi, 'ligand', None)
                 if selected_ligand:
-                    res_serial = selected_ligand._id[1] 
-                    residues.append(res_serial)
+                    residues.append(selected_ligand)
                 residue_complex = getattr(ligand_ddi, 'complex', None)
         else:
             # If no ligand selected, Try to get from selected complex.

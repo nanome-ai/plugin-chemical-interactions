@@ -158,7 +158,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return chain_name
 
     def get_residue_path(self, residue):
-        chain_name = self.clean_chain_name(residue.chain.name)
+        chain_name = residue.chain.name
+        chain_name = self.clean_chain_name(chain_name)
         path = f'/{chain_name}/{residue.serial}/'
         return path
     
@@ -191,8 +192,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if ligands and not selected_atoms_only:
             selections = []
             # If a ligand has been specified, get residue path based on residue serial.
-            for lig_id in ligands:
-                residues = (res for res in ligand_complex.residues if res.serial == lig_id)
+            for lig in ligands:
+                chain_name = lig.parent.id
+                residues = (
+                    res for res in ligand_complex.residues
+                    if res.serial == lig._id[1] and res.chain.name in [chain_name, f"H{chain_name}", f"H_{chain_name}"])
+
                 for residue in residues:
                     residue_path = self.get_residue_path(residue)
                     selections.append(residue_path)
