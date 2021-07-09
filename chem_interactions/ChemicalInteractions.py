@@ -12,7 +12,7 @@ from nanome.api.shapes import Shape
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs
 
-from menus.forms import InteractionsForm, LineForm, default_line_settings
+from menus.forms import InteractionsForm, LineForm
 from menus import ChemInteractionsMenu
 from utils import ComplexUtils
 
@@ -33,7 +33,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_run(self):
         self.menu.enabled = True
         complexes = await self.request_complex_list()
-        self.menu.render(complexes=complexes)
+        complexes = await self.request_complexes([c.index for c in complexes])
+        self.menu.render(complexes=complexes, default_values=True)
 
     @async_callback
     async def on_complex_list_updated(self, complexes):
@@ -61,7 +62,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self._interaction_lines = value
 
     @async_callback
-    async def calculate_interactions(self, selected_complex, ligand_complex, interaction_data, ligand=None, selected_atoms_only=False):
+    async def calculate_interactions(self, selected_complex, ligand_complex, interaction_data, ligands=None, selected_atoms_only=False):
         """Calculate interactions between complexes, and upload interaction lines to Nanome.
 
         selected_complex: Nanome Complex object
@@ -70,6 +71,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         ligand: Biopython Residue object. Can be None
         selected_atoms_only: bool. show interactions only for selected atoms.
         """
+        ligands = ligands or []
         Logs.message('Starting Interactions Calculation')
         start_time = time.time()
 
@@ -90,7 +92,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         files = {filename: cleaned_data}
         data = {}
         selection = self.get_interaction_selections(
-            selected_complex, ligand_complex, ligand, selected_atoms_only)
+            selected_complex, ligand_complex, ligands, selected_atoms_only)
 
         if selection:
             data['selection'] = selection
@@ -146,36 +148,60 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             f.write(response.content)
         return cleaned_file
 
+    @staticmethod
+    def clean_chain_name(original_name):
+        chain_name = str(original_name)
+        if chain_name.startswith('H'):
+            chain_name = chain_name[1:]
+        elif chain_name.startswith('H_'):
+            chain_name = chain_name[2:]
+        return chain_name
+
+    def get_residue_path(self, residue):
+        chain_name = residue.chain.name
+        chain_name = self.clean_chain_name(chain_name)
+        path = f'/{chain_name}/{residue.serial}/'
+        return path
+    
+    def get_atom_path(self, atom):
+        chain_name = self.clean_chain_name(atom.chain.name)
+        path = f'/{chain_name}/{atom.residue.serial}/{atom.name}'
+        return path
+
     def get_selected_atom_paths(self, comp):
         """Return a set of atom paths for the selected atoms in the complex."""
         selected_atoms = filter(lambda atom: atom.selected, comp.atoms)
         selections = set()
         for a in selected_atoms:
-            chain_name = a.chain.name
-            # Clean up chain name
-            if chain_name.startswith('H'):
-                chain_name = chain_name[1:]
-            elif chain_name.startswith('H_'):
-                chain_name = chain_name[2:]
-            selections.add(f'/{chain_name}/{a.residue.serial}/')
+            atompath = self.get_atom_path(a)
+            selections.add(atompath)
         return selections
 
-    def get_interaction_selections(self, selected_complex, ligand_complex, ligand, selected_atoms_only):
+    def get_interaction_selections(self, selected_complex, ligand_complex, ligands, selected_atoms_only):
         """Generate valid list of selections to send to interactions service.
 
         selected_complex: Nanome Complex object
         ligand_complex: Complex object containing the ligand. Often is the same as comp.
         interactions data: Data accepted by InteractionsForm.
-        ligand: Biopython Residue object. Can be None
+        ligands: List, Biopython Residue object. Can be empty
         selected_atoms_only: bool. show interactions only for selected atoms.
 
         :rtype: str, comma separated string of atom paths (eg '/C/20/O,/A/60/C2')
         """
         selection = None
-        if ligand and not selected_atoms_only:
-            # If a ligand has been specified, get all interactions for resname
-            selections = [f'RESNAME:{ligand.resname}']
-        elif ligand and selected_atoms_only:
+        if ligands and not selected_atoms_only:
+            selections = []
+            # If a ligand has been specified, get residue path based on residue serial.
+            for lig in ligands:
+                chain_name = lig.parent.id
+                residues = (
+                    res for res in ligand_complex.residues
+                    if res.serial == lig._id[1] and res.chain.name in [chain_name, f"H{chain_name}", f"H_{chain_name}"])
+
+                for residue in residues:
+                    residue_path = self.get_residue_path(residue)
+                    selections.append(residue_path)
+        elif ligands and selected_atoms_only:
             # If we only want specific atoms on the ligand, parse ligand complex
             selections = self.get_selected_atom_paths(ligand_complex)
         elif selected_atoms_only:
@@ -184,9 +210,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if ligand_complex.index != selected_complex.index:
                 ligand_selections = self.get_selected_atom_paths(ligand_complex)
                 selections = selections.union(ligand_selections)
-        elif selected_complex.index != ligand_complex.index:
-            # If comparing two different complexes, get interactions related to ligand complex.
-            selections = self.get_selected_atom_paths(ligand_complex)
+            elif selected_complex.index != ligand_complex.index:
+                # If comparing two different complexes, get interactions related to ligand complex.
+                selections = self.get_selected_atom_paths(ligand_complex)
         else:
             # Get interactions for all atoms (provide no selections)
             selections = []
@@ -454,6 +480,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         asyncio.create_task(self.send_async_notification(message))
 
     async def send_async_notification(self, message):
-        """Send notification after all previous async tasks finish."""
+        """Send notification asynchronously."""
         notifcation_type = nanome.util.enums.NotificationTypes.message
         self.send_notification(notifcation_type, message)

@@ -43,7 +43,7 @@ class ChemInteractionsMenu():
         self.btn_clear_frame.register_pressed_callback(self.clear_frame)
 
     @async_callback
-    async def render(self, complexes=None):
+    async def render(self, complexes=None, default_values=False):
         complexes = complexes or []
         self.complexes = complexes
 
@@ -51,27 +51,55 @@ class ChemInteractionsMenu():
             comp.register_complex_updated_callback(self.on_complex_updated)
 
         self.render_interaction_form()
-        self.display_structures(complexes, self.ln_complexes)
+
+        # If we are rendering with default values, get default complex and ligand
+        default_complex = None
+        if default_values:
+            # Find the first complex with selected atoms, and make that the default.
+            # I guess that works for now.
+            default_complex = next((comp for comp in complexes if any(a.selected for a in comp.atoms)), None)
+
+        self.display_structures(complexes, self.ln_complexes, default_structure=default_complex)
         self.display_structures(complexes, self.ln_ligands)
+
         self.dd_complexes = self.ln_complexes.get_content()
         self.dd_ligands = self.ln_ligands.get_content()
 
         self.dd_complexes.register_item_clicked_callback(self.toggle_complex)
+
+        # ligands dropdown defaults to being unusable
+        self.ln_ligands.enabled = False
+        # Hack. please clean this up.
+        for ln in self.ln_ligands.parent._children:
+            ln.enabled = False
+        self.plugin.update_node(self.ln_ligands.parent)
         self.plugin.update_menu(self._menu)
 
-    def display_structures(self, complexes, layoutnode):
+    def display_structures(self, complexes, layoutnode, default_structure=False):
         """Create dropdown of complexes, and add to provided layoutnode."""
         dropdown_items = self.create_structure_dropdown_items(complexes)
         dropdown = Dropdown()
         dropdown.max_displayed_items = 12
         dropdown.items = dropdown_items
+
+        # set default item selected.
+        if default_structure:
+            for ddi in dropdown.items:
+                select_ddi = False
+                if isinstance(default_structure, Complex):
+                    select_ddi = ddi.complex.index == default_structure.index
+
+                if select_ddi:
+                    ddi.selected = True
+                    break
+
         layoutnode.set_content(dropdown)
         self.plugin.update_content(layoutnode)
 
     def create_structure_dropdown_items(self, structures):
         """Generate list of buttons corresponding to provided complexes."""
         complex_ddis = []
-        ddi_labels = []
+        ddi_labels = set()
 
         for struct in structures:
             struct_name = ''
@@ -80,21 +108,22 @@ class ChemInteractionsMenu():
             elif isinstance(struct, BioResidue):
                 struct_name = struct.resname
 
-            # Make sure we have a unique name for every structure
-            if struct_name not in ddi_labels:
-                ddi_label = struct_name
-            else:
+            # # Make sure we have a unique name for every structure
+            ddi_label = struct_name
+            if ddi_label in ddi_labels:
                 num = 1
                 while ddi_label in ddi_labels:
                     ddi_label = f'{struct_name} {{{num}}}'
                     num += 1
-            ddi_labels.append(ddi_label)
+
+            ddi_labels.add(ddi_label)
             ddi = DropdownItem(ddi_label)
 
             if isinstance(struct, Complex):
                 ddi.complex = struct
             elif isinstance(struct, BioResidue):
                 ddi.ligand = struct
+            
             complex_ddis.append(ddi)
 
         return complex_ddis
@@ -182,16 +211,24 @@ class ChemInteractionsMenu():
         ]
 
         if len(selected_complexes) != 1:
-            raise Exception("Too many selected complexes.")
+            raise Exception(f'Invalid selected complex count, expected 1, found {len(selected_complexes)}.')
 
         selected_complex = selected_complexes[0]
         ligand_ddis = [item for item in self.dd_ligands.items if item.selected]
-        if len(ligand_ddis) != 1:
-            raise Exception(f"Invalid selected ligands count, expected 1, found {len(ligand_ddis)}.")
-        ligand_ddi = ligand_ddis[0]
 
-        selected_residue = getattr(ligand_ddi, 'ligand', None)
-        residue_complex = getattr(ligand_ddi, 'complex', None)
+        residues = []
+        if ligand_ddis:
+            for ligand_ddi in ligand_ddis:
+                selected_ligand = getattr(ligand_ddi, 'ligand', None)
+                if selected_ligand:
+                    residues.append(selected_ligand)
+                residue_complex = getattr(ligand_ddi, 'complex', None)
+        else:
+            # If no ligand selected, Try to get from selected complex.
+            residue_complex = selected_complex
+            # temp = tempfile.NamedTemporaryFile()
+            # residue_complex.io.to_pdb(temp.name)
+            # residues = extract_ligands(temp)
 
         error_msg = ''
         if not selected_complexes:
@@ -228,7 +265,7 @@ class ChemInteractionsMenu():
         try:
             await self.plugin.calculate_interactions(
                 selected_complex, residue_complex, interaction_data,
-                ligand=selected_residue, selected_atoms_only=selected_atoms_only)
+                ligands=residues, selected_atoms_only=selected_atoms_only)
         except Exception:
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
@@ -354,7 +391,7 @@ class ChemInteractionsMenu():
     async def toggle_complex(self, dropdown, item):
         """When Complex selected, add complex ligands as structure choices."""
         ligand_ddis = []
-        if item.selected:
+        if item and item.selected and self.ln_ligands.enabled:
             # Pull out ligands from complex and add them to ligands list
             # Make button unusable until ligand extraction is done.
             self.btn_calculate.unusable = True
@@ -412,3 +449,14 @@ class ChemInteractionsMenu():
             if button.name != btn.name:
                 button.selected = not btn.selected
                 self.plugin.update_content(button)
+
+        # Make sure ligand label and dropdown are usable when show all interactions is selected.
+        enable_ligands_node = self.btn_show_all_interactions.selected 
+        if enable_ligands_node:
+            item = next((ddi for ddi in self.dd_complexes.items if ddi.selected), None)
+            self.toggle_complex(self.dd_complexes, item)
+
+        for ln in self.ln_ligands.parent._children:
+            ln.enabled = enable_ligands_node
+
+        self.plugin.update_menu(self._menu)
