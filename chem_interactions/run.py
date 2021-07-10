@@ -33,7 +33,7 @@ def main():
     plugin_name = ' '.join(arg_name) or default_title
 
     description = (
-        'A plugin to display various types of interatomic contacts '
+        'A plugin to visualize interatomic contacts '
         'between small and macro molecules'
     )
     category = 'Interactions'

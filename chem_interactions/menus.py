@@ -233,6 +233,11 @@ class ChemInteractionsMenu():
         selected_complex = selected_complexes[0]
         ligand_ddis = [item for item in self.dd_ligands.items if item.selected]
 
+        # Determine selection type (Show all interactions or only selected atoms)
+        selected_atoms_only = False
+        if self.btn_show_selected_interactions.selected:
+            selected_atoms_only = True
+
         residues = []
         residue_complexes = []
         if ligand_ddis:
@@ -256,8 +261,6 @@ class ChemInteractionsMenu():
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
-        elif not residue_complexes:
-            error_msg = 'Please Select a Ligand'
 
         if error_msg:
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)

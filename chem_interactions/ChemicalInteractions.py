@@ -8,7 +8,7 @@ from os import environ, path
 
 import nanome
 from nanome.api.structure import Complex
-from nanome.api.shapes import Shape
+from nanome.api.shapes import Shape, Line
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs
 
@@ -33,7 +33,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_run(self):
         self.menu.enabled = True
         complexes = await self.request_complex_list()
-        complexes = await self.request_complexes([c.index for c in complexes])
+        # complexes = await self.request_complexes([c.index for c in complexes])
         self.menu.render(complexes=complexes, default_values=True)
 
     @async_callback
@@ -97,6 +97,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         selection = self.get_interaction_selections(selected_complex, ligand_complexes, ligands, selected_atoms_only)
 
+        Logs.debug(selection)
+
         if selection:
             data['selection'] = selection
 
@@ -109,18 +111,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.debug(msg)
         self.send_notification(nanome.util.enums.NotificationTypes.message, msg)
 
-        # Unpack the zip file from response
-        zipfile = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
-        with open(zipfile.name, 'wb') as f:
-            f.write(response.content)
-
-        extract_dir = tempfile.mkdtemp()
-        archive_format = "zip"
-        shutil.unpack_archive(zipfile.name, extract_dir, archive_format)
-        contacts_filename = f"{''.join(filename.split('.')[:-1])}.contacts"
-        contacts_file = f'{extract_dir}/{contacts_filename}'
-
-        self.create_new_lines(contacts_file, complexes, interaction_data, selected_atoms_only)
+        contacts_data = response.json()
+        await self.parse_contacts_data(contacts_data, selected_complex, ligand_complex, interaction_data, selected_atoms_only)
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
@@ -174,7 +166,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return path
 
     def get_selected_atom_paths(self, comp):
-        """Return a set of atom paths for the selected atoms in the complex."""
+        """Return a set of atom paths for the selected atoms in a complex."""
         selected_atoms = filter(lambda atom: atom.selected, comp.atoms)
         selections = set()
         for a in selected_atoms:
@@ -266,7 +258,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             if len(atoms) > 1:
                 # Just pick the first one? :grimace:
-                Logs.error(f'Too many Atoms found for {atom_path}')
+                Logs.warning(f'Too many Atoms found for {atom_path}')
                 atoms = atoms[:1]
         atom = atoms[0]
         return atom
@@ -285,55 +277,45 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_list.append(atom)
         return atom_list
 
-    def create_new_lines(self, contacts_file, complexes, interaction_form, selected_atoms_only=False):
-        """Parse .contacts file, and return list of new lines to render.
+    async def parse_contacts_data(self, contacts_data, complex, ligand_complex, interaction_form, selected_atoms_only=False):
+        """Parse .contacts file into Lines and render them in Nanome.
 
-        contacts_file: Path to .contacts file containing interactions data.
-            For data format, see https://github.com/harryjubb/arpeggio#contacts
+        contacts_data: Data returned by Chemical Interaction Service.
         complex: main complex selected.
         ligand_complexes: List. complex containing the ligand. May contain same complex as complex arg
         interaction_form. InteractionsForms data describing color and visibility of interactions.
         """
-        # Convert tsv into list of dicts for each row
-        contacts_data = []
-        with open(contacts_file, 'r') as f:
-            reader = csv.reader(f, delimiter="\t")
-            for row in reader:
-                contacts_data.append(row)
-
-        # Represents the column number of the interactions in the .contacts file
-        interaction_column_index = {
-            2: 'clash',
-            3: 'covalent',
-            4: 'vdw_clash',
-            5: 'vdw',
-            6: 'proximal',
-            7: 'hbond',
-            8: 'weak_hbond',
-            9: 'xbond',
-            10: 'ionic',
-            11: 'metal_complex',
-            12: 'aromatic',
-            13: 'hydrophobic',
-            14: 'carbonyl',
-            15: 'polar',
-            16: 'weak_polar',
-        }
         form = InteractionsForm(data=interaction_form)
         form.validate()
         if form.errors:
             raise Exception(form.errors)
 
-        new_lines = []
-        # Each row represents all the interactions between two atoms.
-        len_contacts_data = len(contacts_data)
-        Logs.debug(f'{len_contacts_data} rows of interactions found')
-        for i, row in enumerate(contacts_data):
-            self.menu.update_loading_bar(i, len_contacts_data)
+        new_lines = await self.create_new_lines(contacts_data, complex, ligand_complex, form.data)
+        Logs.message(f'adding {len(new_lines)} new lines')
+        Shape.upload_multiple(new_lines)
+        self.interaction_lines.extend(new_lines)
 
+    async def create_new_lines(self, contacts_data, complex, ligand_complex, line_settings, selected_atoms_only=False):
+        """Parse rows of data from .contacts file into Line objects."""
+        new_lines = []
+        contact_data_len = len(contacts_data)
+        for i, row in enumerate(contacts_data):
+            # Each row represents all the interactions between two atoms.          
+            self.menu.update_loading_bar(i, contact_data_len)
             # Atom paths that current row is describing interactions between
-            atom_paths = row[:2]
-            atom_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
+            a1_data = row['bgn']
+            a2_data = row['end']
+            interaction_types = row['contact']
+
+            atom1_path = f"{a1_data['auth_asym_id']}/{a1_data['auth_seq_id']}/{a1_data['auth_atom_id']}"
+            atom2_path = f"{a2_data['auth_asym_id']}/{a2_data['auth_seq_id']}/{a2_data['auth_atom_id']}"
+            atom_paths = [atom1_path, atom2_path]
+
+            # Ones with commas are Pi-Pi Interactions? I'll have to investigate further. Skip for now
+            if ',' in atom1_path or ',' in atom2_path:
+                continue
+
+            atom_list = self.parse_atoms_from_atompaths(atom_paths, complex, ligand_complex)
 
             if len(atom_list) != 2:
                 continue
@@ -345,19 +327,22 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom1, atom2 = atom_list
             # Get the current frame of the complex corresponding to each atom
             atom1_frame = atom2_frame = None
-            for comp in complexes:
-                if atom1.index in (a.index for a in comp.atoms):
-                    atom1_frame = comp.current_frame
-                if atom2.index in (a.index for a in comp.atoms):
-                    atom2_frame = comp.current_frame
+            comp_atom_indices = (a.index for a in complex.atoms if a.index in (atom1.index, atom2.index))
+            ligand_atom_indices = (a.index for a in ligand_complex.atoms if a.index in (atom1.index, atom2.index))
 
-            # For all the interactions between atom1 and atom2, draw interaction line
-            for j, col in enumerate(row[2:], 2):
-                if col != '1':
-                    continue
+            if atom1.index in comp_atom_indices:
+                atom1_frame = complex.current_frame
+            if atom1.index in ligand_atom_indices:
+                atom1_frame = ligand_complex.current_frame
 
-                interaction_type = interaction_column_index.get(j)
-                form_data = form.data.get(interaction_type)
+            if atom2.index in comp_atom_indices:
+                atom2_frame = complex.current_frame
+            if atom2.index in ligand_atom_indices:
+                atom2_frame = ligand_complex.current_frame
+
+            # Each row contains a list of interactions between these two atoms.
+            for interaction_type in interaction_types:
+                form_data = line_settings.get(interaction_type)
                 if not form_data:
                     continue
 
@@ -382,9 +367,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 }
                 new_lines.append(line)
 
-        Logs.message(f'adding {len(new_lines)} new lines')
-        Shape.upload_multiple(new_lines)
-        self.interaction_lines.extend(new_lines)
+        return new_lines
 
     def draw_interaction_line(self, atom1, atom2, form_data):
         """Draw line connecting two atoms.
