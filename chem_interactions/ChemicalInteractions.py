@@ -1,14 +1,12 @@
 import asyncio
-import csv
 import requests
-import shutil
 import tempfile
 import time
 from os import environ, path
 
 import nanome
 from nanome.api.structure import Complex
-from nanome.api.shapes import Shape, Line
+from nanome.api.shapes import Shape
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs
 
@@ -216,7 +214,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     selections.add(self.get_residue_path(res))
 
         selection = ','.join(selections)
-        Logs.debug(selection)
         return selection
 
     @staticmethod
