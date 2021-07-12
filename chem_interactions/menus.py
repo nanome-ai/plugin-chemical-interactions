@@ -224,31 +224,29 @@ class ChemInteractionsMenu():
         ligand_ddis = [item for item in self.dd_ligands.items if item.selected]
 
         residues = []
+        residue_complexes = []
         if ligand_ddis:
             for ligand_ddi in ligand_ddis:
                 selected_ligand = getattr(ligand_ddi, 'ligand', None)
                 if selected_ligand:
                     residues.append(selected_ligand)
                 residue_complex = getattr(ligand_ddi, 'complex', None)
-
+                if residue_complex:
+                    residue_complexes.append(residue_complex)
         elif selected_atoms_only:
             # Find first complex with selected atoms, and set residue complex to that.
             complexes = await self.plugin.request_complexes([c.index for c in self.complexes])
             for comp in complexes:
                 if any([a.selected for a in comp.atoms]):
-                    residue_complex = comp
-                    break
+                    residue_complexes.append(comp)
         else:
             # If no ligand selected, Try to get from selected complex.
-            residue_complex = selected_complex
-            # temp = tempfile.NamedTemporaryFile()
-            # residue_complex.io.to_pdb(temp.name)
-            # residues = extract_ligands(temp)
+            residue_complexes.append(selected_complex)
 
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
-        elif not residue_complex:
+        elif not residue_complexes:
             error_msg = 'Please Select a Ligand'
 
         if error_msg:
@@ -264,8 +262,9 @@ class ChemInteractionsMenu():
         selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
         self.update_complex_data(selected_complex)
         # Get up to date residue_complex
-        residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
-        self.update_complex_data(residue_complex)
+        for residue_complex in residue_complexes:
+            residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
+            self.update_complex_data(residue_complex)
 
         loading_bar = LoadingBar()
         self.ln_loading_bar.set_content(loading_bar)
@@ -274,7 +273,7 @@ class ChemInteractionsMenu():
         interaction_data = self.collect_interaction_data()
         try:
             await self.plugin.calculate_interactions(
-                selected_complex, residue_complex, interaction_data,
+                selected_complex, residue_complexes, interaction_data,
                 ligands=residues, selected_atoms_only=selected_atoms_only)
         except Exception:
             msg = 'Error occurred, please check logs'
