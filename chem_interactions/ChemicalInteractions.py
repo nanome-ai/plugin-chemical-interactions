@@ -281,22 +281,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         contacts_data: Data returned by Chemical Interaction Service.
         complex: main complex selected.
         ligand_complexes: List. complex containing the ligand. May contain same complex as complex arg
-        interaction_form. InteractionsForms data describing color and visibility of interactions.
+        interaction_data. InteractionsForms data describing color and visibility of interactions.
         """
         form = InteractionsForm(data=interaction_data)
         form.validate()
         if form.errors:
             raise Exception(form.errors)
 
-        new_lines = await self.create_new_lines(contacts_data, complexes, form.data)
-        Logs.message(f'adding {len(new_lines)} new lines')
-        Shape.upload_multiple(new_lines)
-        self.interaction_lines.extend(new_lines)
-
-    async def create_new_lines(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
-        """Parse rows of data from .contacts file into Line objects."""
-        new_lines = []
         contact_data_len = len(contacts_data)
+        new_lines = []
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.          
             self.menu.update_loading_bar(i, contact_data_len)
@@ -328,38 +321,53 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             for comp in complexes:
                 if atom1_frame and atom2_frame:
                     break
-                relevant_atoms = (a.index for a in comp.atoms if a.index in [atom1.index, atom2.index])
+                relevant_atoms = [a.index for a in comp.atoms if a.index in [atom1.index, atom2.index]]
                 if atom1.index in relevant_atoms:
                     atom1_frame = comp.current_frame
                 if atom2.index in relevant_atoms:
                     atom2_frame = comp.current_frame
 
-            # Each row contains a list of interactions between these two atoms.
-            for interaction_type in interaction_types:
-                form_data = line_settings.get(interaction_type)
-                if not form_data:
-                    continue
+            atom1.frame = atom1_frame
+            atom2.frame = atom2_frame
+            new_lines.extend(await self.create_new_lines(atom1, atom2, interaction_types, form.data))
+        
+        Logs.message(f'adding {len(new_lines)} new lines')
+        Shape.upload_multiple(new_lines)
+        self.interaction_lines.extend(new_lines)
 
-                # See if we've already drawn this line
-                line_exists = False
-                for lin in self.interaction_lines:
-                    if all([
-                        lin.frames.get(atom1.index) == atom1_frame,
-                        lin.frames.get(atom2.index) == atom2_frame,
-                            lin.interaction_type == interaction_type]):
-                        line_exists = True
-                        break
-                if line_exists:
-                    continue
+    async def create_new_lines(self, atom1, atom2, interaction_types, line_settings):
+        """Parse rows of data from .contacts file into Line objects.
+        atom1: nanome.api.structure.Atom
+        atom2: nanome.api.structure.Atom
+        interaction_types: list of interaction types that exist between atom1 and atom2
+        line_settings: Color and shape information for each type of Interaction.
+        """
+        new_lines = []
+        for interaction_type in interaction_types:
+            form_data = line_settings.get(interaction_type)
+            if not form_data:
+                continue
 
-                # Draw line and add data about interaction type and frames.
-                line = self.draw_interaction_line(atom1, atom2, form_data)
-                line.interaction_type = interaction_type
-                line.frames = {
-                    atom1.index: atom1_frame,
-                    atom2.index: atom2_frame,
-                }
-                new_lines.append(line)
+            # See if we've already drawn this line
+            line_exists = False
+            for lin in self.interaction_lines:
+                if all([
+                    lin.frames.get(atom1.index) == line.frame,
+                    lin.frames.get(atom2.index) == lin.frame,
+                        lin.interaction_type == interaction_type]):
+                    line_exists = True
+                    break
+            if line_exists:
+                continue
+
+            # Draw line and add data about interaction type and frames.
+            line = self.draw_interaction_line(atom1, atom2, form_data)
+            line.interaction_type = interaction_type
+            line.frames = {
+                atom1.index: atom1.frame,
+                atom2.index: atom2.frame,
+            }
+            new_lines.append(line)
 
         return new_lines
 
