@@ -95,7 +95,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         files = {filename: cleaned_data}
         data = {}
 
-        selection = self.get_interaction_selections(complexes, ligands, selected_atoms_only)
+        selection = self.get_interaction_selections(selected_complex, ligand_complexes, ligands, selected_atoms_only)
 
         if selection:
             data['selection'] = selection
@@ -182,7 +182,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             selections.add(atompath)
         return selections
 
-    def get_interaction_selections(self, complexes, ligands, selected_atoms_only):
+    def get_interaction_selections(self, selected_complex, ligand_complexes, ligands, selected_atoms_only):
         """Generate valid list of selections to send to interactions service.
 
         complexes: List of Nanome Complexes which are being checked for interactions
@@ -192,10 +192,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         :rtype: str, comma separated string of atom paths (eg '/C/20/O,/A/60/C2')
         """
-        selection = None
+        selections = set()
         if ligands:
             # If a ligand has been specified, get residue path based on residue serial.
-            selections = set()
             for lig in ligands:
                 chain_name = lig.parent.id
                 # Find complexes that contain selected lig.
@@ -208,14 +207,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         residue_path = self.get_residue_path(residue)
                         selections.add(residue_path)
         elif selected_atoms_only:
-            selections = set()
             # Get all selected atoms from both the selected complex and ligand complex
             for comp in complexes:
                 new_selection = self.get_selected_atom_paths(comp)
                 selections = selections.union(new_selection)
         else:
-            # Get interactions for all atoms (provide no selections)
-            selections = []
+            # Get interactions for all residues in ligand complexes.
+            for comp in ligand_complexes:
+                for res in comp.residues:
+                    selections.add(self.get_residue_path(res))
 
         selection = ','.join(selections)
         Logs.debug(selection)

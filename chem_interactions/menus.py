@@ -206,6 +206,11 @@ class ChemInteractionsMenu():
     @async_callback
     async def submit_form(self, btn):
         """Collect data from menu, and pass to the Plugin to run get_interactions."""
+        # Disable calculate button until we are done processing
+        btn.unusable = True
+        btn.text.value.set_all('Calculating...')
+        self.plugin.update_content(btn)
+        
         selected_complexes = [
             item.complex
             for item in self.dd_complexes.items
@@ -253,10 +258,6 @@ class ChemInteractionsMenu():
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
 
-        # Disable calculate button until we are done processing
-        btn.unusable = True
-        btn.text.value.set_all('Calculating...')
-        self.plugin.update_content(btn)
 
         # Get up to date selected_complex
         selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
@@ -271,6 +272,7 @@ class ChemInteractionsMenu():
         self.plugin.update_node(self.ln_loading_bar)
 
         interaction_data = self.collect_interaction_data()
+        complexes = [selected_complex, *residue_complexes]
         try:
             await self.plugin.calculate_interactions(
                 selected_complex, residue_complexes, interaction_data,
