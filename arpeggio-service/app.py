@@ -16,6 +16,7 @@ def clean():
     input_file = request.files.values()[0]
     input_filename = input_file.filename
     temp_dir = tempfile.mkdtemp()
+    data = ''
     try:
         input_filepath = '{}/{}'.format(temp_dir, input_filename)
         input_file.save(input_filepath)
@@ -24,7 +25,6 @@ def clean():
         cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
         cleaned_filepath = '{}/{}'.format(temp_dir, cleaned_filename)
 
-        data = ''
         with open(cleaned_filepath, 'r') as f:
             data = f.read()
     except:
@@ -42,6 +42,7 @@ def index():
     input_file = request.files.values()[0]
     input_filename = input_file.filename
     temp_dir = tempfile.mkdtemp()
+    zipfile = None
     try:
         input_filepath = '{}/{}'.format(temp_dir, input_filename)
         input_file.save(input_filepath)
