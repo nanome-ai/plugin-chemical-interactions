@@ -112,7 +112,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.send_notification(nanome.util.enums.NotificationTypes.message, msg)
 
         contacts_data = response.json()
-        await self.parse_contacts_data(contacts_data, selected_complex, ligand_complex, interaction_data, selected_atoms_only)
+        complexes = [selected_complex, *ligand_complexes]
+        await self.parse_contacts_data(contacts_data, complexes, interaction_data, selected_atoms_only)
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
@@ -277,7 +278,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_list.append(atom)
         return atom_list
 
-    async def parse_contacts_data(self, contacts_data, complex, ligand_complex, interaction_form, selected_atoms_only=False):
+    async def parse_contacts_data(self, contacts_data, complexes, interaction_data, selected_atoms_only=False):
         """Parse .contacts file into Lines and render them in Nanome.
 
         contacts_data: Data returned by Chemical Interaction Service.
@@ -285,17 +286,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         ligand_complexes: List. complex containing the ligand. May contain same complex as complex arg
         interaction_form. InteractionsForms data describing color and visibility of interactions.
         """
-        form = InteractionsForm(data=interaction_form)
+        form = InteractionsForm(data=interaction_data)
         form.validate()
         if form.errors:
             raise Exception(form.errors)
 
-        new_lines = await self.create_new_lines(contacts_data, complex, ligand_complex, form.data)
+        new_lines = await self.create_new_lines(contacts_data, complexes, form.data)
         Logs.message(f'adding {len(new_lines)} new lines')
         Shape.upload_multiple(new_lines)
         self.interaction_lines.extend(new_lines)
 
-    async def create_new_lines(self, contacts_data, complex, ligand_complex, line_settings, selected_atoms_only=False):
+    async def create_new_lines(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
         """Parse rows of data from .contacts file into Line objects."""
         new_lines = []
         contact_data_len = len(contacts_data)
@@ -315,7 +316,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if ',' in atom1_path or ',' in atom2_path:
                 continue
 
-            atom_list = self.parse_atoms_from_atompaths(atom_paths, complex, ligand_complex)
+            atom_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
 
             if len(atom_list) != 2:
                 continue
@@ -327,18 +328,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom1, atom2 = atom_list
             # Get the current frame of the complex corresponding to each atom
             atom1_frame = atom2_frame = None
-            comp_atom_indices = (a.index for a in complex.atoms if a.index in (atom1.index, atom2.index))
-            ligand_atom_indices = (a.index for a in ligand_complex.atoms if a.index in (atom1.index, atom2.index))
-
-            if atom1.index in comp_atom_indices:
-                atom1_frame = complex.current_frame
-            if atom1.index in ligand_atom_indices:
-                atom1_frame = ligand_complex.current_frame
-
-            if atom2.index in comp_atom_indices:
-                atom2_frame = complex.current_frame
-            if atom2.index in ligand_atom_indices:
-                atom2_frame = ligand_complex.current_frame
+            for comp in complexes:
+                if atom1_frame and atom2_frame:
+                    break
+                relevant_atoms = (a.index for a in comp.atoms if a.index in [atom1.index, atom2.index])
+                if atom1.index in relevant_atoms:
+                    atom1_frame = comp.current_frame
+                if atom2.index in relevant_atoms:
+                    atom2_frame = comp.current_frame
 
             # Each row contains a list of interactions between these two atoms.
             for interaction_type in interaction_types:

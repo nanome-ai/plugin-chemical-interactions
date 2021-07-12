@@ -20,9 +20,8 @@ def clean():
     temp_dir = tempfile.mkdtemp()
 
     input_filename = input_file.filename
-    temp_dir = tempfile.mkdtemp()
     data = ''
-    try:
+    with tempfile.TemporaryDirectory() as temp_dir:
         input_filepath = '{}/{}'.format(temp_dir, input_filename)
         input_file.save(input_filepath)
         subprocess.call(['python', 'clean_pdb.py', input_filepath])
@@ -32,10 +31,6 @@ def clean():
 
         with open(cleaned_filepath, 'r') as f:
             data = f.read()
-    except:
-        shutil.rmtree(temp_dir)
-    else:
-        shutil.rmtree(temp_dir)
     return data
 
 
