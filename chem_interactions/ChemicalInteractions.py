@@ -185,7 +185,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def get_interaction_selections(self, selected_complex, ligand_complexes, ligands, selected_atoms_only):
         """Generate valid list of selections to send to interactions service.
 
-        complexes: List of Nanome Complexes which are being checked for interactions
+        selected_complex: Nanome Complex object
+        ligand_complexes: List of Complex objects containing ligands interacting with selected complex.
         interactions data: Data accepted by InteractionsForm.
         ligands: List, Biopython Residue object. Can be empty
         selected_atoms_only: bool. show interactions only for selected atoms.
