@@ -27,6 +27,7 @@ def clean():
     data = ''
     with open(cleaned_filepath, 'r') as f:
         data = f.read()
+    shutil.rmtree(temp_dir)
     return data
 
 
@@ -52,4 +53,5 @@ def index():
         cmd.extend(selections)
     subprocess.call(cmd)
     zipfile = shutil.make_archive('/tmp/{}'.format(input_filename), 'zip', temp_dir)
+    shutil.rmtree(temp_dir)
     return send_file(zipfile)
