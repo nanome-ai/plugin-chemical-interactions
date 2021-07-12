@@ -14,19 +14,23 @@ def clean():
         raise Exception("Invalid data")
 
     input_file = request.files.values()[0]
-    temp_dir = tempfile.mkdtemp()
-
     input_filename = input_file.filename
-    input_filepath = '{}/{}'.format(temp_dir, input_filename)
-    input_file.save(input_filepath)
-    subprocess.call(['python', 'clean_pdb.py', input_filepath])
-
-    cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
-    cleaned_filepath = '{}/{}'.format(temp_dir, cleaned_filename)
-
+    temp_dir = tempfile.mkdtemp()
     data = ''
-    with open(cleaned_filepath, 'r') as f:
-        data = f.read()
+    try:
+        input_filepath = '{}/{}'.format(temp_dir, input_filename)
+        input_file.save(input_filepath)
+        subprocess.call(['python', 'clean_pdb.py', input_filepath])
+
+        cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
+        cleaned_filepath = '{}/{}'.format(temp_dir, cleaned_filename)
+
+        with open(cleaned_filepath, 'r') as f:
+            data = f.read()
+    except:
+        shutil.rmtree(temp_dir)
+    else:
+        shutil.rmtree(temp_dir)
     return data
 
 
@@ -36,20 +40,25 @@ def index():
         raise Exception("Invalid data")
 
     input_file = request.files.values()[0]
-    temp_dir = tempfile.mkdtemp()
-
     input_filename = input_file.filename
-    input_filepath = '{}/{}'.format(temp_dir, input_filename)
-    input_file.save(input_filepath)
+    temp_dir = tempfile.mkdtemp()
+    zipfile = None
+    try:
+        input_filepath = '{}/{}'.format(temp_dir, input_filename)
+        input_file.save(input_filepath)
+        # Set up and run arpeggio command
+        arpeggio_path = '/arpeggio/arpeggio.py'
 
-    # Set up and run arpeggio command
-    arpeggio_path = '/arpeggio/arpeggio.py'
-
-    cmd = ['python', arpeggio_path, input_filepath, '-v']
-    if 'selection' in request.form:
-        selections = request.form['selection'].split(',')
-        cmd.append('-s')
-        cmd.extend(selections)
-    subprocess.call(cmd)
-    zipfile = shutil.make_archive('/tmp/{}'.format(input_filename), 'zip', temp_dir)
+        cmd = ['python', arpeggio_path, input_filepath, '-v']
+        if 'selection' in request.form:
+            selections = request.form['selection'].split(',')
+            cmd.append('-s')
+            cmd.extend(selections)
+        print(cmd)
+        subprocess.call(cmd)
+        zipfile = shutil.make_archive('/tmp/{}'.format(input_filename), 'zip', temp_dir)
+    except:
+        shutil.rmtree(temp_dir)
+    else:
+        shutil.rmtree(temp_dir)
     return send_file(zipfile)
