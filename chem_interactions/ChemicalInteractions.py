@@ -194,6 +194,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :rtype: str, comma separated string of atom paths (eg '/C/20/O,/A/60/C2')
         """
         selections = set()
+        complexes = [selected_complex, *ligand_complexes]
         if ligands:
             # If a ligand has been specified, get residue path based on residue serial.
             for lig in ligands:
@@ -209,7 +210,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         selections.add(residue_path)
         elif selected_atoms_only:
             # Get all selected atoms from both the selected complex and ligand complex
-            for comp in [selected_complex, *ligand_complexes]:
+            for comp in complexes:
                 new_selection = self.get_selected_atom_paths(comp)
                 selections = selections.union(new_selection)
         else:
