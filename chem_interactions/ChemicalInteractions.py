@@ -102,7 +102,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if response.status_code != 200:
             self.send_notification(NotificationTypes.error, 'Error =(')
             return
-        self.send_notification(nanome.util.enums.NotificationTypes.message, "Interaction data retrieved!")
+        msg = "Interaction data retrieved!"
+        Logs.debug(msg)
+        self.send_notification(nanome.util.enums.NotificationTypes.message, msg)
 
         # Unpack the zip file from response
         zipfile = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
@@ -162,7 +164,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         chain_name = self.clean_chain_name(chain_name)
         path = f'/{chain_name}/{residue.serial}/'
         return path
-    
+
     def get_atom_path(self, atom):
         chain_name = self.clean_chain_name(atom.chain.name)
         path = f'/{chain_name}/{atom.residue.serial}/{atom.name}'
@@ -218,6 +220,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             selections = []
 
         selection = ','.join(selections)
+        Logs.debug(selection)
         return selection
 
     @staticmethod
@@ -319,8 +322,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         new_lines = []
         # Each row represents all the interactions between two atoms.
+        len_contacts_data = len(contacts_data)
+        Logs.debug(f'{len_contacts_data} rows of interactions found')
         for i, row in enumerate(contacts_data):
-            self.menu.update_loading_bar(i, len(contacts_data))
+            self.menu.update_loading_bar(i, len_contacts_data)
 
             # Atom paths that current row is describing interactions between
             atom_paths = row[:2]

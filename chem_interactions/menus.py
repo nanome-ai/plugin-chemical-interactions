@@ -215,6 +215,11 @@ class ChemInteractionsMenu():
         if len(selected_complexes) != 1:
             raise Exception(f'Invalid selected complex count, expected 1, found {len(selected_complexes)}.')
 
+        # Determine selection type (Show all interactions or only selected atoms)
+        selected_atoms_only = False
+        if self.btn_show_selected_interactions.selected:
+            selected_atoms_only = True
+
         selected_complex = selected_complexes[0]
         ligand_ddis = [item for item in self.dd_ligands.items if item.selected]
 
@@ -225,6 +230,14 @@ class ChemInteractionsMenu():
                 if selected_ligand:
                     residues.append(selected_ligand)
                 residue_complex = getattr(ligand_ddi, 'complex', None)
+
+        elif selected_atoms_only:
+            # Find first complex with selected atoms, and set residue complex to that.
+            complexes = await self.plugin.request_complexes([c.index for c in self.complexes])
+            for comp in complexes:
+                if any([a.selected for a in comp.atoms]):
+                    residue_complex = comp
+                    break
         else:
             # If no ligand selected, Try to get from selected complex.
             residue_complex = selected_complex
@@ -246,11 +259,6 @@ class ChemInteractionsMenu():
         btn.unusable = True
         btn.text.value.set_all('Calculating...')
         self.plugin.update_content(btn)
-
-        # Determine selection type (Show all interactions or only selected atoms)
-        selected_atoms_only = False
-        if self.btn_show_selected_interactions.selected:
-            selected_atoms_only = True
 
         # Get up to date selected_complex
         selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
