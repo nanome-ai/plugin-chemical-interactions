@@ -9,7 +9,7 @@
             "type": "python",
             "request": "launch",
             "program": "run.py",
-            "args": ["-a", "nts-dev.nanome.ai", "-p", "9999", "-v", "-r"],
+            "args": ["-a", "nts-dev.nanome.ai", "-p", "9999", "-v", "-r", "-n", "[WIP] Chem Interactions"],
             "console": "integratedTerminal"
         },
         {

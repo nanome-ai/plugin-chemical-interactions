@@ -16,7 +16,7 @@ def create_parser():
     parser.add_argument('-p', '--port', help='connects to NTS at the specified port')
     parser.add_argument('-r', '--auto-reload', action='store_true', help='Restart plugin automatically if a .py or .json file in current directory changes')
     parser.add_argument('-v', '--verbose', action='store_true', help='enable verbose mode, to display Logs.debug')
-    parser.add_argument('-n', '--name', default='', help='Name to display for this plugin in Nanome')
+    parser.add_argument('-n', '--name', nargs='+', help='Name to display for this plugin in Nanome')
     parser.add_argument('-k', '--keyfile', help='Specifies a key file or key string to use to connect to NTS')
     parser.add_argument('-i', '--ignore', help='To use with auto-reload. All paths matching this pattern will be ignored, use commas to specify several. Supports */?/[seq]/[!seq]')
     return parser
