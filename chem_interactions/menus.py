@@ -66,6 +66,7 @@ class ChemInteractionsMenu():
 
         self.dd_complexes = self.ln_complexes.get_content()
         self.dd_ligands = self.ln_ligands.get_content()
+        self.dd_ligands.register_item_clicked_callback(self.plugin.update_content)
 
         self.dd_complexes.register_item_clicked_callback(self.toggle_complex)
 
