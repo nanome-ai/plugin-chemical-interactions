@@ -11,7 +11,7 @@ def create_parser():
     Some of these flags are passed down into the Plugin, and processed internally.
     rtype: argsparser: args parser
     """
-    parser = argparse.ArgumentParser(description='Parse Flags')
+    parser = argparse.ArgumentParser(description='Parse Arguments to set up Nanome Plugin')
     parser.add_argument('-a', '--host', help='connects to NTS at the specified IP address')
     parser.add_argument('-p', '--port', help='connects to NTS at the specified port')
     parser.add_argument('-r', '--auto-reload', action='store_true', help='Restart plugin automatically if a .py or .json file in current directory changes')
