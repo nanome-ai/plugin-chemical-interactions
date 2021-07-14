@@ -360,8 +360,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             line_exists = False
             for lin in self.interaction_lines:
                 if all([
-                    lin.frames.get(atom1.index) == line.frame,
-                    lin.frames.get(atom2.index) == lin.frame,
+                    # Frame attribute is snuck onto the atom before passed into the function.
+                    # This isn't great, we should find a better way to do it.
+                    lin.frames.get(atom1.index) == atom1.frame,
+                    lin.frames.get(atom2.index) == atom2.frame,
                         lin.interaction_type == interaction_type]):
                     line_exists = True
                     break
