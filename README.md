@@ -1,6 +1,6 @@
 # Nanome - Chemical Interactions
 
-A plugin to display various types of interatomic contacts between small- and macromolecules
+A Nanome plugin to display various types of interatomic contacts between small and macro molecules
 
 ### Preparation
 
