@@ -345,6 +345,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def create_new_lines(self, atom1, atom2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
+
         atom1: nanome.api.structure.Atom
         atom2: nanome.api.structure.Atom
         interaction_types: list of interaction types that exist between atom1 and atom2
