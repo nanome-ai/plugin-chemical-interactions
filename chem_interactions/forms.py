@@ -20,7 +20,7 @@ color_map = {
     "maroon": (128, 0, 0),
     "cyan": (0, 204, 230),
     "slategrey": (112, 128, 144),
-    "purple": (104, 0, 104),
+    "purple": (177, 156, 217),
     "grey": (192, 192, 192),
     "sienna": (160, 82, 45),
     "brown": (165, 42, 42),
@@ -68,7 +68,7 @@ default_line_settings = {
     'aromatic': {'visible': True, 'color': color_map['magenta']},
     'hydrophobic': {'visible': False, 'color': color_map['purple'], 'dash_length': .1},
     'vdw': {'visible': False, 'color': color_map['sienna']},
-    'vdw_clash': {'visible': False, 'color': color_map['plum']},
+    'vdw_clash': {'visible': False, 'color': color_map['maroon']},
     'weak_hbond': {'visible': False, 'color': color_map['orange']},
     'polar': {'visible': False, 'color': color_map['blue']},
     'weak_polar': {
