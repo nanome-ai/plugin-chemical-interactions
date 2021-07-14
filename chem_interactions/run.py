@@ -27,7 +27,10 @@ def main():
     args = parser.parse_args()
 
     default_title = 'Chemical Interactions'
-    title = ' '.join(args.name) or default_title
+
+    # Adding
+    arg_name = args.name or []
+    plugin_name = ' '.join(arg_name) or default_title
 
     description = (
         'A plugin to display various types of interatomic contacts '
@@ -38,7 +41,7 @@ def main():
 
     integrations = [Integrations.interactions]
     plugin = nanome.Plugin(
-        title, description, category, advanced_settings, integrations=integrations)
+        plugin_name, description, category, advanced_settings, integrations=integrations)
 
     plugin.set_plugin_class(ChemicalInteractions.ChemicalInteractions)
 
