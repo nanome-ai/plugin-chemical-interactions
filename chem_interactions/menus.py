@@ -81,7 +81,6 @@ class ChemInteractionsMenu():
         for ln in self.ln_ligands.parent._children:
             ln.enabled = visible
 
-
     def display_structures(self, complexes, layoutnode, default_structure=False):
         """Create dropdown of complexes, and add to provided layoutnode."""
         dropdown_items = self.create_structure_dropdown_items(complexes)
@@ -174,9 +173,9 @@ class ChemInteractionsMenu():
             else:
                 # Show all and hide all states will always be True or False respectively
                 selected_value = new_state == show_all_state
-            
+
             btn.selected = selected_value
-        
+
         self.plugin.update_menu(self._menu)
         await self.update_interaction_lines()
 
@@ -215,7 +214,7 @@ class ChemInteractionsMenu():
         btn.unusable = True
         btn.text.value.set_all('Calculating...')
         self.plugin.update_content(btn)
-        
+
         selected_complexes = [
             item.complex
             for item in self.dd_complexes.items
@@ -265,7 +264,6 @@ class ChemInteractionsMenu():
         if error_msg:
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
             return
-
 
         # Get up to date selected_complex
         selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
@@ -416,7 +414,7 @@ class ChemInteractionsMenu():
         """When Complex selected, add complex ligands as structure choices."""
         ligand_ddis = []
         if item and item.selected and self.ln_ligands.enabled:
-            # Pull out ligands from complex and add them to ligands list
+            # Extract ligands from complex and add them to ligands list
             # Make button unusable until ligand extraction is done.
             self.btn_calculate.unusable = True
             self.btn_calculate.text.value.set_all('Extracting Ligands...')
