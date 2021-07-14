@@ -111,7 +111,7 @@ class ChemInteractionsMenu():
         for struct in structures:
             struct_name = ''
             if isinstance(struct, Complex):
-                struct_name = struct.name
+                struct_name = struct.full_name
             elif isinstance(struct, BioResidue):
                 struct_name = struct.resname
 
