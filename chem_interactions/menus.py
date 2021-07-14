@@ -270,6 +270,7 @@ class ChemInteractionsMenu():
         # Get up to date selected_complex
         selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
         self.update_complex_data(selected_complex)
+
         # Get up to date residue_complex
         for residue_complex in residue_complexes:
             residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
@@ -280,7 +281,7 @@ class ChemInteractionsMenu():
         self.plugin.update_node(self.ln_loading_bar)
 
         interaction_data = self.collect_interaction_data()
-        complexes = [selected_complex, *residue_complexes]
+
         try:
             await self.plugin.calculate_interactions(
                 selected_complex, residue_complexes, interaction_data,

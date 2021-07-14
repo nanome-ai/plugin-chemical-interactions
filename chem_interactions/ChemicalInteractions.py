@@ -74,6 +74,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message('Starting Interactions Calculation')
         start_time = time.time()
 
+        # Let's make sure we have deep complexes
+        if len(list(selected_complex.molecules)) == 0:
+            selected_complex = await self.request_complexes([selected_complex.index])
+        
+        for i, lig_comp in enumerate(ligand_complexes):
+            if len(list(lig_comp.molecules)) == 0:
+                ligand_complexes[i] = (await self.request_complexes([lig_comp.index]))[0]
+
         complexes = [selected_complex, *ligand_complexes]
 
         # If the ligands are not part of selected complex, merge into one complex.
