@@ -70,7 +70,7 @@ class ChemInteractionsMenu():
 
         self.dd_complexes = self.ln_complexes.get_content()
         self.dd_ligands = self.ln_ligands.get_content()
-        self.dd_ligands.register_item_clicked_callback(self.plugin.update_content)
+        self.dd_ligands.register_item_clicked_callback(self.update_dropdown)
 
         self.dd_complexes.register_item_clicked_callback(self.toggle_complex)
         self.plugin.update_menu(self._menu)
@@ -101,7 +101,7 @@ class ChemInteractionsMenu():
                     break
 
         layoutnode.set_content(dropdown)
-        self.plugin.update_content(layoutnode)
+        self.plugin.update_node(layoutnode)
 
     def create_structure_dropdown_items(self, structures):
         """Generate list of buttons corresponding to provided complexes."""
@@ -233,6 +233,11 @@ class ChemInteractionsMenu():
         selected_complex = selected_complexes[0]
         ligand_ddis = [item for item in self.dd_ligands.items if item.selected]
 
+        # Determine selection type (Show all interactions or only selected atoms)
+        selected_atoms_only = False
+        if self.btn_show_selected_interactions.selected:
+            selected_atoms_only = True
+
         residues = []
         residue_complexes = []
         if ligand_ddis:
@@ -256,8 +261,6 @@ class ChemInteractionsMenu():
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
-        elif not residue_complexes:
-            error_msg = 'Please Select a Ligand'
 
         if error_msg:
             self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
@@ -267,6 +270,7 @@ class ChemInteractionsMenu():
         # Get up to date selected_complex
         selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
         self.update_complex_data(selected_complex)
+
         # Get up to date residue_complex
         for residue_complex in residue_complexes:
             residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
@@ -277,7 +281,7 @@ class ChemInteractionsMenu():
         self.plugin.update_node(self.ln_loading_bar)
 
         interaction_data = self.collect_interaction_data()
-        complexes = [selected_complex, *residue_complexes]
+
         try:
             await self.plugin.calculate_interactions(
                 selected_complex, residue_complexes, interaction_data,
@@ -402,6 +406,10 @@ class ChemInteractionsMenu():
     @enabled.setter
     def enabled(self, value):
         self._menu.enabled = value
+
+    def update_dropdown(self, dropdown, item):
+        self.plugin.update_content(dropdown)
+        return
 
     @async_callback
     async def toggle_complex(self, dropdown, item):

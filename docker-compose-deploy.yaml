@@ -4,6 +4,7 @@ version: "3.9"
 
 services:
   plugin:
+    restart: always
     container_name: chemical-interactions-plugin
     build:
       context: chem_interactions
@@ -16,6 +17,7 @@ services:
     depends_on:
       - arpeggio
   arpeggio:
+    restart: always
     container_name: chemical-interactions-server
     build:
       context: arpeggio-service

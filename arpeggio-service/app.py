@@ -1,8 +1,11 @@
-import subprocess
-import shutil
-import tempfile
+import json
+import os
 
-from flask import Flask, request, send_file
+import subprocess
+import tempfile
+import uuid
+
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
@@ -13,11 +16,12 @@ def clean():
     if len(request.files) != 1:
         raise Exception("Invalid data")
 
-    input_file = request.files.values()[0]
-    input_filename = input_file.filename
+    input_file = next(request.files.values(), None)
     temp_dir = tempfile.mkdtemp()
+
+    input_filename = input_file.filename
     data = ''
-    try:
+    with tempfile.TemporaryDirectory() as temp_dir:
         input_filepath = '{}/{}'.format(temp_dir, input_filename)
         input_file.save(input_filepath)
         subprocess.call(['python', 'clean_pdb.py', input_filepath])
@@ -27,10 +31,6 @@ def clean():
 
         with open(cleaned_filepath, 'r') as f:
             data = f.read()
-    except:
-        shutil.rmtree(temp_dir)
-    else:
-        shutil.rmtree(temp_dir)
     return data
 
 
@@ -39,26 +39,36 @@ def index():
     if len(request.files) != 1:
         raise Exception("Invalid data")
 
-    input_file = request.files.values()[0]
+    input_file = next(request.files.values(), None)
     input_filename = input_file.filename
-    temp_dir = tempfile.mkdtemp()
-    zipfile = None
-    try:
+
+    output_data = {}
+    with tempfile.TemporaryDirectory() as temp_dir:
         input_filepath = '{}/{}'.format(temp_dir, input_filename)
         input_file.save(input_filepath)
-        # Set up and run arpeggio command
-        arpeggio_path = '/arpeggio/arpeggio.py'
 
-        cmd = ['python', arpeggio_path, input_filepath, '-v']
+        # Set up and run arpeggio command
+        arpeggio_path = '/opt/conda/bin/arpeggio'
+
+        cmd = ['python', arpeggio_path, input_filepath]
         if 'selection' in request.form:
             selections = request.form['selection'].split(',')
             cmd.append('-s')
             cmd.extend(selections)
-        print(cmd)
+
+        # Create directory for output
+        temp_uuid = uuid.uuid4()
+        output_dir = f'{temp_dir}/{temp_uuid}'
+        cmd.extend(['-o', output_dir])
+
         subprocess.call(cmd)
-        zipfile = shutil.make_archive('/tmp/{}'.format(input_filename), 'zip', temp_dir)
-    except:
-        shutil.rmtree(temp_dir)
-    else:
-        shutil.rmtree(temp_dir)
-    return send_file(zipfile)
+
+        try:
+            output_filename = next(fname for fname in os.listdir(output_dir))
+        except Exception:
+            return {'error': 'Arpeggio call failed'}, 400
+
+        output_filepath = f'{output_dir}/{output_filename}'
+        with open(output_filepath, 'r') as f:
+            output_data = json.load(f)
+    return jsonify(output_data)

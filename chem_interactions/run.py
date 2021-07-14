@@ -27,13 +27,11 @@ def main():
     args = parser.parse_args()
 
     default_title = 'Chemical Interactions'
-
-    # Adding
     arg_name = args.name or []
     plugin_name = ' '.join(arg_name) or default_title
 
     description = (
-        'A plugin to display various types of interatomic contacts '
+        'A plugin to visualize interatomic contacts '
         'between small and macro molecules'
     )
     category = 'Interactions'
