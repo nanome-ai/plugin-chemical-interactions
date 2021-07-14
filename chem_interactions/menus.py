@@ -414,7 +414,7 @@ class ChemInteractionsMenu():
         """When Complex selected, add complex ligands as structure choices."""
         ligand_ddis = []
         if item and item.selected and self.ln_ligands.enabled:
-            # Pull out ligands from complex and add them to ligands list
+            # Extract ligands from complex and add them to ligands list
             # Make button unusable until ligand extraction is done.
             self.btn_calculate.unusable = True
             self.btn_calculate.text.value.set_all('Extracting Ligands...')
