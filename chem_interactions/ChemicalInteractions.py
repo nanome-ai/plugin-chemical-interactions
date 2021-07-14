@@ -394,10 +394,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
         return line
 
-    async def destroy_lines(self, line_list):
-        for line in line_list:
-            line.destroy()
-
     async def update_interaction_lines(self, interactions_data, complexes=None):
         complexes = complexes or []
         stream_type = nanome.api.streams.Stream.Type.shape_color.value
@@ -477,7 +473,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 self.interaction_lines.remove(line)
 
         destroyed_line_count = len(lines_to_destroy)
-        asyncio.create_task(self.destroy_lines(lines_to_destroy))
+        Shape.destroy_multiple(lines_to_destroy)
 
         message = f'Deleted {destroyed_line_count} interactions'
         Logs.message(message)
