@@ -34,4 +34,3 @@ services:
     tty: true
     volumes:
       - "./arpeggio-service:/app"
-      - "./arpeggio/arpeggio:/opt/conda/lib/python3.7/site-packages/arpeggio"
