@@ -70,7 +70,7 @@ class ChemInteractionsMenu():
 
         self.dd_complexes = self.ln_complexes.get_content()
         self.dd_ligands = self.ln_ligands.get_content()
-        self.dd_ligands.register_item_clicked_callback(self.plugin.update_content)
+        self.dd_ligands.register_item_clicked_callback(self.update_dropdown)
 
         self.dd_complexes.register_item_clicked_callback(self.toggle_complex)
         self.plugin.update_menu(self._menu)
@@ -101,7 +101,7 @@ class ChemInteractionsMenu():
                     break
 
         layoutnode.set_content(dropdown)
-        self.plugin.update_content(layoutnode)
+        self.plugin.update_node(layoutnode)
 
     def create_structure_dropdown_items(self, structures):
         """Generate list of buttons corresponding to provided complexes."""
@@ -406,6 +406,10 @@ class ChemInteractionsMenu():
     @enabled.setter
     def enabled(self, value):
         self._menu.enabled = value
+
+    def update_dropdown(self, dropdown, item):
+        self.plugin.update_content(dropdown)
+        return
 
     @async_callback
     async def toggle_complex(self, dropdown, item):
