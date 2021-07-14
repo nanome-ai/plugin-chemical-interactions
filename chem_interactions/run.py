@@ -27,8 +27,6 @@ def main():
     args = parser.parse_args()
 
     default_title = 'Chemical Interactions'
-
-    # Adding
     arg_name = args.name or []
     plugin_name = ' '.join(arg_name) or default_title
 
