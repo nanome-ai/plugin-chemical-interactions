@@ -44,7 +44,6 @@ def index():
 
     output_data = {}
     with tempfile.TemporaryDirectory() as temp_dir:
-    
         input_filepath = '{}/{}'.format(temp_dir, input_filename)
         input_file.save(input_filepath)
 
@@ -57,7 +56,7 @@ def index():
             cmd.append('-s')
             cmd.extend(selections)
 
-        # Create filepath for output
+        # Create directory for output
         temp_uuid = uuid.uuid4()
         output_dir = f'{temp_dir}/{temp_uuid}'
         cmd.extend(['-o', output_dir])
@@ -65,9 +64,9 @@ def index():
         subprocess.call(cmd)
 
         try:
-            output_filename = next(fname for fname in os.listdir(output_dir)) 
-        except StopIteration:
-            return {'error': 'Arpeggio Call failed =('}, 400
+            output_filename = next(fname for fname in os.listdir(output_dir))
+        except Exception:
+            return {'error': 'Arpeggio call failed'}, 400
 
         output_filepath = f'{output_dir}/{output_filename}'
         with open(output_filepath, 'r') as f:

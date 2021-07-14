@@ -31,7 +31,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_run(self):
         self.menu.enabled = True
         complexes = await self.request_complex_list()
-        # complexes = await self.request_complexes([c.index for c in complexes])
         self.menu.render(complexes=complexes, default_values=True)
 
     @async_callback
@@ -77,7 +76,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Let's make sure we have deep complexes
         if len(list(selected_complex.molecules)) == 0:
             selected_complex = await self.request_complexes([selected_complex.index])
-        
+
         for i, lig_comp in enumerate(ligand_complexes):
             if len(list(lig_comp.molecules)) == 0:
                 ligand_complexes[i] = (await self.request_complexes([lig_comp.index]))[0]
@@ -111,8 +110,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # make the request to get interactions
         response = requests.post(self.interactions_url, data=data, files=files)
         if response.status_code != 200:
-            self.send_notification(NotificationTypes.error, 'Error =(')
+            self.send_notification(NotificationTypes.error, response.json()['error'])
             return
+
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
         self.send_notification(nanome.util.enums.NotificationTypes.message, msg)
@@ -214,7 +214,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 selections = selections.union(new_selection)
         else:
             # Add all residues from ligand complexes to the seletion list.
-            # Unless the selected complex is also the ligand, in which case don't add anything. 
+            # Unless the selected complex is also the ligand, in which case don't add anything.
             for comp in ligand_complexes:
                 if comp.index == selected_complex.index:
                     continue
@@ -299,7 +299,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         contact_data_len = len(contacts_data)
         new_lines = []
         for i, row in enumerate(contacts_data):
-            # Each row represents all the interactions between two atoms.          
+            # Each row represents all the interactions between two atoms.
             self.menu.update_loading_bar(i, contact_data_len)
             # Atom paths that current row is describing interactions between
             a1_data = row['bgn']
@@ -338,7 +338,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom1.frame = atom1_frame
             atom2.frame = atom2_frame
             new_lines.extend(await self.create_new_lines(atom1, atom2, interaction_types, form.data))
-        
+
         Logs.message(f'adding {len(new_lines)} new lines')
         Shape.upload_multiple(new_lines)
         self.interaction_lines.extend(new_lines)
