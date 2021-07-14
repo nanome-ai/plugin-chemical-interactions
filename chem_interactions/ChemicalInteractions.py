@@ -101,8 +101,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         data = {}
 
         selection = self.get_interaction_selections(selected_complex, ligand_complexes, ligands, selected_atoms_only)
-
-        Logs.debug(selection)
+        Logs.debug(f'Selections: {selection}')
 
         if selection:
             data['selection'] = selection
