@@ -64,18 +64,23 @@ class ChemInteractionsMenu():
         self.display_structures(complexes, self.ln_complexes, default_structure=default_complex)
         self.display_structures(complexes, self.ln_ligands)
 
+        # Determine whether we should currently be showing the ligand dropdown.
+        enable_ligands_node = self.btn_show_all_interactions.selected
+        self.toggle_ln_ligands_visibility(enable_ligands_node)
+
         self.dd_complexes = self.ln_complexes.get_content()
         self.dd_ligands = self.ln_ligands.get_content()
+        self.dd_ligands.register_item_clicked_callback(self.plugin.update_content)
 
         self.dd_complexes.register_item_clicked_callback(self.toggle_complex)
-
-        # ligands dropdown defaults to being unusable
-        self.ln_ligands.enabled = False
-        # Hack. please clean this up.
-        for ln in self.ln_ligands.parent._children:
-            ln.enabled = False
-        self.plugin.update_node(self.ln_ligands.parent)
         self.plugin.update_menu(self._menu)
+
+    def toggle_ln_ligands_visibility(self, visible=True):
+        # Show or hide the ligands dropdown, and the other content inside the parent layout node.
+        self.ln_ligands.enabled = visible
+        for ln in self.ln_ligands.parent._children:
+            ln.enabled = visible
+
 
     def display_structures(self, complexes, layoutnode, default_structure=False):
         """Create dropdown of complexes, and add to provided layoutnode."""
@@ -125,7 +130,7 @@ class ChemInteractionsMenu():
                 ddi.complex = struct
             elif isinstance(struct, BioResidue):
                 ddi.ligand = struct
-            
+
             complex_ddis.append(ddi)
 
         return complex_ddis
@@ -466,8 +471,5 @@ class ChemInteractionsMenu():
         if enable_ligands_node:
             item = next((ddi for ddi in self.dd_complexes.items if ddi.selected), None)
             self.toggle_complex(self.dd_complexes, item)
-
-        for ln in self.ln_ligands.parent._children:
-            ln.enabled = enable_ligands_node
-
+        self.toggle_ln_ligands_visibility(enable_ligands_node)
         self.plugin.update_menu(self._menu)

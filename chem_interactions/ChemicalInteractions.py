@@ -214,8 +214,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 new_selection = self.get_selected_atom_paths(comp)
                 selections = selections.union(new_selection)
         else:
-            # Get interactions for all residues in ligand complexes.
+            # Add all residues from ligand complexes to the seletion list.
+            # Unless the selected complex is also the ligand, in which case don't add anything. 
             for comp in ligand_complexes:
+                if comp.index == selected_complex.index:
+                    continue
                 for res in comp.residues:
                     selections.add(self.get_residue_path(res))
 
