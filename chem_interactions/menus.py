@@ -410,6 +410,7 @@ class ChemInteractionsMenu():
         return
 
     def set_update_text(self, btn_text):
+        """Allows Plugin to set button text to provide user with status updates."""
         self.btn_calculate.text.value.set_all(btn_text)
         self.plugin.update_content(self.btn_calculate)
 

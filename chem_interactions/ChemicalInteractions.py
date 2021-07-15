@@ -296,7 +296,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         contact_data_len = len(contacts_data)
         new_lines = []
-        self.menu.set_update_text("Mapping data to Workspace")
+        self.menu.set_update_text("Updating Workspace")
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
             self.menu.update_loading_bar(i, contact_data_len)
