@@ -114,10 +114,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
-        self.menu.set_update_text(msg)
         contacts_data = response.json()
         complexes = [selected_complex, *ligand_complexes]
-        await self.parse_contacts_data(contacts_data, complexes, interaction_data, selected_atoms_only)
+        new_lines = await self.parse_contacts_data(contacts_data, complexes, interaction_data, selected_atoms_only)
+
+        msg = f'Adding {len(new_lines)} interactions'
+        Logs.message(msg)
+        Shape.upload_multiple(new_lines)
+        self.interaction_lines.extend(new_lines)
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
@@ -129,7 +133,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             Logs.message(f'Interactions Calculation completed in {elapsed_time} seconds')
 
         asyncio.create_task(log_elapsed_time(start_time))
-        asyncio.create_task(self.send_async_notification("Finished Calculating Interactions!"))
+
+        notification_txt = f"Finished Calculating Interactions!\n{len(new_lines)} lines added"
+        asyncio.create_task(self.send_async_notification(notification_txt))
 
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
@@ -282,7 +288,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return atom_list
 
     async def parse_contacts_data(self, contacts_data, complexes, interaction_data, selected_atoms_only=False):
-        """Parse .contacts file into Lines and render them in Nanome.
+        """Parse .contacts file into list of Lines to be rendered in Nanome.
 
         contacts_data: Data returned by Chemical Interaction Service.
         complex: main complex selected.
@@ -337,11 +343,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom1.frame = atom1_frame
             atom2.frame = atom2_frame
             new_lines.extend(await self.create_new_lines(atom1, atom2, interaction_types, form.data))
-
-        Logs.message(f'adding {len(new_lines)} new lines')
-        Shape.upload_multiple(new_lines)
-        self.interaction_lines.extend(new_lines)
-
+        return new_lines
+        
     async def create_new_lines(self, atom1, atom2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
 
