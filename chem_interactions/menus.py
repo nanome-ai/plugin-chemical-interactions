@@ -13,7 +13,7 @@ PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
 BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
-MENU_PATH = path.join(BASE_PATH, 'menu_json', 'newMenu.json')
+MENU_PATH = path.join(BASE_PATH, 'menu_json', 'menu.json')
 
 
 class ChemInteractionsMenu():
