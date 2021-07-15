@@ -409,6 +409,11 @@ class ChemInteractionsMenu():
         self.plugin.update_content(dropdown)
         return
 
+    def set_update_text(self, btn_text):
+        """Allows Plugin to set button text to provide user with status updates."""
+        self.btn_calculate.text.value.set_all(btn_text)
+        self.plugin.update_content(self.btn_calculate)
+
     @async_callback
     async def toggle_complex(self, dropdown, item):
         """When Complex selected, add complex ligands as structure choices."""
