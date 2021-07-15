@@ -38,7 +38,7 @@ class ChemInteractionsMenu():
         self.btn_show_selected_interactions.register_pressed_callback(self.toggle_atom_selection)
         self.ln_loading_bar = self._menu.root.find_node('LoadingBar')
 
-        self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
+        self.btn_toggle_interactions = self._menu.root.find_node('Toggle Display').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
         self.btn_clear_frame.register_pressed_callback(self.clear_frame)
 
