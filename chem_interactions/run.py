@@ -30,10 +30,7 @@ def main():
     arg_name = args.name or []
     plugin_name = ' '.join(arg_name) or default_title
 
-    description = (
-        'A plugin to visualize interatomic contacts '
-        'between small and macro molecules'
-    )
+    description = 'Calculate and visualize interatomic contacts between small and macro molecules.'
     category = 'Interactions'
     advanced_settings = False
 
