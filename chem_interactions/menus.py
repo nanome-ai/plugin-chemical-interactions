@@ -13,7 +13,7 @@ PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
 BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
-MENU_PATH = path.join(BASE_PATH, 'menu_json', 'menu.json')
+MENU_PATH = path.join(BASE_PATH, 'menu_json', 'newMenu.json')
 
 
 class ChemInteractionsMenu():
@@ -38,7 +38,7 @@ class ChemInteractionsMenu():
         self.btn_show_selected_interactions.register_pressed_callback(self.toggle_atom_selection)
         self.ln_loading_bar = self._menu.root.find_node('LoadingBar')
 
-        self.btn_toggle_interactions = self._menu.root.find_node('ln_btn_toggle_interactions').get_content()
+        self.btn_toggle_interactions = self._menu.root.find_node('Toggle Display').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
         self.btn_clear_frame.register_pressed_callback(self.clear_frame)
 
