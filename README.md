@@ -1,6 +1,6 @@
 # Nanome - Chemical Interactions
 
-A Nanome plugin to display various types of interatomic contacts between small and macro molecules
+A Nanome plugin to Calculate and visualize interatomic contacts between small and macro molecules.'
 
 ### Preparation
 
@@ -21,7 +21,6 @@ The default `docker-compose.yaml` is optimized for development, with debug enabl
 ./docker/deploy.sh
 ```
 
-
 ### Dependencies
 The host must support `docker` and `docker-compose`. All other dependencies are handled within the individual docker containers.
 
@@ -35,11 +34,10 @@ The Plugin is broken into two separate containers.
 - **arpeggio-services**:
   - Wrapper API for Arpeggio library, which calculates interactions between molecules.
   - Cleans data to be compatible with interactions command
-  - Returns a zip file of interaction results, which is consumed by chem_interactions.
-
+  - Returns JSON containing interaction results, which is consumed by chem_interactions.
+  - See https://github.com/PDBeurope/arpeggio
 
 ### License
-
 MIT
 
 ### References

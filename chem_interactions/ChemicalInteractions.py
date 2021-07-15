@@ -114,8 +114,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
-        self.send_notification(nanome.util.enums.NotificationTypes.message, msg)
-
+        self.menu.set_update_text(msg)
         contacts_data = response.json()
         complexes = [selected_complex, *ligand_complexes]
         await self.parse_contacts_data(contacts_data, complexes, interaction_data, selected_atoms_only)
@@ -297,6 +296,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         contact_data_len = len(contacts_data)
         new_lines = []
+        self.menu.set_update_text("Mapping data to Workspace")
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
             self.menu.update_loading_bar(i, contact_data_len)
