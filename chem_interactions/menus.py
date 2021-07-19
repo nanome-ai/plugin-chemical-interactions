@@ -7,6 +7,7 @@ from utils import extract_ligands
 from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
 from nanome.util.asyncio import async_callback
+from nanome.util.enums import NotificationTypes
 from forms import InteractionsForm, color_map, default_line_settings
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -207,6 +208,11 @@ class ChemInteractionsMenu():
             }
         return interaction_data
 
+    def reset_calculate_btn(self):
+        self.btn_calculate.unusable = False
+        self.btn_calculate.text.value.set_all('Calculate')
+        self.plugin.update_content(self.btn_calculate)
+
     @async_callback
     async def submit_form(self, btn):
         """Collect data from menu, and pass to the Plugin to run get_interactions."""
@@ -222,7 +228,9 @@ class ChemInteractionsMenu():
         ]
 
         if len(selected_complexes) != 1:
-            raise Exception(f'Invalid selected complex count, expected 1, found {len(selected_complexes)}.')
+            self.plugin.send_notification(NotificationTypes.error, 'Please Select a Complex.')
+            self.reset_calculate_btn()
+            return
 
         # Determine selection type (Show all interactions or only selected atoms)
         selected_atoms_only = False
@@ -254,15 +262,15 @@ class ChemInteractionsMenu():
                 if any([a.selected for a in comp.atoms]):
                     residue_complexes.append(comp)
         else:
-            # If no ligand selected, Try to get from selected complex.
-            residue_complexes.append(selected_complex)
+            # If no ligand selected from dropdown, and not atom selection mode, raise error
+            self.plugin.send_notification(NotificationTypes.error, 'Please Select a Ligand.')
+            self.reset_calculate_btn()
+            return
 
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
-
-        if error_msg:
-            self.plugin.send_notification(nanome.util.enums.NotificationTypes.error, error_msg)
+            self.plugin.send_notification(NotificationTypes.error, error_msg)
             return
 
         # Get up to date selected_complex
@@ -288,18 +296,12 @@ class ChemInteractionsMenu():
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
                 nanome.util.enums.NotificationTypes.error, msg)
-
-            btn.unusable = False
-            btn.text.value.set_all('Calculate')
-            self.plugin.update_content(btn)
+            self.reset_calculate_btn()
             raise
 
         self.ln_loading_bar.set_content(None)
         self.plugin.update_node(self.ln_loading_bar)
-
-        btn.unusable = False
-        btn.text.value.set_all('Calculate')
-        self.plugin.update_content(btn)
+        self.reset_calculate_btn()
 
     def update_loading_bar(self, current, total):
         loading_bar = self.ln_loading_bar.get_content()
