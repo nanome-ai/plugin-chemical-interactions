@@ -29,8 +29,13 @@ class ChemInteractionsMenu():
 
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('CalculateButton').get_content()
-        self.btn_clear_frame = self._menu.root.find_node('ClearFrameButton').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
+        
+        self.btn_clear_frame = self._menu.root.find_node('ClearFrameButton').get_content()
+        self.btn_clear_frame.register_pressed_callback(self.clear_frame)
+
+        self.btn_distance_labels = self._menu.root.find_node('Show Distances').get_content()
+        self.btn_distance_labels.register_pressed_callback(self.toggle_distance_labels)
 
         self.btn_show_all_interactions = self._menu.root.find_node('Show All').get_content()
         self.btn_show_all_interactions.register_pressed_callback(self.toggle_atom_selection)
@@ -41,7 +46,6 @@ class ChemInteractionsMenu():
 
         self.btn_toggle_interactions = self._menu.root.find_node('Toggle Display').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
-        self.btn_clear_frame.register_pressed_callback(self.clear_frame)
 
     @async_callback
     async def render(self, complexes=None, default_values=False):
@@ -486,3 +490,10 @@ class ChemInteractionsMenu():
             self.toggle_complex(self.dd_complexes, item)
         self.toggle_ln_ligands_visibility(enable_ligands_node)
         self.plugin.update_menu(self._menu)
+
+    def toggle_distance_labels(self, btn):
+        self.plugin.render_distance_labels(self.complexes)
+        # if btn.selected:
+        #     self.plugin.render_distance_labels()
+        # else:
+        #     self.clear_distance_labels()

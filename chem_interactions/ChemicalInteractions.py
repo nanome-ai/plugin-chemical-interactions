@@ -6,8 +6,8 @@ from os import environ, path
 
 import nanome
 from nanome.api.structure import Complex
-from nanome.api.shapes import Shape
-from nanome.util.enums import NotificationTypes
+from nanome.api.shapes import Label, Shape
+from nanome.util.enums import NotificationTypes, ShapeAnchorType
 from nanome.util import async_callback, Color, Logs
 
 from forms import InteractionsForm, LineForm
@@ -493,3 +493,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Send notification asynchronously."""
         notifcation_type = nanome.util.enums.NotificationTypes.message
         self.send_notification(notifcation_type, message)
+
+    def render_distance_labels(self, complexes):
+        new_labels = []
+        for line in self.interaction_lines:
+            if self.line_in_frame(line, complexes):
+                new_label = Label()
+                new_label.text = line.length
+                anchor = new_label.anchors[0]
+                anchor.anchor_type = ShapeAnchorType.Atom
+
+                # Where does label go? Not sure yet
+                anchor.target = next(iter(line.frames.keys()))
+                new_labels.append(new_label)
+
+    def clear_distance_labels(self):
+        pass

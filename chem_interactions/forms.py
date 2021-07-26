@@ -53,7 +53,7 @@ class InteractionLine(Line):
     def length(self):
         """Determine length of line using the distance between the atoms."""
         positions = self.atom_positions.values()
-        distance = Vector3.distance(positions[0], positions[1])
+        distance = Vector3.distance(*positions)
         return distance
 
 color_map = {
