@@ -1,6 +1,6 @@
 from os import path
 from nanome.api.shapes import Line
-from nanome.util import Color
+from nanome.util import Color, Vector3
 from wtforms import BooleanField, Field, FloatField, Form, FormField
 from wtforms.fields.core import StringField
 
@@ -9,14 +9,17 @@ BASE_PATH = path.dirname(path.realpath(__file__))
 
 
 class InteractionLine(Line):
-    """A Line with additional properties."""
+    """A Line with additional properties needed for tracking interactions."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._interaction_type = None
         self._frames = {}
+        self._atom_positions = {}
 
     @property
     def interaction_type(self):
+        """The type of interaction this line is representing. See forms.InteractionsForm for valid values."""
         return self._interaction_type
     
     @interaction_type.setter
@@ -25,13 +28,33 @@ class InteractionLine(Line):
 
     @property
     def frames(self):
+        """Dict where key is atom index and value is current frame of the atom's complex."""
         return self._frames
     
     @frames.setter
     def frames(self, value):
+        if not isinstance(value, dict):
+            raise AttributeError(f'InteractionLine.frames expects dict, received {type(value)}')
         self._frames = value
 
+    @property
+    def atom_positions(self):
+        """Dict where key is atom index and value is last known (x, y, z) coordinates of atom."""
+        return self._atom_positions
 
+    @atom_positions.setter
+    def atom_positions(self, value):
+        """Dict where key is atom index and value is a Vector3 of last known coordinates of atom."""
+        if not isinstance(value, dict) or len(value) != 2 or not all([isinstance(pos, Vector3) for pos in value.values()]):
+            raise AttributeError('Invalid atom positions provided: {value}')
+        self._atom_positions = value
+
+    @property
+    def length(self):
+        """Determine length of line using the distance between the atoms."""
+        positions = self.atom_positions.values()
+        distance = Vector3.distance(positions[0], positions[1])
+        return distance
 
 color_map = {
     "red": (255, 0, 0),
@@ -74,7 +97,7 @@ class LineForm(Form):
     dash_length = FloatField(default=0.25)
     dash_distance = FloatField(default=0.25)
     interaction_type = StringField()
-    
+
     def create(self):
         line = InteractionLine()
         for attr, value in self.data.items():

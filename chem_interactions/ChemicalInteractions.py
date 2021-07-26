@@ -397,6 +397,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom1.index: atom1.frame,
             atom2.index: atom2.frame,
         }
+
+        line.atom_positions = {
+            atom1.index: atom1.position,
+            atom2.index: atom2.position
+        }
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
@@ -425,7 +430,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             hide_interaction = not form_data['visible'] or not line_in_frame
             color = Color(*form_data['color'])
             color.a = 0 if hide_interaction else 255
-            new_colors.extend([color.r, color.g, color.b, color.a])
+            new_colors.extend(color.rgba)
 
         Logs.debug(f'in frame: {in_frame_count}')
         Logs.debug(f'out of frame: {out_of_frame_count}')
