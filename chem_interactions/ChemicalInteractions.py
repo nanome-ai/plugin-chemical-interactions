@@ -497,15 +497,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def render_distance_labels(self, complexes):
         new_labels = []
         for line in self.interaction_lines:
-            if self.line_in_frame(line, complexes):
-                new_label = Label()
-                new_label.text = line.length
-                anchor = new_label.anchors[0]
-                anchor.anchor_type = ShapeAnchorType.Atom
-
-                # Where does label go? Not sure yet
-                anchor.target = next(iter(line.frames.keys()))
-                new_labels.append(new_label)
+            if self.line_in_frame(line, complexes) and line.color.a > 0:
+                label = Label()
+                label.text = str(round(line.length, 2))
+                label.font_size = 0.08
+                label.anchors = line.anchors
+                new_labels.append(label)
+        Shape.upload_multiple(new_labels)
 
     def clear_distance_labels(self):
         pass

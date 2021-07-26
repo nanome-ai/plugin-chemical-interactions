@@ -56,6 +56,7 @@ class InteractionLine(Line):
         distance = Vector3.distance(*positions)
         return distance
 
+
 color_map = {
     "red": (255, 0, 0),
     "orange": (255, 128, 0),
