@@ -2,9 +2,36 @@ from os import path
 from nanome.api.shapes import Line
 from nanome.util import Color
 from wtforms import BooleanField, Field, FloatField, Form, FormField
+from wtforms.fields.core import StringField
 
 
 BASE_PATH = path.dirname(path.realpath(__file__))
+
+
+class InteractionLine(Line):
+    """A Line with additional properties."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._interaction_type = None
+        self._frames = {}
+
+    @property
+    def interaction_type(self):
+        return self._interaction_type
+    
+    @interaction_type.setter
+    def interaction_type(self, value):
+        self._interaction_type = value
+
+    @property
+    def frames(self):
+        return self._frames
+    
+    @frames.setter
+    def frames(self, value):
+        self._frames = value
+
+
 
 color_map = {
     "red": (255, 0, 0),
@@ -46,9 +73,10 @@ class LineForm(Form):
     thickness = FloatField(default=0.1)
     dash_length = FloatField(default=0.25)
     dash_distance = FloatField(default=0.25)
-
+    interaction_type = StringField()
+    
     def create(self):
-        line = Line()
+        line = InteractionLine()
         for attr, value in self.data.items():
             if hasattr(line, attr):
                 setattr(line, attr, value)

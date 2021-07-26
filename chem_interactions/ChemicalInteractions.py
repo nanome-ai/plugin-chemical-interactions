@@ -373,13 +373,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if line_exists:
                 continue
 
+            form_data['interaction_type'] = interaction_type
             # Draw line and add data about interaction type and frames.
             line = self.draw_interaction_line(atom1, atom2, form_data)
-            line.interaction_type = interaction_type
-            line.frames = {
-                atom1.index: atom1.frame,
-                atom2.index: atom2.frame,
-            }
             new_lines.append(line)
 
         return new_lines
@@ -391,10 +387,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :arg atom2: Atom
         :arg form_data: Dict {'color': (r,g,b), 'visible': bool}
         """
+        # Add atom information to form_data
         lineform = LineForm(data=form_data)
         line = lineform.create()
         line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
         line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
+
+        line.frames = {
+            atom1.index: atom1.frame,
+            atom2.index: atom2.frame,
+        }
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
@@ -449,9 +451,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     continue
                 raise
 
-            # As soon as we find an atom not in frame, we can break from loop.
             filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
             for atom in filtered_atoms:
+                # As soon as we find an atom not in frame, we can break from loop.
                 atoms_found += 1
                 line_in_frame = line.frames[atom.index] == comp.current_frame
                 if not line_in_frame:
