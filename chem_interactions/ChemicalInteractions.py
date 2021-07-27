@@ -19,16 +19,38 @@ BASE_PATH = path.dirname(path.realpath(__file__))
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
+
 class LineManager(defaultdict):
     """Organize Interaction lines by atompairs"""
+    
+    def __init__(self):
+        default_val = list
+        super().__init__(default_val)
+
+    @staticmethod
+    def get_atompair_key(atom1_index, atom2_index):
+        atom_key = '-'.join(sorted([str(atom1_index), str(atom2_index)]))
+        return atom_key
 
     def all_lines(self):
+        """Return a flat list of all lines being stored."""
         all_lines = []
         for key, val in self.items():
             all_lines.extend(val)
         return all_lines
 
+    def add_lines(self, line_list):
+        for line in line_list:
+            self.add_line(line)
 
+    def add_line(self, line):
+        atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
+        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
+        self[atompair_key].append(line)
+
+    def get_lines_for_atompair(self, atom1, atom2):
+        key = self.get_atompair_key(atom1.index, atom2.index)
+        return self[key]
 
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
@@ -61,7 +83,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def line_manager(self):
         """Maintain a dict of all interaction lines stored in memory."""
         if not hasattr(self, '_line_manager'):
-            self._line_manager = LineManager(list)
+            self._line_manager = LineManager()
         return self._line_manager
 
     @line_manager.setter
@@ -313,7 +335,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             raise Exception(form.errors)
 
         contact_data_len = len(contacts_data)
-        new_lines = LineManager(list)
+        new_lines = LineManager()
         self.menu.set_update_text("Updating Workspace")
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
@@ -358,13 +380,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # Create new lines and save them in memory
             atompair_lines = await self.create_new_lines(atom1, atom2, interaction_types, form.data)
-            atompair_key = self.get_atompair_key(atom1, atom2)
-            new_lines[atompair_key] = atompair_lines
+            new_lines.add_lines(atompair_lines)
         return new_lines
-
-    def get_atompair_key(self, atom1, atom2):
-        atom_key = '-'.join(sorted([str(atom1.index), str(atom2.index)]))
-        return atom_key
 
     async def create_new_lines(self, atom1, atom2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
@@ -383,8 +400,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # See if we've already drawn this line
             line_exists = False
 
-            atompair_key = self.get_atompair_key(atom1, atom2)
-            for lin in self.line_manager[atompair_key]:
+            atompair_lines = self.line_manager.get_lines_for_atompair(atom1, atom2)
+            for lin in atompair_lines:
                 if all([
                     # Frame attribute is snuck onto the atom before passed into the function.
                     # This isn't great, we should find a better way to do it.
@@ -508,8 +525,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if self.line_in_frame(line, complexes):
                     lines_to_destroy.append(line)
                     line_list.remove(line)
-            if not self.line_manager[atompair_key]:
-                del self.line_manager[atompair_key]
 
         destroyed_line_count = len(lines_to_destroy)
         Shape.destroy_multiple(lines_to_destroy)
