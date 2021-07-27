@@ -30,7 +30,7 @@ class ChemInteractionsMenu():
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('CalculateButton').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
-        
+
         self.btn_clear_frame = self._menu.root.find_node('ClearFrameButton').get_content()
         self.btn_clear_frame.register_pressed_callback(self.clear_frame)
 

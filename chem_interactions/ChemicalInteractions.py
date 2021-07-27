@@ -2,7 +2,6 @@ import asyncio
 import requests
 import tempfile
 import time
-from collections import defaultdict
 from os import environ, path
 
 import nanome
@@ -70,10 +69,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def label_manager(self, value):
         self._label_manager = value
 
-
     @async_callback
     async def calculate_interactions(
-        self, selected_complex, ligand_complexes, line_settings, ligands=None, selected_atoms_only=False, distance_labels=False):
+            self, selected_complex, ligand_complexes, line_settings, ligands=None, selected_atoms_only=False, distance_labels=False):
         """Calculate interactions between complexes, and upload interaction lines to Nanome.
 
         selected_complex: Nanome Complex object
@@ -138,7 +136,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Shape.upload_multiple(all_new_lines)
 
         self.line_manager.update(new_line_manager)
-        
+
         if distance_labels:
             self.render_distance_labels(complexes)
 
