@@ -11,56 +11,15 @@ from nanome.api.shapes import Label, Shape
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs
 
-from forms import LineSettingsForm, LineForm
+from forms import LineSettingsForm
 from menus import ChemInteractionsMenu
+from models import InteractionLine, LineManager
 from utils import ComplexUtils
 
 BASE_PATH = path.dirname(path.realpath(__file__))
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
-
-class LineManager(defaultdict):
-    """Organize Interaction lines by atompairs"""
-    
-    def __init__(self):
-        default_val = list
-        super().__init__(default_val)
-
-    @staticmethod
-    def get_atompair_key(atom1_index, atom2_index):
-        atom_key = '-'.join(sorted([str(atom1_index), str(atom2_index)]))
-        return atom_key
-
-    def all_lines(self):
-        """Return a flat list of all lines being stored."""
-        all_lines = []
-        for key, val in self.items():
-            all_lines.extend(val)
-        return all_lines
-
-    def add_lines(self, line_list):
-        for line in line_list:
-            self.add_line(line)
-
-    def add_line(self, line):
-        atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
-        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
-        self[atompair_key].append(line)
-
-    def get_lines_for_atompair(self, atom1, atom2):
-        key = self.get_atompair_key(atom1.index, atom2.index)
-        return self[key]
-
-    def update_line(self, line):
-        """Replace line stored in manager with updated version passed as arg."""
-        atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
-        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
-        line_list = self[atompair_key]
-        for i, stored_line in enumerate(line_list):
-            if stored_line.index == line.index:
-                line_list[i] = line
-                break
 
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
@@ -433,28 +392,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         return new_lines
 
-    def draw_interaction_line(self, atom1, atom2, form_data):
+    def draw_interaction_line(self, atom1, atom2, line_settings):
         """Draw line connecting two atoms.
 
         :arg atom1: Atom
         :arg atom2: Atom
-        :arg form_data: Dict {'color': (r,g,b), 'visible': bool}
+        :arg line_settings: Dict describing shape and color of line based on interaction_type
         """
-        # Add atom information to form_data
-        lineform = LineForm(data=form_data)
-        line = lineform.create()
+        line = InteractionLine(atom1, atom2, **line_settings)
         line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
         line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
-
-        line.frames = {
-            atom1.index: atom1.frame,
-            atom2.index: atom2.frame,
-        }
-
-        line.atom_positions = {
-            atom1.index: atom1.position,
-            atom2.index: atom2.position
-        }
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
