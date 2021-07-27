@@ -52,6 +52,15 @@ class LineManager(defaultdict):
         key = self.get_atompair_key(atom1.index, atom2.index)
         return self[key]
 
+    def update_line(self, line):
+        """Replace line stored in manager with updated version passed as arg."""
+        atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
+        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
+        line_list = self[atompair_key]
+        for i, stored_line in enumerate(line_list):
+            if stored_line.index == line.index:
+                line_list[i] = line
+                break
 
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
@@ -477,6 +486,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             color = Color(*form_data['color'])
             color.a = 0 if hide_interaction else 255
             new_colors.extend(color.rgba)
+            line.color = color
+            self.line_manager.update_line(line)
 
         Logs.debug(f'in frame: {in_frame_count}')
         Logs.debug(f'out of frame: {out_of_frame_count}')
@@ -544,13 +555,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def render_distance_labels(self, complexes):
         new_labels = []
-        for line in self.line_manager:
-            if self.line_in_frame(line, complexes) and line.color.a > 0:
-                label = Label()
-                label.text = str(round(line.length, 2))
-                label.font_size = 0.08
-                label.anchors = line.anchors
-                new_labels.append(label)
+        for atompair_key, line_list in self.line_manager.items():
+            # If theres any visible lines between the two atoms in atompair, add a label.
+            for line in line_list:
+                if self.line_in_frame(line, complexes) and line.color.a > 0:
+                    label = Label()
+                    label.text = str(round(line.length, 2))
+                    label.font_size = 0.08
+                    label.anchors = line.anchors
+                    new_labels.append(label)
+                    break
         Shape.upload_multiple(new_labels)
 
     def clear_distance_labels(self):
