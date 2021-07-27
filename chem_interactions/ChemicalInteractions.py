@@ -59,7 +59,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self._line_manager = value
 
     @async_callback
-    async def calculate_interactions(self, selected_complex, ligand_complexes, line_settings, ligands=None, selected_atoms_only=False):
+    async def calculate_interactions(
+        self, selected_complex, ligand_complexes, line_settings, ligands=None, selected_atoms_only=False, distance_labels=False):
         """Calculate interactions between complexes, and upload interaction lines to Nanome.
 
         selected_complex: Nanome Complex object
@@ -67,6 +68,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         line_settings: Data accepted by LineSettingsForm.
         ligands: List: Biopython Residue object. Can be None
         selected_atoms_only: bool. show interactions only for selected atoms.
+        distance_labels: bool. States whether we want distance labels on or off
         """
         ligands = ligands or []
         ligand_complexes = ligand_complexes or []
@@ -81,7 +83,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if len(list(lig_comp.molecules)) == 0:
                 ligand_complexes[i] = (await self.request_complexes([lig_comp.index]))[0]
 
-        complexes = [selected_complex, *ligand_complexes]
+        complexes = [selected_complex, *[lig for lig in ligand_complexes if lig.index != selected_complex.index]]
 
         # If the ligands are not part of selected complex, merge into one complex.
         if any([lc.index != selected_complex.index for lc in ligand_complexes]):
@@ -124,6 +126,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Shape.upload_multiple(all_new_lines)
 
         self.line_manager.update(new_line_manager)
+        
+        if distance_labels:
+            self.render_distance_labels(complexes)
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.

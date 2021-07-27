@@ -293,10 +293,11 @@ class ChemInteractionsMenu():
 
         interaction_data = self.collect_interaction_data()
 
+        distance_labels = self.btn_distance_labels.selected
         try:
             await self.plugin.calculate_interactions(
                 selected_complex, residue_complexes, interaction_data,
-                ligands=residues, selected_atoms_only=selected_atoms_only)
+                ligands=residues, selected_atoms_only=selected_atoms_only, distance_labels=distance_labels)
         except Exception:
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
@@ -441,7 +442,7 @@ class ChemInteractionsMenu():
                 deep_complex = comp
             item.complex = deep_complex
 
-            # Find ligands nested inside of complex, and add buttons for them.
+            # Find ligands nested inside of complex, and add them to dropdown.
             temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
             deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
             ligands = extract_ligands(temp_file)
