@@ -7,8 +7,6 @@ from nanome.util import Color, Vector3
 class InteractionLine(Line):
     """A Line with additional properties needed for representing interactions."""
 
-    label = None
-
     def __init__(
         self, atom1, atom2, **kwargs):
         super().__init__()
