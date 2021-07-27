@@ -458,7 +458,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         if self.show_distance_labels:
             # Refresh label manager
-            Shape.destroy_multiple(self.label_manager.all_labels())
             self.label_manager.clear()
             self.render_distance_labels(complexes)
 
