@@ -9,7 +9,7 @@ import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
 from nanome.util.enums import NotificationTypes
-from nanome.util import async_callback, Color, Logs
+from nanome.util import async_callback, Color, Logs, Vector3
 
 from forms import LineSettingsForm
 from menus import ChemInteractionsMenu
@@ -510,6 +510,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     label.text = str(round(line.length, 2))
                     label.font_size = 0.08
                     label.anchors = line.anchors
+                    for anchor in label.anchors:
+                        anchor.viewer_offset = Vector3(0, 0, -.01)
                     new_labels.append(label)
                     break
         Shape.upload_multiple(new_labels)
