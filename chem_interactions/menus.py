@@ -8,7 +8,7 @@ from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
 from nanome.util.asyncio import async_callback
 from nanome.util.enums import NotificationTypes
-from forms import InteractionsForm, color_map, default_line_settings
+from forms import LineSettingsForm, color_map, default_line_settings
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -327,7 +327,7 @@ class ChemInteractionsMenu():
 
     def render_interaction_form(self):
         """Populate the interaction type form."""
-        form = InteractionsForm()
+        form = LineSettingsForm()
         interactions = []
         self.ls_interactions.display_rows = 7
         for name, field in form._fields.items():

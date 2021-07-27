@@ -9,7 +9,7 @@ BASE_PATH = path.dirname(path.realpath(__file__))
 
 
 class InteractionLine(Line):
-    """A Line with additional properties needed for tracking interactions."""
+    """A Line with additional properties needed for representing interactions."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -21,7 +21,7 @@ class InteractionLine(Line):
     def interaction_type(self):
         """The type of interaction this line is representing. See forms.InteractionsForm for valid values."""
         return self._interaction_type
-    
+
     @interaction_type.setter
     def interaction_type(self, value):
         self._interaction_type = value
@@ -136,7 +136,7 @@ default_line_settings = {
 }
 
 
-class InteractionsForm(Form):
+class LineSettingsForm(Form):
     """Set colors and visibility for supported Interaction types."""
     covalent = FormField(LineForm, label='Covalent', default=default_line_settings['covalent'])
     hbond = FormField(LineForm, label='Hydrogen Bond', default=default_line_settings['hbond'])

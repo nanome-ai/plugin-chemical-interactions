@@ -7,10 +7,10 @@ from os import environ, path
 import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
-from nanome.util.enums import NotificationTypes, ShapeAnchorType
+from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs
 
-from forms import InteractionsForm, LineForm
+from forms import LineSettingsForm, LineForm
 from menus import ChemInteractionsMenu
 from utils import ComplexUtils
 
@@ -25,7 +25,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.residue = ''
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self.menu = ChemInteractionsMenu(self)
-        self.interaction_lines = []
 
     @async_callback
     async def on_run(self):
@@ -49,9 +48,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @property
     def interaction_lines(self):
-        """Maintain a list of all interaction lines stored in memory."""
+        """Maintain a dict of all interaction lines stored in memory."""
         if not hasattr(self, '_interaction_lines'):
-            self._interaction_lines = []
+            self._interaction_lines = {}
         return self._interaction_lines
 
     @interaction_lines.setter
@@ -64,7 +63,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         selected_complex: Nanome Complex object
         ligand_complex: Complex object containing the ligand. Often is the same as comp.
-        interactions data: Data accepted by InteractionsForm.
+        interactions data: Data accepted by LineSettingsForm.
         ligands: List: Biopython Residue object. Can be None
         selected_atoms_only: bool. show interactions only for selected atoms.
         """
@@ -121,7 +120,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         msg = f'Adding {len(new_lines)} interactions'
         Logs.message(msg)
         Shape.upload_multiple(new_lines)
-        self.interaction_lines.extend(new_lines)
+        # self.interaction_lines.extend(new_lines)
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
@@ -190,7 +189,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         selected_complex: Nanome Complex object
         ligand_complexes: List of Complex objects containing ligands interacting with selected complex.
-        interactions data: Data accepted by InteractionsForm.
+        interactions data: Data accepted by LineSettingsForm.
         ligands: List, Biopython Residue object. Can be empty
         selected_atoms_only: bool. show interactions only for selected atoms.
 
@@ -287,25 +286,26 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_list.append(atom)
         return atom_list
 
-    async def parse_contacts_data(self, contacts_data, complexes, interaction_data, selected_atoms_only=False):
+    async def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
 
         contacts_data: Data returned by Chemical Interaction Service.
         complex: main complex selected.
         ligand_complexes: List. complex containing the ligand. May contain same complex as complex arg
-        interaction_data. InteractionsForms data describing color and visibility of interactions.
+        interaction_data. LineSettingsForms data describing color and visibility of interactions.
         """
-        form = InteractionsForm(data=interaction_data)
+        form = LineSettingsForm(data=line_settings)
         form.validate()
         if form.errors:
             raise Exception(form.errors)
 
         contact_data_len = len(contacts_data)
-        new_lines = []
+        new_lines = {}
         self.menu.set_update_text("Updating Workspace")
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
             self.menu.update_loading_bar(i, contact_data_len)
+
             # Atom paths that current row is describing interactions between
             a1_data = row['bgn']
             a2_data = row['end']
@@ -342,9 +342,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             atom1.frame = atom1_frame
             atom2.frame = atom2_frame
-            new_lines.extend(await self.create_new_lines(atom1, atom2, interaction_types, form.data))
+
+            # Create new lines and save them in memory
+            new_lines = await self.create_new_lines(atom1, atom2, interaction_types, form.data)
         return new_lines
-        
+
+    def get_atompair_key(self, atom1, atom2):
+        atom_key = '-'.join(sorted([str(atom1.index), str(atom2.index)]))
+        return atom_key
+
     async def create_new_lines(self, atom1, atom2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
 
@@ -361,6 +367,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # See if we've already drawn this line
             line_exists = False
+            
+            atompair_key = self.get_atompair_key(atom1, atom2)
             for lin in self.interaction_lines:
                 if all([
                     # Frame attribute is snuck onto the atom before passed into the function.
@@ -506,4 +514,4 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Shape.upload_multiple(new_labels)
 
     def clear_distance_labels(self):
-        pass
+        raise NotImplementedError()
