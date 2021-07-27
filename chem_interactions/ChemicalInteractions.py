@@ -52,6 +52,7 @@ class LineManager(defaultdict):
         key = self.get_atompair_key(atom1.index, atom2.index)
         return self[key]
 
+
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def start(self):
@@ -328,6 +329,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complex: main complex selected.
         ligand_complexes: List. complex containing the ligand. May contain same complex as complex arg
         interaction_data. LineSettingsForms data describing color and visibility of interactions.
+
+        :rtype: LineManager object containing new lines to be uploaded to Nanome workspace.
         """
         form = LineSettingsForm(data=line_settings)
         form.validate()
@@ -335,7 +338,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             raise Exception(form.errors)
 
         contact_data_len = len(contacts_data)
-        new_lines = LineManager()
+        new_line_manager = LineManager()
         self.menu.set_update_text("Updating Workspace")
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
@@ -375,13 +378,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if atom2.index in relevant_atoms:
                     atom2_frame = comp.current_frame
 
+            # Frame attribute required for create_new_lines to work.
             atom1.frame = atom1_frame
             atom2.frame = atom2_frame
 
             # Create new lines and save them in memory
             atompair_lines = await self.create_new_lines(atom1, atom2, interaction_types, form.data)
-            new_lines.add_lines(atompair_lines)
-        return new_lines
+            new_line_manager.add_lines(atompair_lines)
+        return new_line_manager
 
     async def create_new_lines(self, atom1, atom2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
