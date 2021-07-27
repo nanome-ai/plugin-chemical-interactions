@@ -16,7 +16,6 @@ from menus import ChemInteractionsMenu
 from models import InteractionLine, LineManager
 from utils import ComplexUtils
 
-BASE_PATH = path.dirname(path.realpath(__file__))
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
@@ -133,7 +132,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             """
             end_time = time.time()
             elapsed_time = end_time - start_time
-            Logs.message(f'Interactions Calculation completed in {elapsed_time} seconds')
+            Logs.message(f'Interactions Calculation completed in {round(elapsed_time, 2)} seconds')
 
         asyncio.create_task(log_elapsed_time(start_time))
 
@@ -501,6 +500,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.send_notification(notifcation_type, message)
 
     def render_distance_labels(self, complexes):
+        Logs.message('Rendering distance Labels')
         new_labels = []
         for atompair_key, line_list in self.line_manager.items():
             # If theres any visible lines between the two atoms in atompair, add a label.
@@ -519,4 +519,5 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.line_manager.labels.extend(new_labels)
 
     def clear_distance_labels(self):
+        Logs.message('Clearing distance labels')
         Shape.destroy_multiple(self.line_manager.labels)

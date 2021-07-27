@@ -5,9 +5,6 @@ from wtforms import BooleanField, Field, FloatField, Form, FormField
 from wtforms.fields.core import StringField
 
 
-BASE_PATH = path.dirname(path.realpath(__file__))
-
-
 color_map = {
     "red": (255, 0, 0),
     "orange": (255, 128, 0),

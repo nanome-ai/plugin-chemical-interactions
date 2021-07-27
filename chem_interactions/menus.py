@@ -495,8 +495,6 @@ class ChemInteractionsMenu():
     def toggle_distance_labels(self, btn):
         # self.plugin.render_distance_labels(self.complexes)
         if btn.selected:
-            Logs.debug('Rendering distance Labels')
             self.plugin.render_distance_labels(self.complexes)
         else:
-            Logs.debug('Clearing distance labels')
             self.plugin.clear_distance_labels()
