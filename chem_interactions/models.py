@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from nanome.api.shapes import Label, Line
+from nanome.api.shapes import Label, Line, Shape
 from nanome.util import Color, Vector3
 
 
@@ -142,5 +142,18 @@ class LabelManager(AtomPairManager, defaultdict):
         atompair_key = self.get_atompair_key(atom1_index, atom2_index)
         self[atompair_key] = label
     
-    def remove_label_for_key(self, atompair_key):
-        del self[atompair_key]
+    def remove_label_for_atompair(self, atom1_index, atom2_index):
+        key = self.get_atompair_key(atom1_index, atom2_index)
+        labels = []
+        if key in self:
+            if key in self:
+                labels.append(self[key])
+            del self[key]
+        Shape.destroy_multiple(labels)
+
+    def clear(self):
+        # Destroy all labels in workspace, and clear dict that's tracking them.
+        Shape.destroy_multiple(self.all_labels())
+        keys = list(self.keys())
+        for key in keys:
+            del self[key]
