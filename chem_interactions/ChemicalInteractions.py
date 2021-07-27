@@ -2,6 +2,7 @@ import asyncio
 import requests
 import tempfile
 import time
+from collections import defaultdict
 from os import environ, path
 
 import nanome
@@ -50,7 +51,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def interaction_lines(self):
         """Maintain a dict of all interaction lines stored in memory."""
         if not hasattr(self, '_interaction_lines'):
-            self._interaction_lines = {}
+            self._interaction_lines = defaultdict(list)
         return self._interaction_lines
 
     @interaction_lines.setter
@@ -117,10 +118,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complexes = [selected_complex, *ligand_complexes]
         new_lines = await self.parse_contacts_data(contacts_data, complexes, interaction_data, selected_atoms_only)
 
-        msg = f'Adding {len(new_lines)} interactions'
+
+        all_new_lines = []
+        for key, val in new_lines.items():
+            all_new_lines.extend(val)
+        msg = f'Adding {len(all_new_lines)} interactions'
         Logs.message(msg)
-        Shape.upload_multiple(new_lines)
-        # self.interaction_lines.extend(new_lines)
+        Shape.upload_multiple(all_new_lines)
+
+        self.interaction_lines.update(new_lines)
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
@@ -344,7 +350,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2.frame = atom2_frame
 
             # Create new lines and save them in memory
-            new_lines = await self.create_new_lines(atom1, atom2, interaction_types, form.data)
+            atompair_lines = await self.create_new_lines(atom1, atom2, interaction_types, form.data)
+            atompair_key = self.get_atompair_key(atom1, atom2)
+            new_lines[atompair_key] = atompair_lines
         return new_lines
 
     def get_atompair_key(self, atom1, atom2):
@@ -367,9 +375,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # See if we've already drawn this line
             line_exists = False
-            
+
             atompair_key = self.get_atompair_key(atom1, atom2)
-            for lin in self.interaction_lines:
+            for lin in self.interaction_lines[atompair_key]:
                 if all([
                     # Frame attribute is snuck onto the atom before passed into the function.
                     # This isn't great, we should find a better way to do it.
@@ -415,7 +423,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def update_interaction_lines(self, interactions_data, complexes=None):
         complexes = complexes or []
         stream_type = nanome.api.streams.Stream.Type.shape_color.value
-        line_indices = [line.index for line in self.interaction_lines]
+
+        all_lines = []
+        for key, val in self.interaction_lines.items():
+            all_lines.extend(val)
+
+        line_indices = [line.index for line in all_lines]
         stream, _ = await self.create_writing_stream(line_indices, stream_type)
         if not stream:
             return
@@ -424,7 +437,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         in_frame_count = 0
         out_of_frame_count = 0
 
-        for line in self.interaction_lines:
+        for line in all_lines:
             # Make sure that both atoms connected by line are in frame.
             line_in_frame = self.line_in_frame(line, complexes)
             if line_in_frame:
@@ -482,13 +495,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def clear_visible_lines(self, complexes):
         """Clear all interaction lines that are currently visible."""
-        line_count = len(self.interaction_lines)
+        all_lines = []
         lines_to_destroy = []
-        for i in range(line_count - 1, -1, -1):
-            line = self.interaction_lines[i]
-            if self.line_in_frame(line, complexes):
-                lines_to_destroy.append(line)
-                self.interaction_lines.remove(line)
+        for atompair_key, line_list in self.interaction_lines.items():
+            line_count = len(line_list)
+            for i in range(line_count - 1, -1, -1):
+                line = line_list[i]
+                if self.line_in_frame(line, complexes):
+                    lines_to_destroy.append(line)
+                    line_list.remove(line)
 
         destroyed_line_count = len(lines_to_destroy)
         Shape.destroy_multiple(lines_to_destroy)
