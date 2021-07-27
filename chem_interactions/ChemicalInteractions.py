@@ -514,7 +514,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         anchor.viewer_offset = Vector3(0, 0, -.01)
                     new_labels.append(label)
                     break
+
         Shape.upload_multiple(new_labels)
+        self.line_manager.labels.extend(new_labels)
 
     def clear_distance_labels(self):
-        raise NotImplementedError()
+        Shape.destroy_multiple(self.line_manager.labels)

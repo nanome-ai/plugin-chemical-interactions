@@ -6,7 +6,7 @@ import nanome
 from utils import extract_ligands
 from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
-from nanome.util.asyncio import async_callback
+from nanome.util import async_callback, Logs
 from nanome.util.enums import NotificationTypes
 from forms import LineSettingsForm, color_map, default_line_settings
 
@@ -35,6 +35,7 @@ class ChemInteractionsMenu():
         self.btn_clear_frame.register_pressed_callback(self.clear_frame)
 
         self.btn_distance_labels = self._menu.root.find_node('Show Distances').get_content()
+        self.btn_distance_labels.toggle_on_press = True
         self.btn_distance_labels.register_pressed_callback(self.toggle_distance_labels)
 
         self.btn_show_all_interactions = self._menu.root.find_node('Show All').get_content()
@@ -492,8 +493,10 @@ class ChemInteractionsMenu():
         self.plugin.update_menu(self._menu)
 
     def toggle_distance_labels(self, btn):
-        self.plugin.render_distance_labels(self.complexes)
-        # if btn.selected:
-        #     self.plugin.render_distance_labels()
-        # else:
-        #     self.clear_distance_labels()
+        # self.plugin.render_distance_labels(self.complexes)
+        if btn.selected:
+            Logs.debug('Rendering distance Labels')
+            self.plugin.render_distance_labels(self.complexes)
+        else:
+            Logs.debug('Clearing distance labels')
+            self.plugin.clear_distance_labels()

@@ -78,6 +78,7 @@ class LineManager(defaultdict):
     
     def __init__(self):
         default_val = list
+        self.labels = []
         super().__init__(default_val)
 
     @staticmethod
