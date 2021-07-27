@@ -13,7 +13,7 @@ from nanome.util import async_callback, Color, Logs, Vector3
 
 from forms import LineSettingsForm
 from menus import ChemInteractionsMenu
-from models import InteractionLine, LineManager
+from models import InteractionLine, LineManager, LabelManager
 from utils import ComplexUtils
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -57,6 +57,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @line_manager.setter
     def line_manager(self, value):
         self._line_manager = value
+
+    @property
+    def label_manager(self):
+        """Maintain a dict of all labels stored in memory."""
+        if not hasattr(self, '_label_manager'):
+            self._label_manager = LabelManager()
+        return self._label_manager
+
+    @label_manager.setter
+    def label_manager(self, value):
+        self._label_manager = value
+
 
     @async_callback
     async def calculate_interactions(
@@ -117,7 +129,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
         contacts_data = response.json()
-        complexes = [selected_complex, *ligand_complexes]
         new_line_manager = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
 
         all_new_lines = new_line_manager.all_lines()
@@ -505,7 +516,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.send_notification(notifcation_type, message)
 
     def render_distance_labels(self, complexes):
-        Logs.message('Rendering distance Labels')
+        Logs.message('Distance Labels enabled')
         new_labels = []
         for atompair_key, line_list in self.line_manager.items():
             # If theres any visible lines between the two atoms in atompair, add a label.
@@ -517,11 +528,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     label.anchors = line.anchors
                     for anchor in label.anchors:
                         anchor.viewer_offset = Vector3(0, 0, -.01)
-                    new_labels.append(label)
+                    self.label_manager.add_label(label)
                     break
-
-        Shape.upload_multiple(new_labels)
-        self.line_manager.labels.extend(new_labels)
+        Shape.upload_multiple(self.label_manager.all_labels())
 
     def clear_distance_labels(self):
         Logs.message('Clearing distance labels')

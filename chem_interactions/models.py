@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from nanome.api.shapes import Line
+from nanome.api.shapes import Label, Line
 from nanome.util import Color, Vector3
 
 
@@ -73,18 +73,21 @@ class InteractionLine(Line):
         return distance
 
 
-class LineManager(defaultdict):
+class AtomPairManager:
+
+    @staticmethod
+    def get_atompair_key(atom1_index, atom2_index):
+        atom_key = '-'.join(sorted([str(atom1_index), str(atom2_index)]))
+        return atom_key
+
+
+class LineManager(AtomPairManager, defaultdict):
     """Organizes Interaction lines by atom pairs."""
     
     def __init__(self):
         default_val = list
         self.labels = []
         super().__init__(default_val)
-
-    @staticmethod
-    def get_atompair_key(atom1_index, atom2_index):
-        atom_key = '-'.join(sorted([str(atom1_index), str(atom2_index)]))
-        return atom_key
 
     def all_lines(self):
         """Return a flat list of all lines being stored."""
@@ -117,3 +120,26 @@ class LineManager(defaultdict):
             if stored_line.index == line.index:
                 line_list[i] = line
                 break
+
+class LabelManager(AtomPairManager, defaultdict):
+    def all_labels(self):
+        """Return a flat list of all lines being stored."""
+        all_lines = []
+        for key, val in self.items():
+            all_lines.append(val)
+        return all_lines
+
+    def add_label(self, label):
+        if not isinstance(label, Label):
+            raise TypeError(f'add_label() expected Label, received {type(label)}')
+        atom1_index, atom2_index = [anchor.target for anchor in label.anchors]
+        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
+        self[atompair_key] = label
+    
+    def remove_label(self, label):
+        atom1_index, atom2_index = [anchor.target for anchor in label.anchors]
+        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
+        del self[atompair_key]
+
+
+    pass
