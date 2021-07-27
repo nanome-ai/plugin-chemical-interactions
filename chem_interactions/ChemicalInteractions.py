@@ -25,6 +25,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def start(self):
         self.residue = ''
         self.interactions_url = environ.get('INTERACTIONS_URL')
+        self.show_distance_labels = False
         self.menu = ChemInteractionsMenu(self)
 
     @async_callback
@@ -446,7 +447,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             form_data = interactions_data[line_type]
             hide_interaction = not form_data['visible'] or not line_in_frame
             color = Color(*form_data['color'])
-            color.a = 0 if hide_interaction else 255
+
+            if hide_interaction:
+                color.a = 0
+                atom_indices = [anchor.target for anchor in line.anchors]
+                self.label_manager.remove_label_for_key(self.label_manager.get_atompair_key(*atom_indices))
+            else:
+                color.a = 255
             new_colors.extend(color.rgba)
             line.color = color
             self.line_manager.update_line(line)
@@ -455,6 +462,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.debug(f'out of frame: {out_of_frame_count}')
         if stream:
             stream.update(new_colors)
+
+        if any(self.label_manager.all_labels()):
+            self.render_distance_labels(complexes)
 
     def line_in_frame(self, line, complexes):
         """Return boolean stating whether both atoms connected by line are in frame.
@@ -502,6 +512,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if self.line_in_frame(line, complexes):
                     lines_to_destroy.append(line)
                     line_list.remove(line)
+                    self.label_manager.remove_label_for_key(atompair_key)
 
         destroyed_line_count = len(lines_to_destroy)
         Shape.destroy_multiple(lines_to_destroy)
@@ -517,6 +528,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def render_distance_labels(self, complexes):
         Logs.message('Distance Labels enabled')
+        self.show_distance_labels = True
         new_labels = []
         for atompair_key, line_list in self.line_manager.items():
             # If theres any visible lines between the two atoms in atompair, add a label.
@@ -534,4 +546,4 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def clear_distance_labels(self):
         Logs.message('Clearing distance labels')
-        Shape.destroy_multiple(self.line_manager.labels)
+        Shape.destroy_multiple(self.label_manager.all_labels())

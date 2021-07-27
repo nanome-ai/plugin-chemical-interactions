@@ -7,6 +7,8 @@ from nanome.util import Color, Vector3
 class InteractionLine(Line):
     """A Line with additional properties needed for representing interactions."""
 
+    label = None
+
     def __init__(
         self, atom1, atom2, **kwargs):
         super().__init__()
@@ -86,7 +88,6 @@ class LineManager(AtomPairManager, defaultdict):
     
     def __init__(self):
         default_val = list
-        self.labels = []
         super().__init__(default_val)
 
     def all_lines(self):
@@ -122,6 +123,11 @@ class LineManager(AtomPairManager, defaultdict):
                 break
 
 class LabelManager(AtomPairManager, defaultdict):
+    
+    def __init__(self):
+        default_val = None
+        super().__init__(default_val)
+
     def all_labels(self):
         """Return a flat list of all lines being stored."""
         all_lines = []
@@ -136,10 +142,5 @@ class LabelManager(AtomPairManager, defaultdict):
         atompair_key = self.get_atompair_key(atom1_index, atom2_index)
         self[atompair_key] = label
     
-    def remove_label(self, label):
-        atom1_index, atom2_index = [anchor.target for anchor in label.anchors]
-        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
+    def remove_label_for_key(self, atompair_key):
         del self[atompair_key]
-
-
-    pass
