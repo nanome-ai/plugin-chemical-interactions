@@ -60,12 +60,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self._line_manager = value
 
     @async_callback
-    async def calculate_interactions(self, selected_complex, ligand_complexes, interaction_data, ligands=None, selected_atoms_only=False):
+    async def calculate_interactions(self, selected_complex, ligand_complexes, line_settings, ligands=None, selected_atoms_only=False):
         """Calculate interactions between complexes, and upload interaction lines to Nanome.
 
         selected_complex: Nanome Complex object
         ligand_complex: Complex object containing the ligand. Often is the same as comp.
-        interactions data: Data accepted by LineSettingsForm.
+        line_settings: Data accepted by LineSettingsForm.
         ligands: List: Biopython Residue object. Can be None
         selected_atoms_only: bool. show interactions only for selected atoms.
         """
@@ -117,7 +117,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.debug(msg)
         contacts_data = response.json()
         complexes = [selected_complex, *ligand_complexes]
-        new_line_manager = await self.parse_contacts_data(contacts_data, complexes, interaction_data, selected_atoms_only)
+        new_line_manager = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
 
         all_new_lines = new_line_manager.all_lines()
         msg = f'Adding {len(all_new_lines)} interactions'
@@ -296,7 +296,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         contacts_data: Data returned by Chemical Interaction Service.
         complex: main complex selected.
         ligand_complexes: List. complex containing the ligand. May contain same complex as complex arg
-        interaction_data. LineSettingsForms data describing color and visibility of interactions.
+        interaction_data. LineSettingsForm data describing color and visibility of interactions.
 
         :rtype: LineManager object containing new lines to be uploaded to Nanome workspace.
         """
