@@ -37,7 +37,7 @@ class ChemInteractionsMenu():
         self.btn_distance_labels = self._menu.root.find_node('Show Distances').get_content()
         self.btn_distance_labels.toggle_on_press = True
         self.btn_distance_labels.switch.active = True
-        
+
         self.btn_distance_labels.register_pressed_callback(self.toggle_distance_labels)
 
         self.btn_show_all_interactions = self._menu.root.find_node('Show All').get_content()

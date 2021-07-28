@@ -8,8 +8,7 @@ from nanome.util import Vector3
 class InteractionLine(Line):
     """A Line with additional properties needed for representing interactions."""
 
-    def __init__(
-            self, atom1, atom2, **kwargs):
+    def __init__(self, atom1, atom2, **kwargs):
         super().__init__()
 
         for kwarg, value in kwargs.items():
@@ -81,6 +80,14 @@ class AtomPairManager:
         atom_key = '-'.join(sorted([str(atom1_index), str(atom2_index)]))
         return atom_key
 
+    def get_atom_pairs(self):
+        """Return a list of atom_pairs being tracked by manager."""
+        atom_pairs = []
+        for atompair_key in self._data:
+            atom1_index, atom2_index = atompair_key.split('-')
+            atom_pairs.append((atom1_index, atom2_index))
+        return atom_pairs
+
 
 class LineManager(AtomPairManager):
     """Organizes Interaction lines by atom pairs."""
@@ -109,7 +116,7 @@ class LineManager(AtomPairManager):
 
     def get_lines_for_atompair(self, atom1, atom2):
         """Given two atoms, return all interaction lines connecting them.
-        
+
         Accepts either Atom objects or index values
         """
         atom1_index = atom1.index if isinstance(atom1, Atom) else atom1
@@ -131,26 +138,18 @@ class LineManager(AtomPairManager):
         """"Merge another LineManager into self."""
         self._data.update(line_manager._data)
 
-    def get_atom_pairs(self):
-        """Return a list of atom_pairs that may contain interaction lines."""
-        atom_pairs = []
-        for atompair_key in self._data:
-            atom1_index, atom2_index = atompair_key.split('-')
-            atom_pairs.append((atom1_index, atom2_index))
-        return atom_pairs
 
-
-class LabelManager(AtomPairManager, defaultdict):
+class LabelManager(AtomPairManager):
 
     def __init__(self):
-        default_val = None
-        super().__init__(default_val)
+        super().__init__()
+        self._data = defaultdict(None)
 
     def all_labels(self):
         """Return a flat list of all lines being stored."""
         all_lines = []
-        for key, val in self.items():
-            all_lines.append(val)
+        for atompair_key, label in sorted(self._data.items(), key=lambda keyval: keyval[0]):
+            all_lines.append(self._data[atompair_key])
         return all_lines
 
     def add_label(self, label):
@@ -158,7 +157,7 @@ class LabelManager(AtomPairManager, defaultdict):
             raise TypeError(f'add_label() expected Label, received {type(label)}')
         atom1_index, atom2_index = [anchor.target for anchor in label.anchors]
         atompair_key = self.get_atompair_key(atom1_index, atom2_index)
-        self[atompair_key] = label
+        self._data[atompair_key] = label
 
     def remove_label_for_atompair(self, atom1_index, atom2_index):
         """Remove all lines from data structure.
@@ -168,14 +167,14 @@ class LabelManager(AtomPairManager, defaultdict):
         """
         key = self.get_atompair_key(atom1_index, atom2_index)
         label = None
-        if key in self:
-            label = self[key]
-            del self[key]
+        if key in self._data:
+            label = self._data[key]
+            del self._data[key]
         return label
 
     def clear(self):
         # Destroy all labels in workspace, and clear dict that's tracking them.
         Shape.destroy_multiple(self.all_labels())
-        keys = list(self.keys())
+        keys = list(self._data.keys())
         for key in keys:
-            del self[key]
+            del self._data[key]
