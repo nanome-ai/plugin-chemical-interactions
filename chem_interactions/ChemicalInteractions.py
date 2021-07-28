@@ -2,7 +2,7 @@ import asyncio
 import requests
 import tempfile
 import time
-from os import environ, path
+from os import environ
 
 import nanome
 from nanome.api.structure import Complex
@@ -498,7 +498,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def clear_visible_lines(self, complexes):
         """Clear all interaction lines that are currently visible."""
-        all_lines = []
         lines_to_destroy = []
         for atompair_key, line_list in self.line_manager.items():
             line_count = len(line_list)

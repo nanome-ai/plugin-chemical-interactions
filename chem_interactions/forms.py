@@ -1,6 +1,5 @@
-from os import path
 from models import InteractionLine
-from nanome.util import Color, Vector3
+from nanome.util import Color
 from wtforms import BooleanField, Field, FloatField, Form, FormField
 from wtforms.fields.core import StringField
 
