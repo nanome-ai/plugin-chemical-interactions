@@ -1,10 +1,8 @@
-from os import path
-from nanome.api.shapes import Line
+from models import InteractionLine
 from nanome.util import Color
 from wtforms import BooleanField, Field, FloatField, Form, FormField
+from wtforms.fields.core import StringField
 
-
-BASE_PATH = path.dirname(path.realpath(__file__))
 
 color_map = {
     "red": (255, 0, 0),
@@ -46,9 +44,10 @@ class LineForm(Form):
     thickness = FloatField(default=0.1)
     dash_length = FloatField(default=0.25)
     dash_distance = FloatField(default=0.25)
+    interaction_type = StringField()
 
     def create(self):
-        line = Line()
+        line = InteractionLine()
         for attr, value in self.data.items():
             if hasattr(line, attr):
                 setattr(line, attr, value)
@@ -84,7 +83,7 @@ default_line_settings = {
 }
 
 
-class InteractionsForm(Form):
+class LineSettingsForm(Form):
     """Set colors and visibility for supported Interaction types."""
     covalent = FormField(LineForm, label='Covalent', default=default_line_settings['covalent'])
     hbond = FormField(LineForm, label='Hydrogen Bond', default=default_line_settings['hbond'])

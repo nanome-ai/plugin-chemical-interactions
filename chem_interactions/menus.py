@@ -6,9 +6,9 @@ import nanome
 from utils import extract_ligands
 from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
-from nanome.util.asyncio import async_callback
+from nanome.util import async_callback, Logs
 from nanome.util.enums import NotificationTypes
-from forms import InteractionsForm, color_map, default_line_settings
+from forms import LineSettingsForm, color_map, default_line_settings
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -29,8 +29,16 @@ class ChemInteractionsMenu():
 
         self.ls_interactions = self._menu.root.find_node('Interaction Settings List').get_content()
         self.btn_calculate = self._menu.root.find_node('CalculateButton').get_content()
-        self.btn_clear_frame = self._menu.root.find_node('ClearFrameButton').get_content()
         self.btn_calculate.register_pressed_callback(self.submit_form)
+
+        self.btn_clear_frame = self._menu.root.find_node('ClearFrameButton').get_content()
+        self.btn_clear_frame.register_pressed_callback(self.clear_frame)
+
+        self.btn_distance_labels = self._menu.root.find_node('Show Distances').get_content()
+        self.btn_distance_labels.toggle_on_press = True
+        self.btn_distance_labels.switch.active = True
+
+        self.btn_distance_labels.register_pressed_callback(self.toggle_distance_labels)
 
         self.btn_show_all_interactions = self._menu.root.find_node('Show All').get_content()
         self.btn_show_all_interactions.register_pressed_callback(self.toggle_atom_selection)
@@ -41,7 +49,6 @@ class ChemInteractionsMenu():
 
         self.btn_toggle_interactions = self._menu.root.find_node('Toggle Display').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
-        self.btn_clear_frame.register_pressed_callback(self.clear_frame)
 
     @async_callback
     async def render(self, complexes=None, default_values=False):
@@ -288,10 +295,11 @@ class ChemInteractionsMenu():
 
         interaction_data = self.collect_interaction_data()
 
+        distance_labels = self.btn_distance_labels.selected
         try:
             await self.plugin.calculate_interactions(
                 selected_complex, residue_complexes, interaction_data,
-                ligands=residues, selected_atoms_only=selected_atoms_only)
+                ligands=residues, selected_atoms_only=selected_atoms_only, distance_labels=distance_labels)
         except Exception:
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
@@ -323,7 +331,7 @@ class ChemInteractionsMenu():
 
     def render_interaction_form(self):
         """Populate the interaction type form."""
-        form = InteractionsForm()
+        form = LineSettingsForm()
         interactions = []
         self.ls_interactions.display_rows = 7
         for name, field in form._fields.items():
@@ -436,7 +444,7 @@ class ChemInteractionsMenu():
                 deep_complex = comp
             item.complex = deep_complex
 
-            # Find ligands nested inside of complex, and add buttons for them.
+            # Find ligands nested inside of complex, and add them to dropdown.
             temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
             deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
             ligands = extract_ligands(temp_file)
@@ -486,3 +494,10 @@ class ChemInteractionsMenu():
             self.toggle_complex(self.dd_complexes, item)
         self.toggle_ln_ligands_visibility(enable_ligands_node)
         self.plugin.update_menu(self._menu)
+
+    def toggle_distance_labels(self, btn):
+        # self.plugin.render_distance_labels(self.complexes)
+        if btn.selected:
+            self.plugin.render_distance_labels(self.complexes)
+        else:
+            self.plugin.clear_distance_labels()

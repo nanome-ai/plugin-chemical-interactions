@@ -2,19 +2,19 @@ import asyncio
 import requests
 import tempfile
 import time
-from os import environ, path
+from os import environ
 
 import nanome
 from nanome.api.structure import Complex
-from nanome.api.shapes import Shape
+from nanome.api.shapes import Label, Shape
 from nanome.util.enums import NotificationTypes
-from nanome.util import async_callback, Color, Logs
+from nanome.util import async_callback, Color, Logs, Vector3
 
-from forms import InteractionsForm, LineForm
+from forms import LineSettingsForm
 from menus import ChemInteractionsMenu
+from models import InteractionLine, LineManager, LabelManager
 from utils import ComplexUtils
 
-BASE_PATH = path.dirname(path.realpath(__file__))
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
@@ -25,7 +25,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.residue = ''
         self.interactions_url = environ.get('INTERACTIONS_URL')
         self.menu = ChemInteractionsMenu(self)
-        self.interaction_lines = []
+        self.show_distance_labels = False
 
     @async_callback
     async def on_run(self):
@@ -48,25 +48,39 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         await self.menu.render(complexes=complexes)
 
     @property
-    def interaction_lines(self):
-        """Maintain a list of all interaction lines stored in memory."""
-        if not hasattr(self, '_interaction_lines'):
-            self._interaction_lines = []
-        return self._interaction_lines
+    def line_manager(self):
+        """Maintain a dict of all interaction lines stored in memory."""
+        if not hasattr(self, '_line_manager'):
+            self._line_manager = LineManager()
+        return self._line_manager
 
-    @interaction_lines.setter
-    def interaction_lines(self, value):
-        self._interaction_lines = value
+    @line_manager.setter
+    def line_manager(self, value):
+        self._line_manager = value
+
+    @property
+    def label_manager(self):
+        """Maintain a dict of all labels stored in memory."""
+        if not hasattr(self, '_label_manager'):
+            self._label_manager = LabelManager()
+        return self._label_manager
+
+    @label_manager.setter
+    def label_manager(self, value):
+        self._label_manager = value
 
     @async_callback
-    async def calculate_interactions(self, selected_complex, ligand_complexes, interaction_data, ligands=None, selected_atoms_only=False):
+    async def calculate_interactions(
+            self, selected_complex, ligand_complexes, line_settings, ligands=None,
+            selected_atoms_only=False, distance_labels=False):
         """Calculate interactions between complexes, and upload interaction lines to Nanome.
 
         selected_complex: Nanome Complex object
         ligand_complex: Complex object containing the ligand. Often is the same as comp.
-        interactions data: Data accepted by InteractionsForm.
+        line_settings: Data accepted by LineSettingsForm.
         ligands: List: Biopython Residue object. Can be None
         selected_atoms_only: bool. show interactions only for selected atoms.
+        distance_labels: bool. States whether we want distance labels on or off
         """
         ligands = ligands or []
         ligand_complexes = ligand_complexes or []
@@ -81,7 +95,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if len(list(lig_comp.molecules)) == 0:
                 ligand_complexes[i] = (await self.request_complexes([lig_comp.index]))[0]
 
-        complexes = [selected_complex, *ligand_complexes]
+        complexes = [selected_complex, *[lig for lig in ligand_complexes if lig.index != selected_complex.index]]
 
         # If the ligands are not part of selected complex, merge into one complex.
         if any([lc.index != selected_complex.index for lc in ligand_complexes]):
@@ -115,13 +129,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
         contacts_data = response.json()
-        complexes = [selected_complex, *ligand_complexes]
-        new_lines = await self.parse_contacts_data(contacts_data, complexes, interaction_data, selected_atoms_only)
+        new_line_manager = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
 
-        msg = f'Adding {len(new_lines)} interactions'
+        all_new_lines = new_line_manager.all_lines()
+        msg = f'Adding {len(all_new_lines)} interactions'
         Logs.message(msg)
-        Shape.upload_multiple(new_lines)
-        self.interaction_lines.extend(new_lines)
+        Shape.upload_multiple(all_new_lines)
+
+        self.line_manager.update(new_line_manager)
+
+        if distance_labels:
+            self.render_distance_labels(complexes)
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
@@ -130,11 +148,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             """
             end_time = time.time()
             elapsed_time = end_time - start_time
-            Logs.message(f'Interactions Calculation completed in {elapsed_time} seconds')
+            Logs.message(f'Interactions Calculation completed in {round(elapsed_time, 2)} seconds')
 
         asyncio.create_task(log_elapsed_time(start_time))
 
-        notification_txt = f"Finished Calculating Interactions!\n{len(new_lines)} lines added"
+        notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
         asyncio.create_task(self.send_async_notification(notification_txt))
 
     def clean_complex(self, complex):
@@ -190,7 +208,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         selected_complex: Nanome Complex object
         ligand_complexes: List of Complex objects containing ligands interacting with selected complex.
-        interactions data: Data accepted by InteractionsForm.
+        interactions data: Data accepted by LineSettingsForm.
         ligands: List, Biopython Residue object. Can be empty
         selected_atoms_only: bool. show interactions only for selected atoms.
 
@@ -287,25 +305,28 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_list.append(atom)
         return atom_list
 
-    async def parse_contacts_data(self, contacts_data, complexes, interaction_data, selected_atoms_only=False):
+    async def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
 
         contacts_data: Data returned by Chemical Interaction Service.
         complex: main complex selected.
         ligand_complexes: List. complex containing the ligand. May contain same complex as complex arg
-        interaction_data. InteractionsForms data describing color and visibility of interactions.
+        interaction_data. LineSettingsForm data describing color and visibility of interactions.
+
+        :rtype: LineManager object containing new lines to be uploaded to Nanome workspace.
         """
-        form = InteractionsForm(data=interaction_data)
+        form = LineSettingsForm(data=line_settings)
         form.validate()
         if form.errors:
             raise Exception(form.errors)
 
         contact_data_len = len(contacts_data)
-        new_lines = []
+        new_line_manager = LineManager()
         self.menu.set_update_text("Updating Workspace")
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
             self.menu.update_loading_bar(i, contact_data_len)
+
             # Atom paths that current row is describing interactions between
             a1_data = row['bgn']
             a2_data = row['end']
@@ -340,11 +361,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if atom2.index in relevant_atoms:
                     atom2_frame = comp.current_frame
 
+            # Frame attribute required for create_new_lines to work.
             atom1.frame = atom1_frame
             atom2.frame = atom2_frame
-            new_lines.extend(await self.create_new_lines(atom1, atom2, interaction_types, form.data))
-        return new_lines
-        
+
+            # Create new lines and save them in memory
+            atompair_lines = await self.create_new_lines(atom1, atom2, interaction_types, form.data)
+            new_line_manager.add_lines(atompair_lines)
+        return new_line_manager
+
     async def create_new_lines(self, atom1, atom2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
 
@@ -361,7 +386,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # See if we've already drawn this line
             line_exists = False
-            for lin in self.interaction_lines:
+
+            atompair_lines = self.line_manager.get_lines_for_atompair(atom1, atom2)
+            for lin in atompair_lines:
                 if all([
                     # Frame attribute is snuck onto the atom before passed into the function.
                     # This isn't great, we should find a better way to do it.
@@ -373,26 +400,21 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if line_exists:
                 continue
 
+            form_data['interaction_type'] = interaction_type
             # Draw line and add data about interaction type and frames.
             line = self.draw_interaction_line(atom1, atom2, form_data)
-            line.interaction_type = interaction_type
-            line.frames = {
-                atom1.index: atom1.frame,
-                atom2.index: atom2.frame,
-            }
             new_lines.append(line)
 
         return new_lines
 
-    def draw_interaction_line(self, atom1, atom2, form_data):
+    def draw_interaction_line(self, atom1, atom2, line_settings):
         """Draw line connecting two atoms.
 
         :arg atom1: Atom
         :arg atom2: Atom
-        :arg form_data: Dict {'color': (r,g,b), 'visible': bool}
+        :arg line_settings: Dict describing shape and color of line based on interaction_type
         """
-        lineform = LineForm(data=form_data)
-        line = lineform.create()
+        line = InteractionLine(atom1, atom2, **line_settings)
         line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
         line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
         return line
@@ -400,7 +422,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def update_interaction_lines(self, interactions_data, complexes=None):
         complexes = complexes or []
         stream_type = nanome.api.streams.Stream.Type.shape_color.value
-        line_indices = [line.index for line in self.interaction_lines]
+
+        all_lines = self.line_manager.all_lines()
+        line_indices = [line.index for line in all_lines]
         stream, _ = await self.create_writing_stream(line_indices, stream_type)
         if not stream:
             return
@@ -409,7 +433,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         in_frame_count = 0
         out_of_frame_count = 0
 
-        for line in self.interaction_lines:
+        for line in all_lines:
             # Make sure that both atoms connected by line are in frame.
             line_in_frame = self.line_in_frame(line, complexes)
             if line_in_frame:
@@ -422,13 +446,21 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             form_data = interactions_data[line_type]
             hide_interaction = not form_data['visible'] or not line_in_frame
             color = Color(*form_data['color'])
+
             color.a = 0 if hide_interaction else 255
-            new_colors.extend([color.r, color.g, color.b, color.a])
+            new_colors.extend(color.rgba)
+            line.color = color
+            self.line_manager.update_line(line)
 
         Logs.debug(f'in frame: {in_frame_count}')
         Logs.debug(f'out of frame: {out_of_frame_count}')
         if stream:
             stream.update(new_colors)
+
+        if self.show_distance_labels:
+            # Refresh label manager
+            self.label_manager.clear()
+            self.render_distance_labels(complexes)
 
     def line_in_frame(self, line, complexes):
         """Return boolean stating whether both atoms connected by line are in frame.
@@ -449,9 +481,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     continue
                 raise
 
-            # As soon as we find an atom not in frame, we can break from loop.
             filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
             for atom in filtered_atoms:
+                # As soon as we find an atom not in frame, we can break from loop.
                 atoms_found += 1
                 line_in_frame = line.frames[atom.index] == comp.current_frame
                 if not line_in_frame:
@@ -467,16 +499,23 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def clear_visible_lines(self, complexes):
         """Clear all interaction lines that are currently visible."""
-        line_count = len(self.interaction_lines)
         lines_to_destroy = []
-        for i in range(line_count - 1, -1, -1):
-            line = self.interaction_lines[i]
-            if self.line_in_frame(line, complexes):
-                lines_to_destroy.append(line)
-                self.interaction_lines.remove(line)
-
+        labels_to_destroy = []
+        for atom1_index, atom2_index in self.line_manager.get_atom_pairs():
+            line_list = self.line_manager.get_lines_for_atompair(atom1_index, atom2_index)
+            line_count = len(line_list)
+            for i in range(line_count - 1, -1, -1):
+                line = line_list[i]
+                if self.line_in_frame(line, complexes):
+                    lines_to_destroy.append(line)
+                    line_list.remove(line)
+                    # Remove any labels that have been created corresponding to this atompair
+                    atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
+                    label = self.label_manager.remove_label_for_atompair(atom1_index, atom2_index)
+                    if label:
+                        labels_to_destroy.append(label)
         destroyed_line_count = len(lines_to_destroy)
-        Shape.destroy_multiple(lines_to_destroy)
+        Shape.destroy_multiple([*lines_to_destroy, *labels_to_destroy])
 
         message = f'Deleted {destroyed_line_count} interactions'
         Logs.message(message)
@@ -486,3 +525,26 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Send notification asynchronously."""
         notifcation_type = nanome.util.enums.NotificationTypes.message
         self.send_notification(notifcation_type, message)
+
+    def render_distance_labels(self, complexes):
+        Logs.message('Distance Labels enabled')
+        self.show_distance_labels = True
+        for atom1_index, atom2_index in self.line_manager.get_atom_pairs():
+            # If theres any visible lines between the two atoms in atompair, add a label.
+            line_list = self.line_manager.get_lines_for_atompair(atom1_index, atom2_index)
+            for line in line_list:
+                if self.line_in_frame(line, complexes) and line.color.a > 0:
+                    label = Label()
+                    label.text = str(round(line.length, 2))
+                    label.font_size = 0.08
+                    label.anchors = line.anchors
+                    for anchor in label.anchors:
+                        anchor.viewer_offset = Vector3(0, 0, -.01)
+                    self.label_manager.add_label(label)
+                    break
+        Shape.upload_multiple(self.label_manager.all_labels())
+
+    def clear_distance_labels(self):
+        Logs.message('Clearing distance labels')
+        self.show_distance_labels = False
+        Shape.destroy_multiple(self.label_manager.all_labels())
