@@ -499,7 +499,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def clear_visible_lines(self, complexes):
         """Clear all interaction lines that are currently visible."""
         lines_to_destroy = []
-        for atompair_key, line_list in self.line_manager.items():
+        labels_to_destroy = []
+        for line_list in self.line_manager.values():
             line_count = len(line_list)
             for i in range(line_count - 1, -1, -1):
                 line = line_list[i]
@@ -508,10 +509,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     line_list.remove(line)
                     # Remove any labels that have been created corresponding to this atompair
                     atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
-                    self.label_manager.remove_label_for_atompair(atom1_index, atom2_index)
-
+                    label = self.label_manager.remove_label_for_atompair(atom1_index, atom2_index)
+                    if label:
+                        labels_to_destroy.append(label)
         destroyed_line_count = len(lines_to_destroy)
-        Shape.destroy_multiple(lines_to_destroy)
+        Shape.destroy_multiple([*lines_to_destroy, *labels_to_destroy])
 
         message = f'Deleted {destroyed_line_count} interactions'
         Logs.message(message)

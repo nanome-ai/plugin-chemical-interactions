@@ -142,13 +142,17 @@ class LabelManager(AtomPairManager, defaultdict):
         self[atompair_key] = label
 
     def remove_label_for_atompair(self, atom1_index, atom2_index):
+        """Remove all lines from data structure.
+        
+        Note that Shape.destroy() is not called, so lines still exist in workspace if uploaded.
+        The label is returned, so that it can be destroyed at a later time.
+        """
         key = self.get_atompair_key(atom1_index, atom2_index)
-        labels = []
+        label = None
         if key in self:
-            if key in self:
-                labels.append(self[key])
+            label = self[key]
             del self[key]
-        Shape.destroy_multiple(labels)
+        return label
 
     def clear(self):
         # Destroy all labels in workspace, and clear dict that's tracking them.
