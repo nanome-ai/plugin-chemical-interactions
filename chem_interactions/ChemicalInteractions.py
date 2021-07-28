@@ -500,7 +500,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Clear all interaction lines that are currently visible."""
         lines_to_destroy = []
         labels_to_destroy = []
-        for line_list in self.line_manager.values():
+        for atom1_index, atom2_index in self.line_manager.get_atom_pairs():
+            line_list = self.line_manager.get_lines_for_atompair(atom1_index, atom2_index)
             line_count = len(line_list)
             for i in range(line_count - 1, -1, -1):
                 line = line_list[i]
@@ -527,8 +528,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def render_distance_labels(self, complexes):
         Logs.message('Distance Labels enabled')
         self.show_distance_labels = True
-        for atompair_key, line_list in self.line_manager.items():
+        for atom1_index, atom2_index in self.line_manager.get_atom_pairs():
             # If theres any visible lines between the two atoms in atompair, add a label.
+            line_list = self.line_manager.get_lines_for_atompair(atom1_index, atom2_index)
             for line in line_list:
                 if self.line_in_frame(line, complexes) and line.color.a > 0:
                     label = Label()

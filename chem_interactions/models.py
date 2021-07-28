@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from nanome.api.shapes import Label, Line, Shape
+from nanome.api.structure import Atom
 from nanome.util import Vector3
 
 
@@ -81,17 +82,17 @@ class AtomPairManager:
         return atom_key
 
 
-class LineManager(AtomPairManager, defaultdict):
+class LineManager(AtomPairManager):
     """Organizes Interaction lines by atom pairs."""
 
     def __init__(self):
-        default_val = list
-        super().__init__(default_val)
+        super().__init__()
+        self._data = defaultdict(list)
 
     def all_lines(self):
         """Return a flat list of all lines being stored."""
         all_lines = []
-        for key, val in self.items():
+        for key, val in self._data.items():
             all_lines.extend(val)
         return all_lines
 
@@ -104,21 +105,39 @@ class LineManager(AtomPairManager, defaultdict):
             raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
         atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
         atompair_key = self.get_atompair_key(atom1_index, atom2_index)
-        self[atompair_key].append(line)
+        self._data[atompair_key].append(line)
 
     def get_lines_for_atompair(self, atom1, atom2):
-        key = self.get_atompair_key(atom1.index, atom2.index)
-        return self[key]
+        """Given two atoms, return all interaction lines connecting them.
+        
+        Accepts either Atom objects or index values
+        """
+        atom1_index = atom1.index if isinstance(atom1, Atom) else atom1
+        atom2_index = atom2.index if isinstance(atom1, Atom) else atom2
+        key = self.get_atompair_key(atom1_index, atom2_index)
+        return self._data[key]
 
     def update_line(self, line):
         """Replace line stored in manager with updated version passed as arg."""
         atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
         atompair_key = self.get_atompair_key(atom1_index, atom2_index)
-        line_list = self[atompair_key]
+        line_list = self._data[atompair_key]
         for i, stored_line in enumerate(line_list):
             if stored_line.index == line.index:
                 line_list[i] = line
                 break
+
+    def update(self, line_manager):
+        """"Merge another LineManager into self."""
+        self._data.update(line_manager._data)
+
+    def get_atom_pairs(self):
+        """Return a list of atom_pairs that may contain interaction lines."""
+        atom_pairs = []
+        for atompair_key in self._data:
+            atom1_index, atom2_index = atompair_key.split('-')
+            atom_pairs.append((atom1_index, atom2_index))
+        return atom_pairs
 
 
 class LabelManager(AtomPairManager, defaultdict):
@@ -143,7 +162,7 @@ class LabelManager(AtomPairManager, defaultdict):
 
     def remove_label_for_atompair(self, atom1_index, atom2_index):
         """Remove all lines from data structure.
-        
+
         Note that Shape.destroy() is not called, so lines still exist in workspace if uploaded.
         The label is returned, so that it can be destroyed at a later time.
         """
