@@ -99,8 +99,8 @@ class LineManager(AtomPairManager):
     def all_lines(self):
         """Return a flat list of all lines being stored."""
         all_lines = []
-        for key, val in self._data.items():
-            all_lines.extend(val)
+        for atompair_key, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
+            all_lines.extend(line_list)
         return all_lines
 
     def add_lines(self, line_list):
