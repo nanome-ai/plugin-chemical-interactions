@@ -1,14 +1,14 @@
 from collections import defaultdict
 
 from nanome.api.shapes import Label, Line, Shape
-from nanome.util import Color, Vector3
+from nanome.util import Vector3
 
 
 class InteractionLine(Line):
     """A Line with additional properties needed for representing interactions."""
 
     def __init__(
-        self, atom1, atom2, **kwargs):
+            self, atom1, atom2, **kwargs):
         super().__init__()
 
         for kwarg, value in kwargs.items():
@@ -46,7 +46,7 @@ class InteractionLine(Line):
         if not hasattr(self, '_frames'):
             self._frames = {}
         return self._frames
-    
+
     @frames.setter
     def frames(self, value):
         if not isinstance(value, dict):
@@ -83,7 +83,7 @@ class AtomPairManager:
 
 class LineManager(AtomPairManager, defaultdict):
     """Organizes Interaction lines by atom pairs."""
-    
+
     def __init__(self):
         default_val = list
         super().__init__(default_val)
@@ -120,8 +120,9 @@ class LineManager(AtomPairManager, defaultdict):
                 line_list[i] = line
                 break
 
+
 class LabelManager(AtomPairManager, defaultdict):
-    
+
     def __init__(self):
         default_val = None
         super().__init__(default_val)
@@ -139,7 +140,7 @@ class LabelManager(AtomPairManager, defaultdict):
         atom1_index, atom2_index = [anchor.target for anchor in label.anchors]
         atompair_key = self.get_atompair_key(atom1_index, atom2_index)
         self[atompair_key] = label
-    
+
     def remove_label_for_atompair(self, atom1_index, atom2_index):
         key = self.get_atompair_key(atom1_index, atom2_index)
         labels = []

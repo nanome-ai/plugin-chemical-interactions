@@ -525,7 +525,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def render_distance_labels(self, complexes):
         Logs.message('Distance Labels enabled')
         self.show_distance_labels = True
-        new_labels = []
         for atompair_key, line_list in self.line_manager.items():
             # If theres any visible lines between the two atoms in atompair, add a label.
             for line in line_list:
