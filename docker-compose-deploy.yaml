@@ -22,7 +22,7 @@ services:
     build:
       context: arpeggio-service
     ports:
-      - 8000:8000
+      - 8000
     environment:
       FLASK_ENV: production
       FLASK_APP: wsgi.py
