@@ -8,3 +8,4 @@ __pycache__
 *.pyc
 tmp
 docker-compose.override.yml
+docker/redeploy.sh
