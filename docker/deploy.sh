@@ -3,6 +3,10 @@
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
+# Create redeploy.sh
+echo "./deploy.sh $*" > redeploy.sh
+chmod +x redeploy.sh
+
 # default env file
 ENV_FILE='../.env' 
 
@@ -14,4 +18,4 @@ if [ -n "$ARGS" ];  then
     ENV_FILE=$tmpfile
 fi
 
-docker-compose -f ../docker-compose-deploy.yaml --env-file $ENV_FILE up -d
+docker-compose -f ../docker-compose-deploy.yml --env-file $ENV_FILE up -d

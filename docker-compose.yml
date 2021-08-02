@@ -1,5 +1,5 @@
 # Optimized for debugging.
-# For deploying to a server, use docker-compose-deploy.yaml
+# For deploying to a server, use docker-compose-deploy.yml
 
 version: "3.9"
 
