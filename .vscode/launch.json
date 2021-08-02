@@ -9,25 +9,12 @@
             "console": "integratedTerminal"
         },
         {
-            "type": "docker",
-            "name": "Debug Plugin",
-            "preLaunchTask": "Deploy",
-            "request": "launch",
-            "platform": "python",
-            "python": {
-                "projectType": "general",
-                "args": [
-                    "chem_interactions/run.py -a 192.168.50.31 -p 8888 -r -v"
-                ]
-            }
-        },
-        {
             "name": "run.py",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/chem_interactions/run.py",
             "console": "integratedTerminal",
-            "envFile": "${workspaceFolder}/.env.local",
+            "envFile": "${workspaceFolder}/.env",
         }
     ]
 }
