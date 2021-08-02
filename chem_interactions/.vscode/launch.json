@@ -9,7 +9,7 @@
             "type": "python",
             "request": "launch",
             "program": "run.py",
-            "args": ["-a", "foobar.example.com", "-p", "5555", "-v", "-r", "-n", "[WIP] Chem Interactions"],
+            "args": ["-a", "${env:NTS_HOST}", "-p", "${env:NTS_PORT}", "-v", "-r", "-n", "[WIP] Chem Interactions"],
             "console": "integratedTerminal"
         }
     ]
