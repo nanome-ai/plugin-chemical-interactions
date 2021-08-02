@@ -9,15 +9,7 @@
             "type": "python",
             "request": "launch",
             "program": "run.py",
-            "args": ["-a", "nts-dev.nanome.ai", "-p", "9999", "-v", "-r", "-n", "[WIP] Chem Interactions"],
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "run.py Local NTS",
-            "type": "python",
-            "request": "launch",
-            "program": "run.py",
-            "args": ["-a", "192.168.50.31", "-p", "8888", "-v", "-r"],
+            "args": ["-a", "foobar.example.com", "-p", "5555", "-v", "-r", "-n", "[WIP] Chem Interactions"],
             "console": "integratedTerminal"
         }
     ]
