@@ -16,7 +16,7 @@ And then running the plugin is as simple as
 docker-compose build
 docker-compose --env-file .env up
 ```
-The default `docker-compose.yaml` is optimized for development, with debug enabled and the code mounted as volumes. For a deployment, we recommend you use `-f docker-compose-prod.yaml`. We've provided a standalone script as a convenience
+The default `docker-compose.yml` is optimized for development, with debug enabled and the code mounted as volumes. For a deployment, we recommend you use `-f docker-compose-prod.yml`. We've provided a standalone script as a convenience
 ```sh
 ./docker/deploy.sh
 ```
