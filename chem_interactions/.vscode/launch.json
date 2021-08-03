@@ -10,7 +10,8 @@
             "request": "launch",
             "program": "run.py",
             "args": ["-a", "${env:NTS_HOST}", "-p", "${env:NTS_PORT}", "-v", "-r", "-n", "[WIP] Chem Interactions"],
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "justMyCode": false
         }
     ]
 }
