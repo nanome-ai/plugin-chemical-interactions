@@ -2,10 +2,10 @@ name: remote ssh command
 on: [push]
 jobs:
   build:
-    name: Build
+    name: Deploy to Dev
     runs-on: ubuntu-latest
     steps:
-    - name: Deploy to Dev
+    - name: Fetch, Pull, Deploy
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.PLUGINS_HQ_HOST }}
@@ -16,4 +16,5 @@ jobs:
           cd chem-interactions-dev
           git fetch
           git checkout github-actions
+          git pull
           docker-compose -f docker-compose-deploy.yml -f docker-compose.override.yml --env-file .env up -d
