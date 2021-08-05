@@ -5,7 +5,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-    - name: executing remote ssh commands using password
+    - name: Deploy to Dev
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.PLUGINS_HQ_HOST }}
@@ -16,5 +16,4 @@ jobs:
           cd chem-interactions-dev
           git fetch
           git checkout github-actions
-          ./docker/build.sh
-          ./docker/redeploy.sh
+          docker-compose -f docker-compose-deploy.yml -f docker-compose.override.yml --env-file .env up -d
