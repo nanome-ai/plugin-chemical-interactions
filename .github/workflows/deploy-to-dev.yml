@@ -1,7 +1,7 @@
 name: Deploy to DEV.
 on:
   push:
-    branches: [github-actions]
+    branches: [master]
 jobs:
   build:
     name: Deploy to Dev
@@ -17,6 +17,5 @@ jobs:
         script: |
           cd chem-interactions-dev
           git fetch
-          git checkout github-actions
           git pull
           docker-compose -f docker-compose-deploy.yml -f docker-compose.override.yml --env-file .env up -d
