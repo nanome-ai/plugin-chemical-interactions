@@ -1,5 +1,7 @@
-name: remote ssh command
-on: [push]
+name: Deploy to DEV.
+on:
+  push:
+    branches: [master]
 jobs:
   build:
     name: Deploy to Dev
