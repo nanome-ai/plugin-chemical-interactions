@@ -12,5 +12,4 @@ jobs:
         username: ${{ secrets.PLUGINS_HQ_USERNAME }}
         key: ${{ secrets.PLUGINS_HQ_SECRET_KEY }}
         port: ${{ secrets.PLUGINS_HQ_PORT }}
-        script: whoami
-        
+        script: echo "HelloHelloHello!"
