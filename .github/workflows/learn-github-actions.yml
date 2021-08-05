@@ -10,6 +10,6 @@ jobs:
       with:
         host: ${{ secrets.PLUGINS_HQ_HOST }}
         username: ${{ secrets.PLUGINS_HQ_USERNAME }}
-        # password: ${{ secrets.PASSWORD }}
+        password: ${{ secrets.PLUGINS_HQ_SECRET_KEY }}
         port: ${{ secrets.PLUGINS_HQ_PORT }}
         script: whoami
