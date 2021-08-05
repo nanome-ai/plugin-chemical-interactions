@@ -1,0 +1,21 @@
+name: Deploy to DEV.
+on:
+  push:
+    branches: [master]
+jobs:
+  build:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    steps:
+    - name: Fetch, Pull, Deploy
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.PLUGINS_HQ_HOST }}
+        username: ${{ secrets.PLUGINS_HQ_USERNAME }}
+        key: ${{ secrets.PLUGINS_HQ_SECRET_KEY }}
+        port: ${{ secrets.PLUGINS_HQ_PORT }}
+        script: |
+          cd ${{ secrets.PLUGINS_HQ_DEV_PATH }}
+          git fetch
+          git pull
+          docker-compose -f docker-compose-deploy.yml -f docker-compose.override.yml --env-file .env up -d
