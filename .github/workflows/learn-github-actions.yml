@@ -1,12 +1,15 @@
-name: learn-github-actions
+name: remote ssh command
 on: [push]
 jobs:
-  check-bats-version:
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '14'
-      - run: npm install -g bats
-      - run: bats -v
+    - name: executing remote ssh commands using password
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.PLUGINS_HQ_HOST }}
+        username: ${{ secrets.PLUGINS_HQ_USERNAME }}
+        # password: ${{ secrets.PASSWORD }}
+        port: ${{ secrets.PLUGINS_HQ_PORT }}
+        script: whoami
