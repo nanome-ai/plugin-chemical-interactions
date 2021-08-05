@@ -12,4 +12,9 @@ jobs:
         username: ${{ secrets.PLUGINS_HQ_USERNAME }}
         key: ${{ secrets.PLUGINS_HQ_SECRET_KEY }}
         port: ${{ secrets.PLUGINS_HQ_PORT }}
-        script: git fetch && git checkout github-actions && ./docker/build.sh && ./docker/deploy.sh -a nts-dev.nanome.ai -p 9999
+        script: |
+          cd chem-interactions-dev
+          git fetch
+          git checkout github-actions
+          ./docker/build.sh
+          ./docker/redeploy.sh
