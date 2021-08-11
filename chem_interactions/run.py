@@ -21,7 +21,7 @@ def create_parser():
 
 def main():
     parser = create_parser()
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     default_title = 'Chemical Interactions'
     arg_name = args.name or []

@@ -2,11 +2,18 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "setEnvironmentVariables",
+			"type": "shell",
+			"command": "export",
+			"args": [ "\"$(cat ${workspaceFolder}/.env | xargs)\""]
+		}
+		{
 			"label": "[wip] plugin container",
 			"type":"process",
 			"group":"build",
 			"command": "docker-compose",
-			"args": ["--env-file", ".env", "run", "-e", "NTS_HOST=nts-dev.nanome.ai", "-e", "NTS_PORT=9999",  "--rm", "-d", "plugin", "/bin/bash"]
+			"args": ["run", "--rm", "-d", "plugin", "/bin/bash"],
+			"dependsOn": "setEnvironmentVariables"
 		}
 	]
 }

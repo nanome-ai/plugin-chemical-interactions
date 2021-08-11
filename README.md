@@ -81,10 +81,8 @@ The Plugin is broken into two separate containers.
 `docker-compose.yml` is optimized for development, with debug enabled and the code mounted as volumes. If you use the VSCode IDE, we provide tasks and launch configurations to ease development.
 
 ### How to get a VScode debugger in your Plugin instance.
-1. In the terminal, Run the command `docker-compose run --rm -d  plugin /bin/bash`.
-    - Arpeggio starts up as normal, because it is a dependency for the plugin container.
-    - The plugin container is started, but a connection to NTS is not yet made.
-2. Open the command pallete, Select `Remote Containers: Attach to a running Container`, and select the one containing your plugin. VScode should open a new window attached to your container.
+1. In your workspace, Open the command pallete, Select `Task: Run Task`, and choose `[wip] plugin container`
+2. Open the command pallete again, Select `Remote Containers: Attach to a running Container`, and select the one containing your plugin. VScode should open a new window attached to your container.
 3. Click the "Run and Debug" button on the left, and select "run.py" from the dropdown on top. You may need to update the args field in `launch.json` to match your NTS settings.
 4. Press play, and VScode should start your plugin in debug mode, and will allow you to set breakpoints as needed
 
