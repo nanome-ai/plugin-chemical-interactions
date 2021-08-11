@@ -8,7 +8,8 @@ from nanome.util.enums import Integrations
 def create_parser():
     """Create command line parser For Plugin.
 
-    These are flags used for all Plugins by default, but we want to intercept them and potentially override values.
+    This is a subset of the full parser used by Plugins.
+    These are the args we want to intercept them and potentially override.
     rtype: argsparser: args parser
     """
     parser = argparse.ArgumentParser(description='Parse Arguments to set up Nanome Plugin')
