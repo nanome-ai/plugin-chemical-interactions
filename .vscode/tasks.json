@@ -13,7 +13,7 @@
 			"group":"build",
 			"command": "docker-compose",
 			"args": ["run", "--rm", "-d", "plugin", "/bin/bash"],
-			"dependsOn": "setEnvironmentVariables"
+			// "dependsOn": "setEnvironmentVariables"
 		}
 	]
 }
