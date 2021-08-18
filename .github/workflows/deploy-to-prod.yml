@@ -15,7 +15,7 @@ jobs:
         key: ${{ secrets.PLUGINS_HQ_SECRET_KEY }}
         port: ${{ secrets.PLUGINS_HQ_PORT }}
         script: |
-          cd ${{ secrets.PLUGINS_HQ_DEV_PATH }}
+          cd ${{ secrets.PLUGINS_HQ_PROD_PATH }}
           git fetch
           git pull
           docker-compose build
