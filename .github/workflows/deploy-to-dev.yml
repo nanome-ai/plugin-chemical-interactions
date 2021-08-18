@@ -3,7 +3,7 @@ on:
   push:
     branches: [deploy-to-prod]
 jobs:
-  build:
+  deploy:
     name: Deploy to Dev
     runs-on: ubuntu-latest
     steps:
