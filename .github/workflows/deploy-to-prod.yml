@@ -23,6 +23,7 @@ jobs:
           cd ${{ secrets.PLUGINS_HQ_PROD_PATH }}
           git fetch --tags
           latestTag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo $latestTag
           git checkout $latestTag
           docker-compose build
           docker-compose -f docker-compose-deploy.yml --env-file .env up -d
