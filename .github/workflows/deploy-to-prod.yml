@@ -1,7 +1,7 @@
-name: Deploy to DEV.
+name: Deploy to PROD.
 on:
   push:
-    branches: [master]
+    branches: [deploy-to-prod]
 jobs:
   build:
     name: Deploy to Dev
