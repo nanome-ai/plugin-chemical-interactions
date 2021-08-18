@@ -1,0 +1,30 @@
+name: 'Deploy to Server'
+description: 'SSH into server, fetch, checkout, and run plugin.'
+inputs:
+  host:
+    required: true
+  username:
+    required: true
+  key:
+    required: true
+  port:
+    required: true
+  server_directory:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: SSH and deploy
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ inputs.host }}
+        username: ${{ inputs.username }}
+        key: ${{ inputs.key }}
+        port: ${{ inputs.port }}
+        script: |
+          cd ${{ inputs.server_directory }}
+          git fetch
+          git pull
+          docker-compose build
+          docker-compose -f docker-compose-deploy.yml -f docker-compose.override.yml --env-file .env up -d
