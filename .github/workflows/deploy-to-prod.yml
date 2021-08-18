@@ -1,11 +1,7 @@
 name: Deploy to PROD.
-# on:
-#   release:
-#     types: [published]
 on:
-  push:
-    branches:
-      - deploy-to-prod
+  release:
+    types: [published]
 
 jobs:
   build:
