@@ -12,8 +12,7 @@ jobs:
     name: Deploy to Prod
     runs-on: ubuntu-latest
     steps:
-    - name: SSH and deploy
-      description: Check out latest tag, build and deploy.
+    - name: Deploy Latest Tag
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.PLUGINS_HQ_HOST }}
