@@ -1,22 +1,24 @@
 name: Deploy to PROD.
 on:
-  push:
-    branches: [deploy-to-prod]
+  release:
+    types: [published]
 jobs:
   build:
-    name: Deploy to Dev
+    name: Deploy to Prod
     runs-on: ubuntu-latest
     steps:
-    - name: Fetch, Pull, Deploy
+    - name: SSH and deploy
+      description: Check out latest tag, build and deploy.
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.PLUGINS_HQ_HOST }}
+        port: ${{ secrets.PLUGINS_HQ_PORT }}
         username: ${{ secrets.PLUGINS_HQ_USERNAME }}
         key: ${{ secrets.PLUGINS_HQ_SECRET_KEY }}
-        port: ${{ secrets.PLUGINS_HQ_PORT }}
         script: |
           cd ${{ secrets.PLUGINS_HQ_PROD_PATH }}
-          git fetch
-          git pull
+          git fetch --tags
+          latestTag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          git checkout $latestTag
           docker-compose build
-          docker-compose -f docker-compose-deploy.yml -f docker-compose.override.yml --env-file .env up -d
+          docker-compose -f docker-compose-deploy.yml --env-file .env up -d
