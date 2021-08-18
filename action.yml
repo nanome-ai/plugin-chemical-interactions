@@ -19,8 +19,7 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - id: random-number-generator
-      run: echo "::set-output name=random-id::$(echo $RANDOM)"
+    - run: echo "Hello ${{ inputs.username }}."
       shell: bash
 
 # runs:
