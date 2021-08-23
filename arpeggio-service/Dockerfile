@@ -17,4 +17,4 @@ RUN git clone https://github.com/mjrosengrant/arpeggio /tmp/
 RUN rm -rf ${arpeggio_path}
 RUN cp -r /tmp/arpeggio ${arpeggio_path}
 
-CMD gunicorn -w 4 -b 0.0.0.0:8000 arpeggio_service.wsgi:app --timeout 60
+CMD gunicorn -w 4 -b 0.0.0.0:8000 wsgi:app --timeout 60
