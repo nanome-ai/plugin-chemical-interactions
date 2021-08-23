@@ -392,12 +392,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if not isinstance(struct, list):
                     struct = [struct]
 
+                # Set frame attribute for every atom in the structure
+                # frame attribute required for create_new_lines to work.
+                # Sneaking it in here is less than ideal
                 for comp in complexes:
                     struct_indices = [a.index for a in struct]
                     relevant_atoms = [a.index for a in comp.atoms if a.index in struct_indices]
                     if relevant_atoms:
-                        # Frame attribute required for create_new_lines to work.
-                        # Sneaking it in here is less than ideal
                         for atom in struct:
                             atom.frame = comp.current_frame
                         break
@@ -407,30 +408,29 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             new_line_manager.add_lines(atompair_lines)
         return new_line_manager
 
-    async def create_new_lines(self, atom1, atom2, interaction_types, line_settings):
+    async def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
 
-        atom1: nanome.api.structure.Atom
-        atom2: nanome.api.structure.Atom
-        interaction_types: list of interaction types that exist between atom1 and atom2
+        struct1: nanome.api.structure.Atom, or list of atoms in an aromatic ring.
+        struct2: nanome.api.structure.Atom, or list of atoms in an aromatic ring.
+        interaction_types: list of interaction types that exist between struct1 and struct2
         line_settings: Color and shape information for each type of Interaction.
         """
         new_lines = []
         for interaction_type in interaction_types:
             form_data = line_settings.get(interaction_type)
             if not form_data:
-                continue
+                form_data = line_settings.get('covalent')
 
             # See if we've already drawn this line
             line_exists = False
-
-            atompair_lines = self.line_manager.get_lines_for_atompair(atom1, atom2)
+            atompair_lines = self.line_manager.get_lines_for_atompair(struct1, struct2)
             for lin in atompair_lines:
                 if all([
                     # Frame attribute is snuck onto the atom before passed into the function.
                     # This isn't great, we should find a better way to do it.
-                    lin.frames.get(atom1.index) == atom1.frame,
-                    lin.frames.get(atom2.index) == atom2.frame,
+                    lin.frames.get(struct1.index) == struct1.frame,
+                    lin.frames.get(struct2.index) == struct2.frame,
                         lin.interaction_type == interaction_type]):
                     line_exists = True
                     break
@@ -439,7 +439,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             form_data['interaction_type'] = interaction_type
             # Draw line and add data about interaction type and frames.
-            line = self.draw_interaction_line(atom1, atom2, form_data)
+            line = self.draw_interaction_line(struct1, struct2, form_data)
             new_lines.append(line)
 
         return new_lines

@@ -76,8 +76,9 @@ class InteractionLine(Line):
 class AtomPairManager:
 
     @staticmethod
-    def get_atompair_key(atom1_index, atom2_index):
-        atom_key = '-'.join(sorted([str(atom1_index), str(atom2_index)]))
+    def get_atompair_key(*atom_indices):
+        print('nnnn')
+        atom_key = '-'.join(sorted(atom_indices))
         return atom_key
 
     def get_atom_pairs(self):
@@ -114,14 +115,23 @@ class LineManager(AtomPairManager):
         atompair_key = self.get_atompair_key(atom1_index, atom2_index)
         self._data[atompair_key].append(line)
 
-    def get_lines_for_atompair(self, atom1, atom2):
-        """Given two atoms, return all interaction lines connecting them.
+    def get_lines_for_atompair(self, struct1, struct2):
+        """Given two sets of atoms, return all interaction lines connecting them.
 
-        Accepts either Atom objects or index values
+        Accepts either Atom objects or index values, or a list of Atoms representing an aromatic ring.
         """
-        atom1_index = atom1.index if isinstance(atom1, Atom) else atom1
-        atom2_index = atom2.index if isinstance(atom1, Atom) else atom2
-        key = self.get_atompair_key(atom1_index, atom2_index)
+        indices = []
+        for struct in [struct1, struct2]:
+            struct_index = None
+            if isinstance(struct, Atom):
+                struct_index = str(struct.index)
+            elif type(struct) in [int, str]:
+                struct_index = str(struct)
+            elif isinstance(struct, list):
+                atom_indices = sorted([str(a.index) for a in struct])
+                struct_index = ','.join(atom_indices)
+            indices.append(struct_index)
+        key = self.get_atompair_key(*indices)
         return self._data[key]
 
     def update_line(self, line):
