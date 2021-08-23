@@ -2,18 +2,11 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "setEnvironmentVariables",
-			"type": "shell",
-			"command": "export",
-			"args": [ "\"$(cat ${workspaceFolder}/.env | xargs)\""]
-		}
-		{
 			"label": "[wip] plugin container",
 			"type":"process",
 			"group":"build",
 			"command": "docker-compose",
 			"args": ["run", "--rm", "-d", "plugin", "/bin/bash"],
-			// "dependsOn": "setEnvironmentVariables"
 		}
 	]
 }
