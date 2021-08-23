@@ -291,18 +291,43 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = atoms[0]
         return atom
 
+    def parse_ring_atompaths(self, atom_path):
+        """Parse aromatic ring path into separate atompaths
+
+        e.g 'C/100/C1,C2,C3,C4,C5,C6' --> C/100/C1, C/100/C2, C/100/C3, etc
+        """
+        chain_name, res_id, atom_names = atom_path.split('/')
+        atom_names = atom_names.split(',')
+        atom_paths = [f'{chain_name}/{res_id}/{atom}' for atom in atom_names]
+        return atom_paths
+
     def parse_atoms_from_atompaths(self, atom_paths, complexes):
         """Return a list of atoms from the complexes based on the atom_paths."""
         atom_list = []
         for atompath in atom_paths:
-            for comp in complexes:
-                atom = self.get_atom_from_path(comp, atompath)
-                if atom:
-                    break
+            print('here')
+            # Parse aromatic ring
+            if ',' in atompath:
+                ring_atompaths = self.parse_ring_atompaths(atompath)
+                for ring_atompath in ring_atompaths:
+                    for comp in complexes:
+                        atom = self.get_atom_from_path(comp, ring_atompath)
+                        if atom:
+                            break
+                    if not atom:
+                        raise Exception(f'Atom {ring_atompath} not found')
+                    atom_list.append(atom)
 
-            if not atom:
-                raise Exception(f'Atom {atompath} not found')
-            atom_list.append(atom)
+                atom_list.extend(ring_atompaths)
+            else:
+                for comp in complexes:
+                    atom = self.get_atom_from_path(comp, atompath)
+                    if atom:
+                        break
+
+                if not atom:
+                    raise Exception(f'Atom {atompath} not found')
+                atom_list.append(atom)
         return atom_list
 
     async def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
@@ -337,29 +362,33 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_paths = [atom1_path, atom2_path]
 
             # Ones with commas are Pi-Pi Interactions? I'll have to investigate further. Skip for now
-            if ',' in atom1_path or ',' in atom2_path:
+            if ',' not in atom1_path and  ',' not in atom2_path:
                 continue
+
+            # # Ones with commas are Pi-Pi Interactions? I'll have to investigate further. Skip for now
+            # if ',' in atom1_path or ',' in atom2_path:
+            #     print('here')
 
             atom_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
 
-            if len(atom_list) != 2:
-                continue
+
+            # if len(atom_list) != 2:
+            #     continue
 
             # if selected_atoms_only = True, and neither of the atoms are selected, don't draw line
             if selected_atoms_only and not any([a.selected for a in atom_list]):
                 continue
 
-            atom1, atom2 = atom_list
             # Get the current frame of the complex corresponding to each atom
-            atom1_frame = atom2_frame = None
-            for comp in complexes:
-                if atom1_frame and atom2_frame:
-                    break
-                relevant_atoms = [a.index for a in comp.atoms if a.index in [atom1.index, atom2.index]]
-                if atom1.index in relevant_atoms:
-                    atom1_frame = comp.current_frame
-                if atom2.index in relevant_atoms:
-                    atom2_frame = comp.current_frame
+            
+                # atom1_frame = atom2_frame = None
+                for comp in complexes:
+                    
+                    relevant_atoms = [a.index for a in comp.atoms if a.index  == atom.index]
+                    if atom.index in relevant_atoms:
+                        atom1_frame = comp.current_frame
+                    if atom.index in relevant_atoms:
+                        atom2_frame = comp.current_frame
 
             # Frame attribute required for create_new_lines to work.
             atom1.frame = atom1_frame
