@@ -363,7 +363,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2_path = f"{a2_data['auth_asym_id']}/{a2_data['auth_seq_id']}/{a2_data['auth_atom_id']}"
             atom_paths = [atom1_path, atom2_path]
 
-            if ',' not in atom1_path and  ',' not in atom2_path:
+            if ',' not in atom1_path and ',' not in atom2_path:
                 continue
 
             # # Ones with commas are Pi-Pi Interactions? I'll have to investigate further. Skip for now
@@ -372,7 +372,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             atom_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
 
-
             # if len(atom_list) != 2:
             #     continue
 
@@ -380,16 +379,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if selected_atoms_only and not any([a.selected for a in atom_list]):
                 continue
 
+            atom1, atom2 = atom_list
             # Get the current frame of the complex corresponding to each atom
-            
-                # atom1_frame = atom2_frame = None
-                for comp in complexes:
-                    
-                    relevant_atoms = [a.index for a in comp.atoms if a.index  == atom.index]
-                    if atom.index in relevant_atoms:
-                        atom1_frame = comp.current_frame
-                    if atom.index in relevant_atoms:
-                        atom2_frame = comp.current_frame
+            atom1_frame = atom2_frame = None
+            for comp in complexes:
+                if atom1_frame and atom2_frame:
+                    break
+                relevant_atoms = [a.index for a in comp.atoms if a.index in [atom1.index, atom2.index]]
+                if atom1.index in relevant_atoms:
+                    atom1_frame = comp.current_frame
+                if atom2.index in relevant_atoms:
+                    atom2_frame = comp.current_frame
 
             # Frame attribute required for create_new_lines to work.
             atom1.frame = atom1_frame
