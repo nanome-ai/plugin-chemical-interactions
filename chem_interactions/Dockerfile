@@ -1,6 +1,6 @@
 FROM nanome/plugin-env
 
-ARG  work_dir=/app
+ARG work_dir=/app
 WORKDIR $work_dir
 
 ENV ARGS=''
