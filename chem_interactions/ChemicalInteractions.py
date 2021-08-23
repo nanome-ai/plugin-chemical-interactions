@@ -372,31 +372,38 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             atom_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
 
-            # if len(atom_list) != 2:
-            #     continue
+            if len(atom_list) != 2:
+                continue
+            struct1, struct2 = atom_list
 
             # if selected_atoms_only = True, and neither of the atoms are selected, don't draw line
-            if selected_atoms_only and not any([a.selected for a in atom_list]):
+            all_atoms = []
+            for struct in atom_list:
+                if isinstance(struct, list):
+                    all_atoms.extend(struct)
+                else:
+                    all_atoms.append(struct)
+            if selected_atoms_only and not any([a.selected for a in all_atoms]):
                 continue
+            
+            for struct in atom_list:
+                # struct can either be a single atom, or a list of atoms in an aromatic ring.
+                # For simplicity, make everything a list.
+                if not isinstance(struct, list):
+                    struct = [struct]
 
-            atom1, atom2 = atom_list
-            # Get the current frame of the complex corresponding to each atom
-            atom1_frame = atom2_frame = None
-            for comp in complexes:
-                if atom1_frame and atom2_frame:
-                    break
-                relevant_atoms = [a.index for a in comp.atoms if a.index in [atom1.index, atom2.index]]
-                if atom1.index in relevant_atoms:
-                    atom1_frame = comp.current_frame
-                if atom2.index in relevant_atoms:
-                    atom2_frame = comp.current_frame
-
-            # Frame attribute required for create_new_lines to work.
-            atom1.frame = atom1_frame
-            atom2.frame = atom2_frame
+                for comp in complexes:
+                    struct_indices = [a.index for a in struct]
+                    relevant_atoms = [a.index for a in comp.atoms if a.index in struct_indices]
+                    if relevant_atoms:
+                        # Frame attribute required for create_new_lines to work.
+                        # Sneaking it in here is less than ideal
+                        for atom in struct:
+                            atom.frame = comp.current_frame
+                        break
 
             # Create new lines and save them in memory
-            atompair_lines = await self.create_new_lines(atom1, atom2, interaction_types, form.data)
+            atompair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
             new_line_manager.add_lines(atompair_lines)
         return new_line_manager
 
