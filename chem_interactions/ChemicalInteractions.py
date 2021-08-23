@@ -5,7 +5,7 @@ import time
 from os import environ
 
 import nanome
-from nanome.api.structure import Complex
+from nanome.api.structure import Atom, Complex
 from nanome.api.shapes import Label, Shape
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs, Vector3
@@ -384,6 +384,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     all_atoms.extend(struct)
                 else:
                     all_atoms.append(struct)
+
             if selected_atoms_only and not any([a.selected for a in all_atoms]):
                 continue
 
@@ -456,8 +457,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         anchor1, anchor2 = line.anchors
         anchor1.anchor_type = anchor2.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
 
-        anchor1.target = struct1
-        anchor2.target = struct2
+        for struct, anchor in zip([struct1, struct2], line.anchors):
+            anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
+
+            if isinstance(struct, Atom):
+                anchor.target = struct.index
+            elif isinstance(struct, list):
+                anchor.target = struct[0].index
+
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):

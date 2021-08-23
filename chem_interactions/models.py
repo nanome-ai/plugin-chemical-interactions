@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 from nanome.api.shapes import Label, Line, Shape
-from nanome.api.structure import Atom, atom
+from nanome.api.structure import Atom
 from nanome.util import Vector3
 
 
@@ -100,10 +100,7 @@ class AtomPairManager:
     @staticmethod
     def get_atompair_key(*atom_indices):
         """Return a string key for the given atom indices."""
-        for i in range(0, len(atom_indices)):
-            if isinstance(atom_indices[i], list):
-                atom_indices[i]
-        atom_key = '-'.join(sorted(atom_indices))
+        atom_key = '-'.join(sorted([str(index) for index in atom_indices]))
         return atom_key
 
     def get_atom_pairs(self):
