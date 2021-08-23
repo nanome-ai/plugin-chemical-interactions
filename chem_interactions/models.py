@@ -1,14 +1,26 @@
 from collections import defaultdict
 
 from nanome.api.shapes import Label, Line, Shape
-from nanome.api.structure import Atom
+from nanome.api.structure import Atom, atom
 from nanome.util import Vector3
 
 
 class InteractionLine(Line):
     """A Line with additional properties needed for representing interactions."""
 
-    def __init__(self, atom1, atom2, **kwargs):
+    @staticmethod
+    def centroid(coords):
+        for i in range(0, len(coords)):
+            vec = coords[i]
+            coords[i] = [vec.x, vec.y, vec.z]
+        sum_x = sum([vec[0] for vec in coords])
+        sum_y = sum([vec[1] for vec in coords])
+        sum_z = sum([vec[2] for vec in coords])
+        len_coord = len(coords)
+        centroid = (sum_x / len_coord, sum_y / len_coord, sum_z / len_coord)
+        return centroid
+
+    def __init__(self, struct1, struct2, **kwargs):
         super().__init__()
 
         for kwarg, value in kwargs.items():
@@ -18,16 +30,26 @@ class InteractionLine(Line):
         if kwargs.get('visible') is False:
             self.color.a = 0
 
-        self.frames = {
-            atom1.index: atom1.frame,
-            atom2.index: atom2.frame,
-        }
+        self.frames = {}
+        self.positions = {}
+        for struct in [struct1, struct2]:
+            struct_index = None
+            struct_frame = None
+            struct_position = None
+            if isinstance(struct, Atom):
+                struct_index = struct.index
+                struct_frame = struct.frame
+                struct_position = struct.position
+            elif isinstance(struct, list):
+                # Start by pointing to arbitrary Atom in list
+                struct_index = ','.join([str(a.index) for a in struct])
+                struct_frame = struct[0].frame
+                # Determine centroid of ring
+                positions = [atom.position for atom in struct]
+                struct_position = self.centroid(positions)
 
-        self.atom_positions = {
-            atom1.index: atom1.position,
-            atom2.index: atom2.position
-        }
-        pass
+            self.frames[struct_index] = struct_frame
+            self.frames[struct_index] = struct_position
 
     @property
     def interaction_type(self):
@@ -77,7 +99,10 @@ class AtomPairManager:
 
     @staticmethod
     def get_atompair_key(*atom_indices):
-        print('nnnn')
+        """Return a string key for the given atom indices."""
+        for i in range(0, len(atom_indices)):
+            if isinstance(atom_indices[i], list):
+                atom_indices[i]
         atom_key = '-'.join(sorted(atom_indices))
         return atom_key
 
@@ -111,8 +136,14 @@ class LineManager(AtomPairManager):
     def add_line(self, line):
         if not isinstance(line, InteractionLine):
             raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
-        atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
-        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
+        targets = [anchor.target for anchor in line.anchors]
+
+        for i in range(0, len(targets)):
+            if isinstance(targets[i], Atom):
+                targets[i] = str(targets[i].index)
+            if isinstance(targets[i], list):
+                targets[i] = ','.join([str(a.index) for a in targets[i]])
+        atompair_key = self.get_atompair_key(*targets)
         self._data[atompair_key].append(line)
 
     def get_lines_for_atompair(self, struct1, struct2):

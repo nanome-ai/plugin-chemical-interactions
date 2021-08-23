@@ -363,6 +363,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2_path = f"{a2_data['auth_asym_id']}/{a2_data['auth_seq_id']}/{a2_data['auth_atom_id']}"
             atom_paths = [atom1_path, atom2_path]
 
+            # Hack while I'm working on aromatic lines.
             if ',' not in atom1_path and ',' not in atom2_path:
                 continue
 
@@ -385,7 +386,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     all_atoms.append(struct)
             if selected_atoms_only and not any([a.selected for a in all_atoms]):
                 continue
-            
+
             for struct in atom_list:
                 # struct can either be a single atom, or a list of atoms in an aromatic ring.
                 # For simplicity, make everything a list.
@@ -444,16 +445,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         return new_lines
 
-    def draw_interaction_line(self, atom1, atom2, line_settings):
-        """Draw line connecting two atoms.
+    def draw_interaction_line(self, struct1, struct2, line_settings):
+        """Draw line connecting two structs.
 
-        :arg atom1: Atom
-        :arg atom2: Atom
+        :arg struct1: struct
+        :arg struct2: struct
         :arg line_settings: Dict describing shape and color of line based on interaction_type
         """
-        line = InteractionLine(atom1, atom2, **line_settings)
-        line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
-        line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
+        line = InteractionLine(struct1, struct2, **line_settings)
+        anchor1, anchor2 = line.anchors
+        anchor1.anchor_type = anchor2.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
+
+        anchor1.target = struct1
+        anchor2.target = struct2
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
