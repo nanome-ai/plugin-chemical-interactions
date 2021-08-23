@@ -1,56 +1,48 @@
 import argparse
 import os
 import nanome
-import ChemicalInteractions
+from ChemicalInteractions import ChemicalInteractions
 from nanome.util.enums import Integrations
 
 
 def create_parser():
     """Create command line parser For Plugin.
 
-    Some of these flags are passed down into the Plugin, and processed internally.
+    This is a subset of the full parser used by Plugins.
+    These are the args we want to intercept them and potentially override.
     rtype: argsparser: args parser
     """
     parser = argparse.ArgumentParser(description='Parse Arguments to set up Nanome Plugin')
     parser.add_argument('-a', '--host', help='connects to NTS at the specified IP address')
     parser.add_argument('-p', '--port', help='connects to NTS at the specified port')
-    parser.add_argument('-r', '--auto-reload', action='store_true', help='Restart plugin automatically if a .py or .json file in current directory changes')
-    parser.add_argument('-v', '--verbose', action='store_true', help='enable verbose mode, to display Logs.debug')
     parser.add_argument('-n', '--name', nargs='+', help='Name to display for this plugin in Nanome')
-    parser.add_argument('-k', '--keyfile', help='Specifies a key file or key string to use to connect to NTS')
-    parser.add_argument('-i', '--ignore', help='To use with auto-reload. All paths matching this pattern will be ignored, use commas to specify several. Supports */?/[seq]/[!seq]')
     return parser
 
 
 def main():
     parser = create_parser()
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     default_title = 'Chemical Interactions'
     arg_name = args.name or []
     plugin_name = ' '.join(arg_name) or default_title
 
     description = 'Calculate and visualize interatomic contacts between small and macro molecules.'
-    category = 'Interactions'
-    advanced_settings = False
+    tags = ['Interactions']
 
     integrations = [Integrations.interactions]
-    plugin = nanome.Plugin(
-        plugin_name, description, category, advanced_settings, integrations=integrations)
-
-    plugin.set_plugin_class(ChemicalInteractions.ChemicalInteractions)
+    plugin = nanome.Plugin(plugin_name, description, tags, integrations=integrations)
+    plugin.set_plugin_class(ChemicalInteractions)
 
     # CLI Args take priority over environment variables for NTS settnigs
     host = args.host or os.environ.get('NTS_HOST')
     port = args.port or os.environ.get('NTS_PORT') or 0
 
-    configs = {
-        'host': host,
-        'port': int(port) if port else None
-    }
-    items = list(configs.items())
-    for key, value in items:
-        configs.pop(key) if not value else None
+    configs = {}
+    if host:
+        configs['host'] = host
+    if port:
+        configs['port'] = int(port)
     plugin.run(**configs)
 
 

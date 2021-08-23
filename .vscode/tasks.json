@@ -2,30 +2,11 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "docker-compose",
-			"label": "Deploy Arpeggio",
-			"dockerCompose": {
-				"envFiles": ["${workspaceFolder}/.env"],
-				"up": {
-					"detached": true,
-					"build": true,
-					"services": ["arpeggio"]
-				}
-			}
-		},
-		{
-			"type": "docker-compose",
-			"label": "Deploy",
-			"dependsOn": [
-				"Deploy Arpeggio"
-			],
-			"dockerCompose": {
-				"envFiles": ["${workspaceFolder}/.env"],
-				"up": {
-					"services": ["plugin"],
-					"customOptions": "--attach-dependencies"
-				}
-			}
+			"label": "[wip] plugin container",
+			"type":"process",
+			"group":"build",
+			"command": "docker-compose",
+			"args": ["run", "--rm", "-d", "plugin", "/bin/bash"],
 		}
 	]
 }

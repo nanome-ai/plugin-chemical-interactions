@@ -6,7 +6,9 @@ WORKDIR $work_dir
 ENV ARGS=''
 ARG CACHEBUST
 
-COPY . $work_dir
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
+
+COPY . $work_dir
+
 CMD python run.py {ARGS}
