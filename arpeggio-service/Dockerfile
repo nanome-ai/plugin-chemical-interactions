@@ -1,11 +1,14 @@
 FROM continuumio/miniconda3
 
-WORKDIR /app
-COPY . /app
-
 RUN conda install python=3.7.10
 RUN conda install -c openbabel openbabel
+
+WORKDIR /app
+
+COPY requirements.txt .
 RUN pip install -r requirements.txt
+
+COPY . .
 
 # Install fork of Arpeggio until PDB issue gets resolved
 # https://github.com/PDBeurope/arpeggio/issues/4
