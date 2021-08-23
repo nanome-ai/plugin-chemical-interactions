@@ -291,35 +291,37 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = atoms[0]
         return atom
 
-    def parse_ring_atompaths(self, atom_path):
-        """Parse aromatic ring path into separate atompaths
+    def parse_ring_atompaths(self, atom_path, complexes):
+        """Parse aromatic ring path into a list of Atoms.
 
         e.g 'C/100/C1,C2,C3,C4,C5,C6' --> C/100/C1, C/100/C2, C/100/C3, etc
+        :rtype: List of Atoms.
         """
         chain_name, res_id, atom_names = atom_path.split('/')
         atom_names = atom_names.split(',')
-        atom_paths = [f'{chain_name}/{res_id}/{atom}' for atom in atom_names]
-        return atom_paths
+        atom_paths = [f'{chain_name}/{res_id}/{atomname}' for atomname in atom_names]
+
+        atoms = []
+        for atompath in atom_paths:
+            for comp in complexes:
+                atom = self.get_atom_from_path(comp, atompath)
+                if atom:
+                    break
+            if not atom:
+                raise Exception(f'Atom {atompath} not found')
+            atoms.append(atom)
+        return atoms
 
     def parse_atoms_from_atompaths(self, atom_paths, complexes):
         """Return a list of atoms from the complexes based on the atom_paths."""
         atom_list = []
         for atompath in atom_paths:
-            print('here')
-            # Parse aromatic ring
             if ',' in atompath:
-                ring_atompaths = self.parse_ring_atompaths(atompath)
-                for ring_atompath in ring_atompaths:
-                    for comp in complexes:
-                        atom = self.get_atom_from_path(comp, ring_atompath)
-                        if atom:
-                            break
-                    if not atom:
-                        raise Exception(f'Atom {ring_atompath} not found')
-                    atom_list.append(atom)
-
-                atom_list.extend(ring_atompaths)
+                # Parse aromatic ring, and add list of atoms to atom_list
+                ring_atoms = self.parse_ring_atompaths(atompath, complexes)
+                atom_list.append(ring_atoms)
             else:
+                # Parse single atom
                 for comp in complexes:
                     atom = self.get_atom_from_path(comp, atompath)
                     if atom:
@@ -361,7 +363,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2_path = f"{a2_data['auth_asym_id']}/{a2_data['auth_seq_id']}/{a2_data['auth_atom_id']}"
             atom_paths = [atom1_path, atom2_path]
 
-            # Ones with commas are Pi-Pi Interactions? I'll have to investigate further. Skip for now
             if ',' not in atom1_path and  ',' not in atom2_path:
                 continue
 
