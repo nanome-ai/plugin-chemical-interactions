@@ -363,9 +363,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2_path = f"{a2_data['auth_asym_id']}/{a2_data['auth_seq_id']}/{a2_data['auth_atom_id']}"
             atom_paths = [atom1_path, atom2_path]
 
-            if ',' in atom1_path or ',' in atom2_path:
-                print('here')
-
             # A struct can be either an atom or a list of atoms, indicating an aromatic ring.
             struct_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
 
