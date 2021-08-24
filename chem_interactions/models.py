@@ -169,17 +169,44 @@ class LineManager(AtomPairManager):
     def add_line(self, line):
         if not isinstance(line, InteractionLine):
             raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
-        targets = [anchor.target for anchor in line.anchors]
+        atom_indices = [anchor.target for anchor in line.anchors]
 
-        for i in range(0, len(targets)):
-            if isinstance(targets[i], Atom):
-                targets[i] = str(targets[i].index)
-            if isinstance(targets[i], list):
-                targets[i] = ','.join([str(a.index) for a in targets[i]])
-        atompair_key = self.get_atompair_key(*targets)
+        structure_indices = []
+        for atom_index in atom_indices:
+            atom_index = str(atom_index)
+
+            # If atom is only atom in structure, add to structure_indices.
+            if atom_index in line.frames.keys():
+                structure_indices.append(atom_index)
+            else:
+                # For ring structures, we need to find the key in line.frames that contains all atom index.
+                # This is a little convoluted, sorry.
+                key = next(key for key in line.frames.keys() if atom_index in key)
+                structure_indices.append(key)
+
+        atompair_key = self.get_atompair_key(*structure_indices)
         self._data[atompair_key].append(line)
 
-    def get_lines_for_atompair(self, struct1, struct2):
+    def get_lines_for_atompair(self, atom1, atom2):
+        """Given two atoms, return all interaction lines connecting them.
+
+        Accepts either Atom objects or index values.
+        Less specific than `get_lines_for_structure_pair`, so we have to check for keys that contain atom indices. 
+        """
+        atom1_index = atom1.index if isinstance(atom1, Atom) else atom1
+        atom2_index = atom2.index if isinstance(atom1, Atom) else atom2
+
+        lines = []
+        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
+        lines.extend(self._data[atompair_key])
+        # Also if both atoms are part of ring interactions.
+        # for key in self._data.keys():
+        for key in self._data.keys():
+            if key == atompair_key or (str(atom1_index) in key and str(atom2_index) in key):
+                lines.extend(self._data[key])
+        return lines
+
+    def get_lines_for_structure_pair(self, struct1, struct2):
         """Given two InteractionStructures, return all interaction lines connecting them.
 
         Accepts either Atom objects or index values, or a list of Atoms representing an aromatic ring.

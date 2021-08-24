@@ -415,7 +415,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # See if we've already drawn this line
             line_exists = False
-            atompair_lines = self.line_manager.get_lines_for_atompair(struct1, struct2)
+            atompair_lines = self.line_manager.get_lines_for_structure_pair(struct1, struct2)
             for lin in atompair_lines:
                 if all([
                     # Frame attribute is snuck onto the atom before passed into the function.
