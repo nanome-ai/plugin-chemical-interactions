@@ -79,7 +79,11 @@ default_line_settings = {
     },
     'clash': {'visible': False, 'color': color_map['white']},
     'carbonyl': {'visible': False, 'color': color_map['slategrey']},
-    'CARBONPI': {'visible': True, 'color': color_map['white']}
+    'CARBONPI': {'visible': True, 'color': color_map['red']},
+    'CATIONPI': {'visible': True, 'color': color_map['orange']},
+    'DONORPI': {'visible': True, 'color': color_map['yellow']},
+    'HALOGENPI': {'visible': True, 'color': color_map['green']},
+    'METSULPHURPI': {'visible': True, 'color': color_map['blue']},
     # 'proximal': {'visible': False, 'color': color_map['lavender']},
 }
 
@@ -101,4 +105,8 @@ class LineSettingsForm(Form):
     clash = FormField(LineForm, label='Clash', default=default_line_settings['clash'])
     carbonyl = FormField(LineForm, label='Carbonyl', default=default_line_settings['carbonyl'])
     CARBONPI = FormField(LineForm, label='Carbon-PI', default=default_line_settings['CARBONPI'])
+    CATIONPI = FormField(LineForm, label='Cation-PI', default=default_line_settings['CATIONPI'])
+    DONORPI = FormField(LineForm, label='Donor-PI', default=default_line_settings['DONORPI'])
+    HALOGENPI = FormField(LineForm, label='Halogen-PI', default=default_line_settings['HALOGENPI'])
+    METSULPHURPI = FormField(LineForm, label='Sulphur-PI', default=default_line_settings['METSULPHURPI'])
     # proximal = FormField(LineForm, label='Proximal', default=default_line_settings['proximal'])
