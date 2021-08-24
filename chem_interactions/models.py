@@ -77,7 +77,6 @@ class InteractionLine(Line):
         self.frames = {}
         self.positions = {}
         # Set up frames and positions dict.
-        # Skeptical if I need this. Revisit why this exists.
         for struct in [struct1, struct2]:
             struct_index = struct.index
             struct_frame = struct.line_anchor.frame
@@ -174,13 +173,11 @@ class LineManager(AtomPairManager):
         structure_indices = []
         for atom_index in atom_indices:
             atom_index = str(atom_index)
-
             # If atom is only atom in structure, add to structure_indices.
             if atom_index in line.frames.keys():
                 structure_indices.append(atom_index)
             else:
                 # For ring structures, we need to find the key in line.frames that contains all atom index.
-                # This is a little convoluted, sorry.
                 key = next(key for key in line.frames.keys() if atom_index in key)
                 structure_indices.append(key)
 
@@ -190,7 +187,9 @@ class LineManager(AtomPairManager):
     def get_lines_for_atompair(self, atom1, atom2):
         """Given two atoms, return all interaction lines connecting them.
 
-        Accepts either Atom objects or index values.
+        :arg: atom1, Atom object, or atom index
+        :arg: atom2, Atom object, or atom index
+
         Less specific than `get_lines_for_structure_pair`, so we have to check for keys that contain atom indices. 
         """
         atom1_index = atom1.index if isinstance(atom1, Atom) else atom1
@@ -198,10 +197,8 @@ class LineManager(AtomPairManager):
 
         lines = []
         atompair_key = self.get_atompair_key(atom1_index, atom2_index)
-        lines.extend(self._data[atompair_key])
-        # Also if both atoms are part of ring interactions.
-        # for key in self._data.keys():
         for key in self._data.keys():
+            # We either have an exact atom-atom match, or we have a match where one atom is part of a ring.
             if key == atompair_key or (str(atom1_index) in key and str(atom2_index) in key):
                 lines.extend(self._data[key])
         return lines
@@ -209,7 +206,8 @@ class LineManager(AtomPairManager):
     def get_lines_for_structure_pair(self, struct1, struct2):
         """Given two InteractionStructures, return all interaction lines connecting them.
 
-        Accepts either Atom objects or index values, or a list of Atoms representing an aromatic ring.
+        :arg struct1: InteractionStructure
+        :arg struct2: InteractionStructure
         """
         indices = []
         for struct in [struct1, struct2]:
