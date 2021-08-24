@@ -9,7 +9,7 @@ from nanome.util import Vector3
 class InteractionStructure:
     """Abstraction representing one end of a chemical interaction.
 
-    Typically is either a single Atom, or a ring of atoms.
+    Is either a single Atom, or a ring of atoms.
     """
 
     def __init__(self, atom_or_atoms):
@@ -32,6 +32,11 @@ class InteractionStructure:
     def line_anchor(self):
         """Arbitrary atom in structure, but consistent."""
         return next(iter(sorted(self.atoms, key=attrgetter('index'))))
+
+    @property
+    def index(self):
+        """Unique index based on atoms in structure."""
+        return ','.join(str(a.index) for a in sorted(self.atoms, key=attrgetter('index')))
 
     @property
     def centroid(self):
@@ -59,18 +64,6 @@ class InteractionStructure:
 class InteractionLine(Line):
     """A Line with additional properties needed for representing interactions."""
 
-    @staticmethod
-    def centroid(coords):
-        for i in range(0, len(coords)):
-            vec = coords[i]
-            coords[i] = vec.unpack()
-        sum_x = sum([vec[0] for vec in coords])
-        sum_y = sum([vec[1] for vec in coords])
-        sum_z = sum([vec[2] for vec in coords])
-        len_coord = len(coords)
-        centroid = Vector3(sum_x / len_coord, sum_y / len_coord, sum_z / len_coord)
-        return centroid
-
     def __init__(self, struct1, struct2, **kwargs):
         super().__init__()
 
@@ -86,21 +79,9 @@ class InteractionLine(Line):
         # Set up frames and positions dict.
         # Skeptical if I need this. Revisit why this exists.
         for struct in [struct1, struct2]:
-            struct_index = None
-            struct_frame = None
-            struct_position = None
-            if isinstance(struct, Atom):
-                struct_index = struct.index
-                struct_frame = struct.frame
-                struct_position = struct.position
-            elif isinstance(struct, list):
-                # Start by pointing to arbitrary atom in list
-                struct_index = ','.join([str(a.index) for a in struct])
-                # Frame should be the same on every Atom.
-                struct_frame = struct[0].frame
-                # Set an arbitrary atom position from the ring as the indicator here
-                # When we render the line, we will account for offsetting to the ring center
-                struct_position = struct[0].position
+            struct_index = struct.index
+            struct_frame = struct.line_anchor.frame
+            struct_position = struct.line_anchor.position
             self.frames[struct_index] = struct_frame
             self.atom_positions[struct_index] = struct_position
 
@@ -130,14 +111,14 @@ class InteractionLine(Line):
 
     @property
     def atom_positions(self):
-        """Dict where key is atom index and value is last known (x, y, z) coordinates of atom."""
+        """Dict where key is atom index and value is last known (x, y, z) coordinates of Structure."""
         if not hasattr(self, '_atom_positions'):
             self._atom_positions = {}
         return self._atom_positions
 
     @atom_positions.setter
     def atom_positions(self, value):
-        """Dict where key is atom index and value is a Vector3 of last known coordinates of atom."""
+        """Dict where key is atom index and value is a Vector3 of last known coordinates of Structure."""
         if not isinstance(value, dict) or len(value) != 2 or not all([isinstance(pos, Vector3) for pos in value.values()]):
             raise AttributeError('Invalid atom positions provided: {value}')
         self._atom_positions = value
