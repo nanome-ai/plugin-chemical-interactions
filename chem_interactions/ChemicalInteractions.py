@@ -464,12 +464,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if isinstance(struct, Atom):
                 anchor.target = struct.index
             elif isinstance(struct, list):
+                atom = struct[0]
+                anchor.target = atom.index
+                struct_position = atom.position
+
                 # Calculate offset based on target ring, to align it with the ring_center
                 ring_center = line.centroid([a.position for a in struct])
-                struct_position = struct[0].position
                 offset_vector = Vector3(
                     ring_center.x - struct_position.x, ring_center.y - struct_position.y, ring_center.z - struct_position.z)
-                # anchor.local_offset = offset_vector
+                anchor.local_offset = offset_vector
                 pass
 
         return line
