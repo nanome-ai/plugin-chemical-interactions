@@ -537,7 +537,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             for atom in filtered_atoms:
                 # As soon as we find an atom not in frame, we can break from loop.
                 atoms_found += 1
-                line_in_frame = line.frames[atom.index] == comp.current_frame
+                try:
+                    line_in_frame = line.frames[atom.index] == comp.current_frame
+                except KeyError:
+                    # Find ring frame.
+                    index = next(key for key in line.frames.keys() if str(atom.index) in str(key))
+                    line_in_frame = line.frames[index] == comp.current_frame
                 if not line_in_frame:
                     break
             if not line_in_frame:
