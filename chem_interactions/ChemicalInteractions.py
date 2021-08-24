@@ -371,15 +371,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # if ',' in atom1_path or ',' in atom2_path:
             #     print('here')
 
-            atom_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
+            # A struct can be either an atom or a list of atoms, indicating an aromatic ring.
+            struct_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
 
-            if len(atom_list) != 2:
+            if len(struct_list) != 2:
                 continue
-            struct1, struct2 = atom_list
 
-            # if selected_atoms_only = True, and neither of the atoms are selected, don't draw line
+            struct1, struct2 = struct_list
+            # if selected_atoms_only = True, and neither of the structures contain selected atoms, don't draw line
             all_atoms = []
-            for struct in atom_list:
+            for struct in struct_list:
                 if isinstance(struct, list):
                     all_atoms.extend(struct)
                 else:
@@ -388,14 +389,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if selected_atoms_only and not any([a.selected for a in all_atoms]):
                 continue
 
-            for struct in atom_list:
+            for struct in struct_list:
                 # struct can either be a single atom, or a list of atoms in an aromatic ring.
                 # For simplicity, make everything a list.
                 if not isinstance(struct, list):
                     struct = [struct]
 
-                # Set frame attribute for every atom in the structure
-                # frame attribute required for create_new_lines to work.
+                # Set `frame` attribute for every atom in the structure
+                # `frame` attribute required for create_new_lines to work.
                 # Sneaking it in here is less than ideal
                 for comp in complexes:
                     struct_indices = [a.index for a in struct]
@@ -463,7 +464,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if isinstance(struct, Atom):
                 anchor.target = struct.index
             elif isinstance(struct, list):
-                anchor.target = struct[0].index
+                # Calculate offset based on target ring, to align it with the ring_center
+                ring_center = line.centroid([a.position for a in struct])
+                struct_position = struct[0].position
+                offset_vector = Vector3(
+                    ring_center.x - struct_position.x, ring_center.y - struct_position.y, ring_center.z - struct_position.z)
+                # anchor.local_offset = offset_vector
+                pass
 
         return line
 

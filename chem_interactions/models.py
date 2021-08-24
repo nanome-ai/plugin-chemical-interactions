@@ -12,12 +12,12 @@ class InteractionLine(Line):
     def centroid(coords):
         for i in range(0, len(coords)):
             vec = coords[i]
-            coords[i] = [vec.x, vec.y, vec.z]
+            coords[i] = vec.unpack()
         sum_x = sum([vec[0] for vec in coords])
         sum_y = sum([vec[1] for vec in coords])
         sum_z = sum([vec[2] for vec in coords])
         len_coord = len(coords)
-        centroid = (sum_x / len_coord, sum_y / len_coord, sum_z / len_coord)
+        centroid = Vector3(sum_x / len_coord, sum_y / len_coord, sum_z / len_coord)
         return centroid
 
     def __init__(self, struct1, struct2, **kwargs):
@@ -32,6 +32,8 @@ class InteractionLine(Line):
 
         self.frames = {}
         self.positions = {}
+        # Set up frames and positions dict.
+        # Skeptical if I need this. Revisit why this exists.
         for struct in [struct1, struct2]:
             struct_index = None
             struct_frame = None
@@ -41,15 +43,16 @@ class InteractionLine(Line):
                 struct_frame = struct.frame
                 struct_position = struct.position
             elif isinstance(struct, list):
-                # Start by pointing to arbitrary Atom in list
+                # Start by pointing to arbitrary atom in list
                 struct_index = ','.join([str(a.index) for a in struct])
+                # Frame should be the same on every Atom.
                 struct_frame = struct[0].frame
-                # Determine centroid of ring
-                positions = [atom.position for atom in struct]
-                struct_position = self.centroid(positions)
+                # Set an arbitrary atom position from the ring as the indicator here
+                # When we render the line, we will account for offsetting to the ring center
+                struct_position = struct[0].position
 
             self.frames[struct_index] = struct_frame
-            self.frames[struct_index] = struct_position
+            self.atom_positions[struct_index] = struct_position
 
     @property
     def interaction_type(self):
@@ -78,6 +81,8 @@ class InteractionLine(Line):
     @property
     def atom_positions(self):
         """Dict where key is atom index and value is last known (x, y, z) coordinates of atom."""
+        if not hasattr(self, '_atom_positions'):
+            self._atom_positions = {}
         return self._atom_positions
 
     @atom_positions.setter
