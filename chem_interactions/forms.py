@@ -79,6 +79,7 @@ default_line_settings = {
     },
     'clash': {'visible': False, 'color': color_map['white']},
     'carbonyl': {'visible': False, 'color': color_map['slategrey']},
+    'CARBONPI': {'visible': True, 'color': color_map['white']}
     # 'proximal': {'visible': False, 'color': color_map['lavender']},
 }
 
@@ -99,4 +100,5 @@ class LineSettingsForm(Form):
     weak_polar = FormField(LineForm, label='Weak Polar', default=default_line_settings['weak_polar'])
     clash = FormField(LineForm, label='Clash', default=default_line_settings['clash'])
     carbonyl = FormField(LineForm, label='Carbonyl', default=default_line_settings['carbonyl'])
+    CARBONPI = FormField(LineForm, label='Carbon-PI', default=default_line_settings['CARBONPI'])
     # proximal = FormField(LineForm, label='Proximal', default=default_line_settings['proximal'])

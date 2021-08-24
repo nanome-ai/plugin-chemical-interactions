@@ -363,13 +363,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2_path = f"{a2_data['auth_asym_id']}/{a2_data['auth_seq_id']}/{a2_data['auth_atom_id']}"
             atom_paths = [atom1_path, atom2_path]
 
-            # Hack while I'm working on aromatic lines.
-            if ',' not in atom1_path and ',' not in atom2_path:
-                continue
-
-            # # Ones with commas are Pi-Pi Interactions? I'll have to investigate further. Skip for now
-            # if ',' in atom1_path or ',' in atom2_path:
-            #     print('here')
+            if ',' in atom1_path or ',' in atom2_path:
+                print('here')
 
             # A struct can be either an atom or a list of atoms, indicating an aromatic ring.
             struct_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
@@ -423,7 +418,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for interaction_type in interaction_types:
             form_data = line_settings.get(interaction_type)
             if not form_data:
-                form_data = line_settings.get('covalent')
+                continue
 
             # See if we've already drawn this line
             line_exists = False
@@ -468,12 +463,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 anchor.target = atom.index
                 struct_position = atom.position
 
-                # Calculate offset based on target ring, to align it with the ring_center
+                # Calculate offset to move anchor to center of ring
                 ring_center = line.centroid([a.position for a in struct])
                 offset_vector = Vector3(
-                    ring_center.x - struct_position.x, ring_center.y - struct_position.y, ring_center.z - struct_position.z)
+                    ring_center.x - struct_position.x,
+                    ring_center.y - struct_position.y,
+                    ring_center.z - struct_position.z
+                )
                 anchor.local_offset = offset_vector
-                pass
 
         return line
 
