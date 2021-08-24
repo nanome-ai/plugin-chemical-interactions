@@ -12,7 +12,7 @@ from nanome.util import async_callback, Color, Logs, Vector3
 
 from forms import LineSettingsForm
 from menus import ChemInteractionsMenu
-from models import InteractionLine, LineManager, LabelManager
+from models import InteractionLine, LineManager, LabelManager, InteractionStructure
 from utils import ComplexUtils
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -314,12 +314,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def parse_atoms_from_atompaths(self, atom_paths, complexes):
         """Return a list of atoms from the complexes based on the atom_paths."""
-        atom_list = []
+        struct_list = []
         for atompath in atom_paths:
             if ',' in atompath:
-                # Parse aromatic ring, and add list of atoms to atom_list
+                # Parse aromatic ring, and add list of atoms to struct_list
                 ring_atoms = self.parse_ring_atompaths(atompath, complexes)
-                atom_list.append(ring_atoms)
+                struct = InteractionStructure(ring_atoms)
             else:
                 # Parse single atom
                 for comp in complexes:
@@ -329,8 +329,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
                 if not atom:
                     raise Exception(f'Atom {atompath} not found')
-                atom_list.append(atom)
-        return atom_list
+                struct = InteractionStructure(atom)
+            struct_list.append(struct)
+        return struct_list
 
     async def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
@@ -363,6 +364,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2_path = f"{a2_data['auth_asym_id']}/{a2_data['auth_seq_id']}/{a2_data['auth_atom_id']}"
             atom_paths = [atom1_path, atom2_path]
 
+            # if ',' not in atom1_path and ',' not in atom2_path:
+            #     continue
+
             # A struct can be either an atom or a list of atoms, indicating an aromatic ring.
             struct_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
 
@@ -373,25 +377,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # if selected_atoms_only = True, and neither of the structures contain selected atoms, don't draw line
             all_atoms = []
             for struct in struct_list:
-                if isinstance(struct, list):
-                    all_atoms.extend(struct)
-                else:
-                    all_atoms.append(struct)
+                all_atoms.extend(struct.atoms)
 
             if selected_atoms_only and not any([a.selected for a in all_atoms]):
                 continue
 
             for struct in struct_list:
-                # struct can either be a single atom, or a list of atoms in an aromatic ring.
-                # For simplicity, make everything a list.
-                if not isinstance(struct, list):
-                    struct = [struct]
-
                 # Set `frame` attribute for every atom in the structure
                 # `frame` attribute required for create_new_lines to work.
                 # Sneaking it in here is less than ideal
                 for comp in complexes:
-                    struct_indices = [a.index for a in struct]
+                    struct_indices = [a.index for a in struct.atoms]
                     relevant_atoms = [a.index for a in comp.atoms if a.index in struct_indices]
                     if relevant_atoms:
                         for atom in struct:
@@ -447,27 +443,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :arg line_settings: Dict describing shape and color of line based on interaction_type
         """
         line = InteractionLine(struct1, struct2, **line_settings)
-        anchor1, anchor2 = line.anchors
-        anchor1.anchor_type = anchor2.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
 
         for struct, anchor in zip([struct1, struct2], line.anchors):
             anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
-
-            if isinstance(struct, Atom):
-                anchor.target = struct.index
-            elif isinstance(struct, list):
-                atom = struct[0]
-                anchor.target = atom.index
-                struct_position = atom.position
-
-                # Calculate offset to move anchor to center of ring
-                ring_center = line.centroid([a.position for a in struct])
-                offset_vector = Vector3(
-                    ring_center.x - struct_position.x,
-                    ring_center.y - struct_position.y,
-                    ring_center.z - struct_position.z
-                )
-                anchor.local_offset = offset_vector
+            anchor.target = struct.line_anchor.index
+            # This nudges the line anchor to the center of the structure
+            anchor.local_offset = struct.calculate_local_offset()
 
         return line
 

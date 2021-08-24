@@ -1,8 +1,59 @@
 from collections import defaultdict
+from operator import attrgetter
 
 from nanome.api.shapes import Label, Line, Shape
 from nanome.api.structure import Atom
 from nanome.util import Vector3
+
+
+class InteractionStructure:
+    """Abstraction representing one end of a chemical interaction.
+
+    Typically is either a single Atom, or a ring of atoms.
+    """
+
+    def __init__(self, atom_or_atoms):
+        """Pass in either a single Atom object or a list of Atoms."""
+        if isinstance(atom_or_atoms, Atom):
+            self.atoms.append(atom_or_atoms)
+        elif isinstance(atom_or_atoms, list):
+            self.atoms.extend(atom_or_atoms)
+
+    @property
+    def atoms(self):
+        if not hasattr(self, '_atoms'):
+            self._atoms = []
+        return self._atoms
+
+    def __iter__(self):
+        return iter(self.atoms)
+
+    @property
+    def line_anchor(self):
+        """Arbitrary atom in structure, but consistent."""
+        return next(iter(sorted(self.atoms, key=attrgetter('index'))))
+
+    @property
+    def centroid(self):
+        """Calculate center of the structure."""
+        coords = [a.position.unpack() for a in self.atoms]
+        sum_x = sum([vec[0] for vec in coords])
+        sum_y = sum([vec[1] for vec in coords])
+        sum_z = sum([vec[2] for vec in coords])
+        len_coord = len(coords)
+        centroid = Vector3(sum_x / len_coord, sum_y / len_coord, sum_z / len_coord)
+        return centroid
+
+    def calculate_local_offset(self):
+        """Calculate offset to move line anchor to center of ring."""
+        ring_center = self.centroid
+        anchor_position = self.line_anchor.position
+        offset_vector = Vector3(
+            ring_center.x - anchor_position.x,
+            ring_center.y - anchor_position.y,
+            ring_center.z - anchor_position.z
+        )
+        return offset_vector
 
 
 class InteractionLine(Line):
@@ -50,7 +101,6 @@ class InteractionLine(Line):
                 # Set an arbitrary atom position from the ring as the indicator here
                 # When we render the line, we will account for offsetting to the ring center
                 struct_position = struct[0].position
-
             self.frames[struct_index] = struct_frame
             self.atom_positions[struct_index] = struct_position
 
@@ -149,20 +199,15 @@ class LineManager(AtomPairManager):
         self._data[atompair_key].append(line)
 
     def get_lines_for_atompair(self, struct1, struct2):
-        """Given two sets of atoms, return all interaction lines connecting them.
+        """Given two InteractionStructures, return all interaction lines connecting them.
 
         Accepts either Atom objects or index values, or a list of Atoms representing an aromatic ring.
         """
         indices = []
         for struct in [struct1, struct2]:
             struct_index = None
-            if isinstance(struct, Atom):
-                struct_index = str(struct.index)
-            elif type(struct) in [int, str]:
-                struct_index = str(struct)
-            elif isinstance(struct, list):
-                atom_indices = sorted([str(a.index) for a in struct])
-                struct_index = ','.join(atom_indices)
+            atom_indices = sorted([str(a.index) for a in struct])
+            struct_index = ','.join(atom_indices)
             indices.append(struct_index)
         key = self.get_atompair_key(*indices)
         return self._data[key]
