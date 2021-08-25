@@ -198,9 +198,8 @@ class LineManager(StructurePairManager):
 
     def update_line(self, line):
         """Replace line stored in manager with updated version passed as arg."""
-        atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
-        atompair_key = self.get_structpair_key(atom1_index, atom2_index)
-        line_list = self._data[atompair_key]
+        structpair_key = self.get_structpair_key(*line.structure_indices)
+        line_list = self._data[structpair_key]
         for i, stored_line in enumerate(line_list):
             if stored_line.index == line.index:
                 line_list[i] = line
