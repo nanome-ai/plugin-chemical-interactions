@@ -129,7 +129,7 @@ class InteractionLine(Line):
     @property
     def structure_indices(self):
         """Return a list of indices from the structures."""
-        return self.frame.keys()
+        return self.frames.keys()
 
 
 class AtomPairManager:
