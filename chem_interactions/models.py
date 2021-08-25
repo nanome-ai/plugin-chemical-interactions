@@ -79,7 +79,7 @@ class InteractionLine(Line):
             struct_frame = struct.line_anchor.frame
             struct_position = struct.line_anchor.position
             self.frames[struct_index] = struct_frame
-            self.atom_positions[struct_index] = struct_position
+            self.struct_positions[struct_index] = struct_position
 
     @property
     def interaction_type(self):
@@ -94,7 +94,7 @@ class InteractionLine(Line):
 
     @property
     def frames(self):
-        """Dict where key is atom index and value is current frame of the atom's complex."""
+        """Dict where key is structure index and value is current frame of the atom's complex."""
         if not hasattr(self, '_frames'):
             self._frames = {}
         return self._frames
@@ -106,23 +106,23 @@ class InteractionLine(Line):
         self._frames = value
 
     @property
-    def atom_positions(self):
-        """Dict where key is atom index and value is last known (x, y, z) coordinates of Structure."""
-        if not hasattr(self, '_atom_positions'):
-            self._atom_positions = {}
-        return self._atom_positions
+    def struct_positions(self):
+        """Dict where key is structure index and value is last known (x, y, z) coordinates of Structure."""
+        if not hasattr(self, '_struct_positions'):
+            self._struct_positions = {}
+        return self._struct_positions
 
-    @atom_positions.setter
-    def atom_positions(self, value):
-        """Dict where key is atom index and value is a Vector3 of last known coordinates of Structure."""
+    @struct_positions.setter
+    def struct_positions(self, value):
+        """Dict where key is structure index and value is a Vector3 of last known coordinates of Structure."""
         if not isinstance(value, dict) or len(value) != 2 or not all([isinstance(pos, Vector3) for pos in value.values()]):
             raise AttributeError('Invalid atom positions provided: {value}')
-        self._atom_positions = value
+        self._struct_positions = value
 
     @property
     def length(self):
-        """Determine length of line using the distance between the atoms."""
-        positions = self.atom_positions.values()
+        """Determine length of line using the distance between the structures."""
+        positions = self.struct_positions.values()
         distance = Vector3.distance(*positions)
         return distance
 
@@ -132,24 +132,25 @@ class InteractionLine(Line):
         return self.frames.keys()
 
 
-class AtomPairManager:
+class StructurePairManager:
+    """Functions used by Managers to create keys to uniquely identify pairs of InteractionStructures."""
 
     @staticmethod
-    def get_atompair_key(*atom_indices):
+    def get_structpair_key(*struct_indices):
         """Return a string key for the given atom indices."""
-        atom_key = '-'.join(sorted([str(index) for index in atom_indices]))
+        atom_key = '-'.join(sorted([str(index) for index in struct_indices]))
         return atom_key
 
-    def get_atom_pairs(self):
-        """Return a list of atom_pairs being tracked by manager."""
-        atom_pairs = []
+    def get_struct_pairs(self):
+        """Return a list of structure pairs being tracked by manager."""
+        struct_pairs = []
         for atompair_key in self._data:
             atom1_index, atom2_index = atompair_key.split('-')
-            atom_pairs.append((atom1_index, atom2_index))
-        return atom_pairs
+            struct_pairs.append((atom1_index, atom2_index))
+        return struct_pairs
 
 
-class LineManager(AtomPairManager):
+class LineManager(StructurePairManager):
     """Organizes Interaction lines by atom pairs."""
 
     def __init__(self):
@@ -159,7 +160,7 @@ class LineManager(AtomPairManager):
     def all_lines(self):
         """Return a flat list of all lines being stored."""
         all_lines = []
-        for atompair_key, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
+        for structpair_key, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
             all_lines.extend(line_list)
         return all_lines
 
@@ -170,21 +171,8 @@ class LineManager(AtomPairManager):
     def add_line(self, line):
         if not isinstance(line, InteractionLine):
             raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
-        atom_indices = [anchor.target for anchor in line.anchors]
-
-        structure_indices = []
-        for atom_index in atom_indices:
-            atom_index = str(atom_index)
-            # If atom is only atom in structure, add to structure_indices.
-            if atom_index in line.frames.keys():
-                structure_indices.append(atom_index)
-            else:
-                # For ring structures, we need to find the key in line.frames that contains all atom index.
-                key = next(key for key in line.frames.keys() if atom_index in key)
-                structure_indices.append(key)
-
-        atompair_key = self.get_atompair_key(*structure_indices)
-        self._data[atompair_key].append(line)
+        structpair_key = self.get_structpair_key(*line.structure_indices)
+        self._data[structpair_key].append(line)
 
     def get_lines_for_atompair(self, atom1, atom2):
         """Given two atoms, return all interaction lines connecting them.
@@ -198,7 +186,7 @@ class LineManager(AtomPairManager):
         atom2_index = atom2.index if isinstance(atom1, Atom) else atom2
 
         lines = []
-        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
+        atompair_key = self.get_structpair_key(atom1_index, atom2_index)
         for key in self._data.keys():
             # We either have an exact atom-atom match, or we have a match where one atom is part of a ring.
             if key == atompair_key or (str(atom1_index) in key and str(atom2_index) in key):
@@ -208,22 +196,18 @@ class LineManager(AtomPairManager):
     def get_lines_for_structure_pair(self, struct1, struct2):
         """Given two InteractionStructures, return all interaction lines connecting them.
 
-        :arg struct1: InteractionStructure
-        :arg struct2: InteractionStructure
+        :arg struct1: InteractionStructure, or index str
+        :arg struct2: InteractionStructure, or index str
         """
-        indices = []
-        for struct in [struct1, struct2]:
-            struct_index = None
-            atom_indices = sorted([str(a.index) for a in struct.atoms])
-            struct_index = ','.join(atom_indices)
-            indices.append(struct_index)
-        key = self.get_atompair_key(*indices)
+        struct1_index = struct1.index if isinstance(struct1, InteractionStructure) else struct1
+        struct2_index = struct2.index if isinstance(struct1, InteractionStructure) else struct2
+        key = self.get_structpair_key(struct1_index, struct2_index)
         return self._data[key]
 
     def update_line(self, line):
         """Replace line stored in manager with updated version passed as arg."""
         atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
-        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
+        atompair_key = self.get_structpair_key(atom1_index, atom2_index)
         line_list = self._data[atompair_key]
         for i, stored_line in enumerate(line_list):
             if stored_line.index == line.index:
@@ -235,7 +219,7 @@ class LineManager(AtomPairManager):
         self._data.update(line_manager._data)
 
 
-class LabelManager(AtomPairManager):
+class LabelManager(StructurePairManager):
 
     def __init__(self):
         super().__init__()
@@ -244,24 +228,23 @@ class LabelManager(AtomPairManager):
     def all_labels(self):
         """Return a flat list of all lines being stored."""
         all_lines = []
-        for atompair_key, label in sorted(self._data.items(), key=lambda keyval: keyval[0]):
-            all_lines.append(self._data[atompair_key])
+        for structpair_key, label in sorted(self._data.items(), key=lambda keyval: keyval[0]):
+            all_lines.append(self._data[structpair_key])
         return all_lines
 
-    def add_label(self, label):
+    def add_label(self, label, struct1_index, struct2_index):
         if not isinstance(label, Label):
             raise TypeError(f'add_label() expected Label, received {type(label)}')
-        atom1_index, atom2_index = [anchor.target for anchor in label.anchors]
-        atompair_key = self.get_atompair_key(atom1_index, atom2_index)
-        self._data[atompair_key] = label
+        structpair_key = self.get_structpair_key(struct1_index, struct2_index)
+        self._data[structpair_key] = label
 
-    def remove_label_for_atompair(self, atom1_index, atom2_index):
+    def remove_label_for_structpair(self, struct1_index, struct2_index):
         """Remove all lines from data structure.
 
         Note that Shape.destroy() is not called, so lines still exist in workspace if uploaded.
         The label is returned, so that it can be destroyed at a later time.
         """
-        key = self.get_atompair_key(atom1_index, atom2_index)
+        key = self.get_structpair_key(struct1_index, struct2_index)
         label = None
         if key in self._data:
             label = self._data[key]

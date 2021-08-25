@@ -395,8 +395,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         break
 
             # Create new lines and save them in memory
-            atompair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
-            new_line_manager.add_lines(atompair_lines)
+            structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
+            new_line_manager.add_lines(structpair_lines)
         return new_line_manager
 
     async def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
@@ -543,19 +543,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Clear all interaction lines that are currently visible."""
         lines_to_destroy = []
         labels_to_destroy = []
-        for atom1_index, atom2_index in self.line_manager.get_atom_pairs():
-            line_list = self.line_manager.get_lines_for_atompair(atom1_index, atom2_index)
+        for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
+            line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
             line_count = len(line_list)
             for i in range(line_count - 1, -1, -1):
                 line = line_list[i]
                 if self.line_in_frame(line, complexes):
                     lines_to_destroy.append(line)
                     line_list.remove(line)
-                    # Remove any labels that have been created corresponding to this atompair
-                    atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
-                    label = self.label_manager.remove_label_for_atompair(atom1_index, atom2_index)
+                    # Remove any labels that have been created corresponding to this structpair
+                    label = self.label_manager.remove_label_for_structpair(struct1_index, struct2_index)
                     if label:
                         labels_to_destroy.append(label)
+
         destroyed_line_count = len(lines_to_destroy)
         Shape.destroy_multiple([*lines_to_destroy, *labels_to_destroy])
 
@@ -571,9 +571,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def render_distance_labels(self, complexes):
         Logs.message('Distance Labels enabled')
         self.show_distance_labels = True
-        for atom1_index, atom2_index in self.line_manager.get_atom_pairs():
+        for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
             # If theres any visible lines between the two atoms in atompair, add a label.
-            line_list = self.line_manager.get_lines_for_atompair(atom1_index, atom2_index)
+            line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
             for line in line_list:
                 if self.line_in_frame(line, complexes) and line.color.a > 0:
                     label = Label()
@@ -582,7 +582,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     label.anchors = line.anchors
                     for anchor in label.anchors:
                         anchor.viewer_offset = Vector3(0, 0, -.01)
-                    self.label_manager.add_label(label)
+                    self.label_manager.add_label(label, struct1_index, struct2_index)
                     break
         Shape.upload_multiple(self.label_manager.all_labels())
 
