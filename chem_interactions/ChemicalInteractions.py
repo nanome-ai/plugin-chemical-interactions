@@ -291,7 +291,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = atoms[0]
         return atom
 
-    def parse_ring_atompaths(self, atom_path, complexes):
+    def parse_ring_atoms(self, atom_path, complexes):
         """Parse aromatic ring path into a list of Atoms.
 
         e.g 'C/100/C1,C2,C3,C4,C5,C6' --> C/100/C1, C/100/C2, C/100/C3, etc
@@ -318,7 +318,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for atompath in atom_paths:
             if ',' in atompath:
                 # Parse aromatic ring, and add list of atoms to struct_list
-                ring_atoms = self.parse_ring_atompaths(atompath, complexes)
+                ring_atoms = self.parse_ring_atoms(atompath, complexes)
                 struct = InteractionStructure(ring_atoms)
             else:
                 # Parse single atom
