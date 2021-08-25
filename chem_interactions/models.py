@@ -12,12 +12,17 @@ class InteractionStructure:
     Is either a single Atom, or a ring of atoms.
     """
 
-    def __init__(self, atom_or_atoms):
+    # Records the frame of the complex that the Structure is a part of.
+    frame = None
+
+    def __init__(self, atom_or_atoms, frame=None):
         """Pass in either a single Atom object or a list of Atoms."""
         if isinstance(atom_or_atoms, Atom):
             self.atoms.append(atom_or_atoms)
         elif isinstance(atom_or_atoms, list):
             self.atoms.extend(atom_or_atoms)
+
+        self.frame = frame
 
     @property
     def atoms(self):
@@ -71,15 +76,11 @@ class InteractionLine(Line):
         if kwargs.get('visible') is False:
             self.color.a = 0
 
-        self.frames = {}
-        self.positions = {}
         # Set up frames and positions dict.
         for struct in [struct1, struct2]:
-            struct_index = struct.index
-            struct_frame = struct.line_anchor.frame
             struct_position = struct.line_anchor.position
-            self.frames[struct_index] = struct_frame
-            self.struct_positions[struct_index] = struct_position
+            self.frames[struct.index] = struct.frame
+            self.struct_positions[struct.index] = struct_position
 
     @property
     def interaction_type(self):
@@ -99,25 +100,12 @@ class InteractionLine(Line):
             self._frames = {}
         return self._frames
 
-    @frames.setter
-    def frames(self, value):
-        if not isinstance(value, dict):
-            raise AttributeError(f'InteractionLine.frames expects dict, received {type(value)}')
-        self._frames = value
-
     @property
     def struct_positions(self):
         """Dict where key is structure index and value is last known (x, y, z) coordinates of Structure."""
         if not hasattr(self, '_struct_positions'):
             self._struct_positions = {}
         return self._struct_positions
-
-    @struct_positions.setter
-    def struct_positions(self, value):
-        """Dict where key is structure index and value is a Vector3 of last known coordinates of Structure."""
-        if not isinstance(value, dict) or len(value) != 2 or not all([isinstance(pos, Vector3) for pos in value.values()]):
-            raise AttributeError('Invalid atom positions provided: {value}')
-        self._struct_positions = value
 
     @property
     def length(self):
@@ -132,7 +120,7 @@ class InteractionLine(Line):
 
     @property
     def structure_indices(self):
-        """Return a list of indices from the structures."""
+        """Return a list of struture indices."""
         return self.frames.keys()
 
 

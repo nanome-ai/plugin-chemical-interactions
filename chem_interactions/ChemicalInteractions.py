@@ -382,17 +382,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             for struct in struct_list:
-                # Set `frame` attribute for every atom in the structure
-                # `frame` attribute required for create_new_lines to work.
-                # Sneaking it in here is less than ideal
+                # Set `frame` attribute for InteractionStructure.
                 for comp in complexes:
-                    struct_indices = [a.index for a in struct.atoms]
-                    relevant_atoms = [a.index for a in comp.atoms if a.index in struct_indices]
+                    atom_indices = [a.index for a in struct.atoms]
+                    relevant_atoms = [a.index for a in comp.atoms if a.index in atom_indices]
                     if relevant_atoms:
-                        for atom in struct.atoms:
-                            atom.frame = comp.current_frame
-                        break
-
+                        struct.frame = comp.current_frame
+                        
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
             structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
@@ -402,8 +398,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
 
-        struct1: nanome.api.structure.Atom, or list of atoms in an aromatic ring.
-        struct2: nanome.api.structure.Atom, or list of atoms in an aromatic ring.
+        struct1: InteractionStructure
+        struct2: InteractionStructure
         interaction_types: list of interaction types that exist between struct1 and struct2
         line_settings: Color and shape information for each type of Interaction.
         """
@@ -418,8 +414,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atompair_lines = self.line_manager.get_lines_for_structure_pair(struct1, struct2)
             for lin in atompair_lines:
                 if all([
-                    # Frame attribute is snuck onto the atom before passed into the function.
-                    # This isn't great, we should find a better way to do it.
                     lin.frames.get(struct1.index) == struct1.frame,
                     lin.frames.get(struct2.index) == struct2.frame,
                         lin.interaction_type == interaction_type]):
@@ -521,7 +515,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 atom_index = str(atom.index)
 
                 # Get the structure index from the line corresponding to the current atom,
-                # The struct index is either the atom index, or a string containing the atom index
                 if atom_index in line.structure_indices:
                     struct_index = str(atom.index)
                 else:
@@ -546,15 +539,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
             line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
             line_count = len(line_list)
+            line_removed = False
             for i in range(line_count - 1, -1, -1):
                 line = line_list[i]
                 if self.line_in_frame(line, complexes):
                     lines_to_destroy.append(line)
                     line_list.remove(line)
-                    # Remove any labels that have been created corresponding to this structpair
-                    label = self.label_manager.remove_label_for_structpair(struct1_index, struct2_index)
-                    if label:
-                        labels_to_destroy.append(label)
+                    line_removed = True
+        # Remove any labels that have been created corresponding to this structpair
+        if line_removed:
+            label = self.label_manager.remove_label_for_structpair(struct1_index, struct2_index)
+            if label:
+                labels_to_destroy.append(label)
 
         destroyed_line_count = len(lines_to_destroy)
         Shape.destroy_multiple([*lines_to_destroy, *labels_to_destroy])
