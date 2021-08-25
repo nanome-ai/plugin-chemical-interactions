@@ -122,7 +122,11 @@ class InteractionLine(Line):
     @property
     def length(self):
         """Determine length of line using the distance between the structures."""
-        positions = self.struct_positions.values()
+        positions = []
+        for anchor in self.anchors:
+            struct_key = next(struc_key for struc_key in self.structure_indices if str(anchor.target) in struc_key)
+            position = self.struct_positions[struct_key] + anchor.local_offset
+            positions.append(position)
         distance = Vector3.distance(*positions)
         return distance
 
@@ -180,7 +184,7 @@ class LineManager(StructurePairManager):
         :arg: atom1, Atom object, or atom index
         :arg: atom2, Atom object, or atom index
 
-        Less specific than `get_lines_for_structure_pair`, so we have to check for keys that contain atom indices. 
+        Less specific than `get_lines_for_structure_pair`, so we have to check for keys that contain atom indices.
         """
         atom1_index = atom1.index if isinstance(atom1, Atom) else atom1
         atom2_index = atom2.index if isinstance(atom1, Atom) else atom2

@@ -5,7 +5,7 @@ import time
 from os import environ
 
 import nanome
-from nanome.api.structure import Atom, Complex
+from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
 from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs, Vector3
@@ -373,7 +373,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if len(struct_list) != 2:
                 continue
 
-            struct1, struct2 = struct_list
             # if selected_atoms_only = True, and neither of the structures contain selected atoms, don't draw line
             all_atoms = []
             for struct in struct_list:
@@ -395,6 +394,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         break
 
             # Create new lines and save them in memory
+            struct1, struct2 = struct_list
             structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
             new_line_manager.add_lines(structpair_lines)
         return new_line_manager
