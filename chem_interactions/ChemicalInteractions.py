@@ -408,8 +408,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # See if we've already drawn this line
             line_exists = False
-            atompair_lines = self.line_manager.get_lines_for_structure_pair(struct1, struct2)
-            for lin in atompair_lines:
+            structpair_lines = self.line_manager.get_lines_for_structure_pair(struct1, struct2)
+            for lin in structpair_lines:
                 if all([
                     lin.frames.get(struct1.index) == struct1.frame,
                     lin.frames.get(struct2.index) == struct2.frame,
@@ -565,7 +565,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message('Distance Labels enabled')
         self.show_distance_labels = True
         for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
-            # If theres any visible lines between the two atoms in atompair, add a label.
+            # If theres any visible lines between the two structs in structpair, add a label.
             line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
             for line in line_list:
                 if self.line_in_frame(line, complexes) and line.color.a > 0:

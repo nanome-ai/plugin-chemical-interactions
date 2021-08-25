@@ -136,8 +136,8 @@ class StructurePairManager:
     def get_struct_pairs(self):
         """Return a list of structure pairs being tracked by manager."""
         struct_pairs = []
-        for atompair_key in self._data:
-            atom1_index, atom2_index = atompair_key.split('-')
+        for structpair_key in self._data:
+            atom1_index, atom2_index = structpair_key.split('-')
             struct_pairs.append((atom1_index, atom2_index))
         return struct_pairs
 
@@ -165,25 +165,6 @@ class LineManager(StructurePairManager):
             raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
         structpair_key = self.get_structpair_key(*line.structure_indices)
         self._data[structpair_key].append(line)
-
-    def get_lines_for_atompair(self, atom1, atom2):
-        """Given two atoms, return all interaction lines connecting them.
-
-        :arg: atom1, Atom object, or atom index
-        :arg: atom2, Atom object, or atom index
-
-        Less specific than `get_lines_for_structure_pair`, so we have to check for keys that contain atom indices.
-        """
-        atom1_index = atom1.index if isinstance(atom1, Atom) else atom1
-        atom2_index = atom2.index if isinstance(atom1, Atom) else atom2
-
-        lines = []
-        atompair_key = self.get_structpair_key(atom1_index, atom2_index)
-        for key in self._data.keys():
-            # We either have an exact atom-atom match, or we have a match where one atom is part of a ring.
-            if key == atompair_key or (str(atom1_index) in key and str(atom2_index) in key):
-                lines.extend(self._data[key])
-        return lines
 
     def get_lines_for_structure_pair(self, struct1, struct2):
         """Given two InteractionStructures, return all interaction lines connecting them.
