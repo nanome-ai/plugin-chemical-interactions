@@ -385,7 +385,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     relevant_atoms = [a.index for a in comp.atoms if a.index in atom_indices]
                     if relevant_atoms:
                         struct.frame = comp.current_frame
-                        
+
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
             structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
