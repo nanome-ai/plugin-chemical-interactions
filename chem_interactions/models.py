@@ -25,9 +25,6 @@ class InteractionStructure:
             self._atoms = []
         return self._atoms
 
-    def __iter__(self):
-        return iter(self.atoms)
-
     @property
     def line_anchor(self):
         """Arbitrary atom in structure, but consistent."""
@@ -212,7 +209,7 @@ class LineManager(AtomPairManager):
         indices = []
         for struct in [struct1, struct2]:
             struct_index = None
-            atom_indices = sorted([str(a.index) for a in struct])
+            atom_indices = sorted([str(a.index) for a in struct.atoms])
             struct_index = ','.join(atom_indices)
             indices.append(struct_index)
         key = self.get_atompair_key(*indices)

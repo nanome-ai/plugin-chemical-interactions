@@ -390,7 +390,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     struct_indices = [a.index for a in struct.atoms]
                     relevant_atoms = [a.index for a in comp.atoms if a.index in struct_indices]
                     if relevant_atoms:
-                        for atom in struct:
+                        for atom in struct.atoms:
                             atom.frame = comp.current_frame
                         break
 
