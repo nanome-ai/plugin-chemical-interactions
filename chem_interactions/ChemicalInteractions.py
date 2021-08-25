@@ -516,15 +516,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
             for atom in filtered_atoms:
-                # As soon as we find an atom not in frame, we can break from loop.
                 atoms_found += 1
-                try:
-                    line_in_frame = line.frames[atom.index] == comp.current_frame
-                except KeyError:
-                    # Find ring frame.
-                    index = next(key for key in line.frames.keys() if str(atom.index) in str(key))
-                    line_in_frame = line.frames[index] == comp.current_frame
+                struct_index = None
+                atom_index = str(atom.index)
+
+                # Get the structure index from the line corresponding to the current atom,
+                # The struct index is either the atom index, or a string containing the atom index
+                if atom_index in line.structure_indices:
+                    struct_index = str(atom.index)
+                else:
+                    struct_index = next(key for key in line.structure_indices if atom_index in key)
+                line_in_frame = line.frames[struct_index] == comp.current_frame
                 if not line_in_frame:
+                    # As soon as we find an atom not in frame, we can break from loop.
                     break
             if not line_in_frame:
                 break

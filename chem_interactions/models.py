@@ -57,6 +57,10 @@ class InteractionStructure:
         )
         return offset_vector
 
+    def structure_indices(self):
+        """Return a list of indices from the structures."""
+        return self.frame.keys()
+
 
 class InteractionLine(Line):
     """A Line with additional properties needed for representing interactions."""
