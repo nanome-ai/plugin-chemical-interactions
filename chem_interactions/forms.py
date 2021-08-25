@@ -79,6 +79,11 @@ default_line_settings = {
     },
     'clash': {'visible': False, 'color': color_map['white']},
     'carbonyl': {'visible': False, 'color': color_map['slategrey']},
+    'CARBONPI': {'visible': True, 'dash_thickness': 0.4, 'dash_length': 0.1, 'dash_distance': 0.6, 'color': color_map['red']},
+    'CATIONPI': {'visible': True, 'dash_thickness': 0.4, 'dash_length': 0.1, 'dash_distance': 0.6, 'color': color_map['orange']},
+    'DONORPI': {'visible': True, 'dash_thickness': 0.4, 'dash_length': 0.1, 'dash_distance': 0.6, 'color': color_map['yellow']},
+    'HALOGENPI': {'visible': True, 'dash_thickness': 0.4, 'dash_length': 0.1, 'dash_distance': 0.6, 'color': color_map['green']},
+    'METSULPHURPI': {'visible': True, 'dash_thickness': 0.4, 'dash_length': 0.1, 'dash_distance': 0.6, 'color': color_map['blue']},
     # 'proximal': {'visible': False, 'color': color_map['lavender']},
 }
 
@@ -99,4 +104,9 @@ class LineSettingsForm(Form):
     weak_polar = FormField(LineForm, label='Weak Polar', default=default_line_settings['weak_polar'])
     clash = FormField(LineForm, label='Clash', default=default_line_settings['clash'])
     carbonyl = FormField(LineForm, label='Carbonyl', default=default_line_settings['carbonyl'])
+    CARBONPI = FormField(LineForm, label='Carbon-PI', default=default_line_settings['CARBONPI'])
+    CATIONPI = FormField(LineForm, label='Cation-PI', default=default_line_settings['CATIONPI'])
+    DONORPI = FormField(LineForm, label='Donor-PI', default=default_line_settings['DONORPI'])
+    HALOGENPI = FormField(LineForm, label='Halogen-PI', default=default_line_settings['HALOGENPI'])
+    METSULPHURPI = FormField(LineForm, label='Sulphur-PI', default=default_line_settings['METSULPHURPI'])
     # proximal = FormField(LineForm, label='Proximal', default=default_line_settings['proximal'])

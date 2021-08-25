@@ -12,7 +12,7 @@ from nanome.util import async_callback, Color, Logs, Vector3
 
 from forms import LineSettingsForm
 from menus import ChemInteractionsMenu
-from models import InteractionLine, LineManager, LabelManager
+from models import InteractionLine, LineManager, LabelManager, InteractionStructure
 from utils import ComplexUtils
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -291,19 +291,47 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = atoms[0]
         return atom
 
-    def parse_atoms_from_atompaths(self, atom_paths, complexes):
-        """Return a list of atoms from the complexes based on the atom_paths."""
-        atom_list = []
+    def parse_ring_atoms(self, atom_path, complexes):
+        """Parse aromatic ring path into a list of Atoms.
+
+        e.g 'C/100/C1,C2,C3,C4,C5,C6' --> C/100/C1, C/100/C2, C/100/C3, etc
+        :rtype: List of Atoms.
+        """
+        chain_name, res_id, atom_names = atom_path.split('/')
+        atom_names = atom_names.split(',')
+        atom_paths = [f'{chain_name}/{res_id}/{atomname}' for atomname in atom_names]
+
+        atoms = []
         for atompath in atom_paths:
             for comp in complexes:
                 atom = self.get_atom_from_path(comp, atompath)
                 if atom:
                     break
-
             if not atom:
                 raise Exception(f'Atom {atompath} not found')
-            atom_list.append(atom)
-        return atom_list
+            atoms.append(atom)
+        return atoms
+
+    def parse_atoms_from_atompaths(self, atom_paths, complexes):
+        """Return a list of atoms from the complexes based on the atom_paths."""
+        struct_list = []
+        for atompath in atom_paths:
+            if ',' in atompath:
+                # Parse aromatic ring, and add list of atoms to struct_list
+                ring_atoms = self.parse_ring_atoms(atompath, complexes)
+                struct = InteractionStructure(ring_atoms)
+            else:
+                # Parse single atom
+                for comp in complexes:
+                    atom = self.get_atom_from_path(comp, atompath)
+                    if atom:
+                        break
+
+                if not atom:
+                    raise Exception(f'Atom {atompath} not found')
+                struct = InteractionStructure(atom)
+            struct_list.append(struct)
+        return struct_list
 
     async def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
@@ -336,46 +364,40 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom2_path = f"{a2_data['auth_asym_id']}/{a2_data['auth_seq_id']}/{a2_data['auth_atom_id']}"
             atom_paths = [atom1_path, atom2_path]
 
-            # Ones with commas are Pi-Pi Interactions? I'll have to investigate further. Skip for now
-            if ',' in atom1_path or ',' in atom2_path:
+            # A struct can be either an atom or a list of atoms, indicating an aromatic ring.
+            struct_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
+
+            if len(struct_list) != 2:
                 continue
 
-            atom_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
+            # if selected_atoms_only = True, and neither of the structures contain selected atoms, don't draw line
+            all_atoms = []
+            for struct in struct_list:
+                all_atoms.extend(struct.atoms)
 
-            if len(atom_list) != 2:
+            if selected_atoms_only and not any([a.selected for a in all_atoms]):
                 continue
 
-            # if selected_atoms_only = True, and neither of the atoms are selected, don't draw line
-            if selected_atoms_only and not any([a.selected for a in atom_list]):
-                continue
-
-            atom1, atom2 = atom_list
-            # Get the current frame of the complex corresponding to each atom
-            atom1_frame = atom2_frame = None
-            for comp in complexes:
-                if atom1_frame and atom2_frame:
-                    break
-                relevant_atoms = [a.index for a in comp.atoms if a.index in [atom1.index, atom2.index]]
-                if atom1.index in relevant_atoms:
-                    atom1_frame = comp.current_frame
-                if atom2.index in relevant_atoms:
-                    atom2_frame = comp.current_frame
-
-            # Frame attribute required for create_new_lines to work.
-            atom1.frame = atom1_frame
-            atom2.frame = atom2_frame
+            for struct in struct_list:
+                # Set `frame` attribute for InteractionStructure.
+                for comp in complexes:
+                    atom_indices = [a.index for a in struct.atoms]
+                    relevant_atoms = [a.index for a in comp.atoms if a.index in atom_indices]
+                    if relevant_atoms:
+                        struct.frame = comp.current_frame
 
             # Create new lines and save them in memory
-            atompair_lines = await self.create_new_lines(atom1, atom2, interaction_types, form.data)
-            new_line_manager.add_lines(atompair_lines)
+            struct1, struct2 = struct_list
+            structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
+            new_line_manager.add_lines(structpair_lines)
         return new_line_manager
 
-    async def create_new_lines(self, atom1, atom2, interaction_types, line_settings):
+    async def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
 
-        atom1: nanome.api.structure.Atom
-        atom2: nanome.api.structure.Atom
-        interaction_types: list of interaction types that exist between atom1 and atom2
+        struct1: InteractionStructure
+        struct2: InteractionStructure
+        interaction_types: list of interaction types that exist between struct1 and struct2
         line_settings: Color and shape information for each type of Interaction.
         """
         new_lines = []
@@ -386,14 +408,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # See if we've already drawn this line
             line_exists = False
-
-            atompair_lines = self.line_manager.get_lines_for_atompair(atom1, atom2)
-            for lin in atompair_lines:
+            structpair_lines = self.line_manager.get_lines_for_structure_pair(struct1, struct2)
+            for lin in structpair_lines:
                 if all([
-                    # Frame attribute is snuck onto the atom before passed into the function.
-                    # This isn't great, we should find a better way to do it.
-                    lin.frames.get(atom1.index) == atom1.frame,
-                    lin.frames.get(atom2.index) == atom2.frame,
+                    lin.frames.get(struct1.index) == struct1.frame,
+                    lin.frames.get(struct2.index) == struct2.frame,
                         lin.interaction_type == interaction_type]):
                     line_exists = True
                     break
@@ -402,21 +421,26 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             form_data['interaction_type'] = interaction_type
             # Draw line and add data about interaction type and frames.
-            line = self.draw_interaction_line(atom1, atom2, form_data)
+            line = self.draw_interaction_line(struct1, struct2, form_data)
             new_lines.append(line)
 
         return new_lines
 
-    def draw_interaction_line(self, atom1, atom2, line_settings):
-        """Draw line connecting two atoms.
+    def draw_interaction_line(self, struct1, struct2, line_settings):
+        """Draw line connecting two structs.
 
-        :arg atom1: Atom
-        :arg atom2: Atom
+        :arg struct1: struct
+        :arg struct2: struct
         :arg line_settings: Dict describing shape and color of line based on interaction_type
         """
-        line = InteractionLine(atom1, atom2, **line_settings)
-        line.anchors[0].anchor_type = line.anchors[1].anchor_type = nanome.util.enums.ShapeAnchorType.Atom
-        line.anchors[0].target, line.anchors[1].target = atom1.index, atom2.index
+        line = InteractionLine(struct1, struct2, **line_settings)
+
+        for struct, anchor in zip([struct1, struct2], line.anchors):
+            anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
+            anchor.target = struct.line_anchor.index
+            # This nudges the line anchor to the center of the structure
+            anchor.local_offset = struct.calculate_local_offset()
+
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
@@ -483,10 +507,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
             for atom in filtered_atoms:
-                # As soon as we find an atom not in frame, we can break from loop.
                 atoms_found += 1
-                line_in_frame = line.frames[atom.index] == comp.current_frame
+                struct_index = None
+                atom_index = str(atom.index)
+
+                # Get the structure index from the line corresponding to the current atom,
+                if atom_index in line.structure_indices:
+                    struct_index = str(atom.index)
+                else:
+                    struct_index = next(key for key in line.structure_indices if atom_index in key)
+                line_in_frame = line.frames[struct_index] == comp.current_frame
                 if not line_in_frame:
+                    # As soon as we find an atom not in frame, we can break from loop.
                     break
             if not line_in_frame:
                 break
@@ -501,19 +533,22 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Clear all interaction lines that are currently visible."""
         lines_to_destroy = []
         labels_to_destroy = []
-        for atom1_index, atom2_index in self.line_manager.get_atom_pairs():
-            line_list = self.line_manager.get_lines_for_atompair(atom1_index, atom2_index)
+        for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
+            line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
             line_count = len(line_list)
+            line_removed = False
             for i in range(line_count - 1, -1, -1):
                 line = line_list[i]
                 if self.line_in_frame(line, complexes):
                     lines_to_destroy.append(line)
                     line_list.remove(line)
-                    # Remove any labels that have been created corresponding to this atompair
-                    atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
-                    label = self.label_manager.remove_label_for_atompair(atom1_index, atom2_index)
-                    if label:
-                        labels_to_destroy.append(label)
+                    line_removed = True
+        # Remove any labels that have been created corresponding to this structpair
+        if line_removed:
+            label = self.label_manager.remove_label_for_structpair(struct1_index, struct2_index)
+            if label:
+                labels_to_destroy.append(label)
+
         destroyed_line_count = len(lines_to_destroy)
         Shape.destroy_multiple([*lines_to_destroy, *labels_to_destroy])
 
@@ -529,9 +564,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def render_distance_labels(self, complexes):
         Logs.message('Distance Labels enabled')
         self.show_distance_labels = True
-        for atom1_index, atom2_index in self.line_manager.get_atom_pairs():
-            # If theres any visible lines between the two atoms in atompair, add a label.
-            line_list = self.line_manager.get_lines_for_atompair(atom1_index, atom2_index)
+        for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
+            # If theres any visible lines between the two structs in structpair, add a label.
+            line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
             for line in line_list:
                 if self.line_in_frame(line, complexes) and line.color.a > 0:
                     label = Label()
@@ -540,7 +575,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     label.anchors = line.anchors
                     for anchor in label.anchors:
                         anchor.viewer_offset = Vector3(0, 0, -.01)
-                    self.label_manager.add_label(label)
+                    self.label_manager.add_label(label, struct1_index, struct2_index)
                     break
         Shape.upload_multiple(self.label_manager.all_labels())
 
