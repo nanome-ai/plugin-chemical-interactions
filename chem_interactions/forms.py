@@ -64,7 +64,13 @@ default_line_settings = {
     'ionic': {'visible': True, 'color': color_map['red']},
     'xbond': {'visible': True, 'color': color_map['green']},
     'metal_complex': {'visible': True, 'color': color_map['grey']},
-    'aromatic': {'visible': True, 'color': color_map['magenta']},
+    'aromatic': {
+        'visible': True,
+        'color': color_map['magenta'],
+        'dash_thickness': 0.09,
+        'dash_distance': 0.5,
+        'dash_length': 0.18
+    },
     'hydrophobic': {'visible': False, 'color': color_map['purple'], 'dash_length': .1},
     'vdw': {'visible': False, 'color': color_map['sienna']},
     'vdw_clash': {'visible': False, 'color': color_map['maroon']},
