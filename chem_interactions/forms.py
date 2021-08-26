@@ -85,11 +85,11 @@ default_line_settings = {
     },
     'clash': {'visible': False, 'color': color_map['white']},
     'carbonyl': {'visible': False, 'color': color_map['slategrey']},
-    'CARBONPI': {'visible': True, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['red']},
-    'CATIONPI': {'visible': True, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['orange']},
-    'DONORPI': {'visible': True, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['yellow']},
-    'HALOGENPI': {'visible': True, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['green']},
-    'METSULPHURPI': {'visible': True, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['blue']},
+    'CARBONPI': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['red']},
+    'CATIONPI': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['orange']},
+    'DONORPI': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['yellow']},
+    'HALOGENPI': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['green']},
+    'METSULPHURPI': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['blue']},
     # 'proximal': {'visible': False, 'color': color_map['lavender']},
 }
 
