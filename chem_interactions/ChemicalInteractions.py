@@ -360,6 +360,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             a2_data = row['end']
             interaction_types = row['contact']
 
+            # If we dont have line settings for any of the interactions in the row, we can continue
+            # Typically this filters out rows with only `proximal` interactions.
+            if not set(interaction_types).intersection(set(form.data.keys())):
+                continue
+
             atom1_path = f"{a1_data['auth_asym_id']}/{a1_data['auth_seq_id']}/{a1_data['auth_atom_id']}"
             atom2_path = f"{a2_data['auth_asym_id']}/{a2_data['auth_seq_id']}/{a2_data['auth_atom_id']}"
             atom_paths = [atom1_path, atom2_path]

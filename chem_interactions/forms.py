@@ -42,7 +42,7 @@ class LineForm(Form):
     visible = BooleanField(default=True)
     color = NanomeColorField()
     thickness = FloatField(default=0.1)
-    dash_length = FloatField(default=0.25)
+    dash_length = FloatField(default=0.2)
     dash_distance = FloatField(default=0.25)
     interaction_type = StringField()
 
@@ -67,11 +67,11 @@ default_line_settings = {
     'aromatic': {
         'visible': True,
         'color': color_map['magenta'],
-        'dash_thickness': 0.09,
+        'thickness': 0.09,
         'dash_distance': 0.5,
         'dash_length': 0.18
     },
-    'hydrophobic': {'visible': False, 'color': color_map['purple'], 'dash_length': .1},
+    'hydrophobic': {'visible': False, 'color': color_map['purple'], 'dash_length': 0.07, 'thickness': 0.12, "dash_distance": 0.4},
     'vdw': {'visible': False, 'color': color_map['sienna']},
     'vdw_clash': {'visible': False, 'color': color_map['maroon']},
     'weak_hbond': {'visible': False, 'color': color_map['orange']},
@@ -79,17 +79,17 @@ default_line_settings = {
     'weak_polar': {
         'visible': False,
         'color': color_map['steelblue'],
-        'dash_thickness': .8,
-        'dash_distance': .4,
-        'dash_length': .1
+        'thickness': 0.12,
+        'dash_distance': 0.4,
+        'dash_length': 0.1
     },
     'clash': {'visible': False, 'color': color_map['white']},
     'carbonyl': {'visible': False, 'color': color_map['slategrey']},
-    'CARBONPI': {'visible': True, 'dash_thickness': 0.4, 'dash_length': 0.1, 'dash_distance': 0.6, 'color': color_map['red']},
-    'CATIONPI': {'visible': True, 'dash_thickness': 0.4, 'dash_length': 0.1, 'dash_distance': 0.6, 'color': color_map['orange']},
-    'DONORPI': {'visible': True, 'dash_thickness': 0.4, 'dash_length': 0.1, 'dash_distance': 0.6, 'color': color_map['yellow']},
-    'HALOGENPI': {'visible': True, 'dash_thickness': 0.4, 'dash_length': 0.1, 'dash_distance': 0.6, 'color': color_map['green']},
-    'METSULPHURPI': {'visible': True, 'dash_thickness': 0.4, 'dash_length': 0.1, 'dash_distance': 0.6, 'color': color_map['blue']},
+    'CARBONPI': {'visible': True, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['red']},
+    'CATIONPI': {'visible': True, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['orange']},
+    'DONORPI': {'visible': True, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['yellow']},
+    'HALOGENPI': {'visible': True, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['green']},
+    'METSULPHURPI': {'visible': True, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['blue']},
     # 'proximal': {'visible': False, 'color': color_map['lavender']},
 }
 
