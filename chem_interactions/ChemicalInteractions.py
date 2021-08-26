@@ -351,9 +351,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         contact_data_len = len(contacts_data)
         new_line_manager = LineManager()
         self.menu.set_update_text("Updating Workspace")
+
+        # We update the menu bar incrementally to keep the user updated on progress.
+        # Every 3% seems to work well.
+        data_len = len(contacts_data)
+        loading_bar_increment = int(data_len * 0.03)
+
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
-            self.menu.update_loading_bar(i, contact_data_len)
+            if i % loading_bar_increment == 0:
+                self.menu.update_loading_bar(i, contact_data_len)
 
             # Atom paths that current row is describing interactions between
             a1_data = row['bgn']
