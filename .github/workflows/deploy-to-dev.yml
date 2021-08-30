@@ -3,9 +3,29 @@ on:
   push:
     branches: [master]
 jobs:
-  build:
+  bump-version:
+    name: Bump package version
+    if: "!contains(github.event.head_commit.message, 'Bump version')"
+    runs-on: ubuntu-20.04
+    steps:
+    - name: actions/checkout
+      uses: actions/checkout@v2
+      with:
+          persist-credentials: true
+    - name: run version script, bump version, and push commit to master
+      run: >
+        git config --global user.email "hello@nanome.ai"
+        && git config --global user.name "Nanome"
+        && pip install bump2version
+        && chmod +x ./version.sh
+        && ./version.sh patch
+        && current_version=$(cat chem_interactions/__init__.py | grep __version__ | cut -d'=' -f2 | xargs)
+        && git push origin master
+        && git push origin v$current_version
+  deploy:
     name: Deploy to Dev
     runs-on: ubuntu-latest
+    needs: bump-version
     steps:
     - name: Fetch, Pull, Deploy
       uses: appleboy/ssh-action@master
