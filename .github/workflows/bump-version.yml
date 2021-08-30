@@ -3,7 +3,7 @@ name: Bump version workflow
 on:
   push:
     branches:
-    - version-fork
+    - master
 jobs:
   bump-version:
     name: Bump package version
@@ -14,7 +14,7 @@ jobs:
       uses: actions/checkout@v2
       with:
           persist-credentials: true
-    - name: run version script
+    - name: run version script, bump version, and push commit to master
       run: >
         git config --global user.email "hello@nanome.ai"
         && git config --global user.name "Nanome"
@@ -22,4 +22,4 @@ jobs:
         && chmod +x ./version.sh
         && ./version.sh patch
         && new_version=$(cat chem_interactions/__init__.py | grep __version__ | cut -d'=' -f2 | xargs)
-        && git push origin version-fork
+        && git push origin master
