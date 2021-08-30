@@ -3,7 +3,7 @@ name: Bump version workflow
 on:
   push:
     branches:
-    - version
+    - version-fork
 
 jobs:
   bump-version:
