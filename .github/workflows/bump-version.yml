@@ -14,7 +14,7 @@ jobs:
     - name: actions/checkout
       uses: actions/checkout@v2
       with:
-          persist-credentials: false
+          persist-credentials: true
     - name: run version script
       run: >
         git stash &&
