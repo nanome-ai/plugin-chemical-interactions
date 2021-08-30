@@ -1,0 +1,994 @@
+[33mcommit c6ee3edb842d179618aa7cef2b2c5f75fca20da3[m[33m ([m[1;36mHEAD -> [m[1;32mversion[m[33m, [m[1;33mtag: v0.4.2[m[33m)[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 12:46:28 2021 -0400
+
+    Bump version: 0.4.1 → 0.4.2
+
+[33mcommit a8de2111b53076c4206c650aff2d8ce1810746ea[m[33m ([m[1;33mtag: ls[m[33m)[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 12:44:12 2021 -0400
+
+    Bump version: 0.4.0 → 0.4.1
+
+[33mcommit 97461b5abc22b38c44d24e77e3fcd7b0b14bcba6[m[33m ([m[1;31morigin/version[m[33m)[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 12:43:16 2021 -0400
+
+    version.md
+
+[33mcommit d05ac5dd29978bd1e2e994e59332c3ddea79ef03[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 12:20:39 2021 -0400
+
+    ..
+
+[33mcommit 92857ae3a11b0d037ced412125ac21495fc42130[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 12:17:24 2021 -0400
+
+    .
+
+[33mcommit fcc193314b34fbc34187a79e69c1adaaf7d8c3d9[m[33m ([m[1;33mtag: v0.4.1[m[33m)[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:56:07 2021 -0400
+
+    Bump version: 0.4.0 → 0.4.1
+
+[33mcommit c2890b216114076185743d0d551e0a6e39b7ee89[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:55:09 2021 -0400
+
+    ?
+
+[33mcommit e16cae818f4ebf51dc3b10b3141f35550d05e845[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:52:14 2021 -0400
+
+    setup.cfg
+
+[33mcommit 8305d8c8ca045f26b7e0a029d31ea3f2f7878d50[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:45:02 2021 -0400
+
+    fix files
+
+[33mcommit 26f3bdc681790d731d1064f7144ba155d4599489[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:43:09 2021 -0400
+
+    Update command to parse current version
+
+[33mcommit 80017756fe174ef35dd2c1441306896ed96e57da[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:34:18 2021 -0400
+
+    update
+
+[33mcommit 91d4c9e373ea2ae09c536acae7bc5ba0624f17da[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:32:23 2021 -0400
+
+    Bump version workflow
+
+[33mcommit af2fc142975a8e7f809f801b4db06849eedf744e[m[33m ([m[1;33mtag: v0.4.0[m[33m)[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:21:56 2021 -0400
+
+    Bump version: 0.3.0 → 0.4.0
+
+[33mcommit 46cc6e7d2e8be346278daca4a633d2f3dd7bde34[m[33m ([m[1;33mtag: v0.3.0[m[33m)[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:21:49 2021 -0400
+
+    Bump version: 0.2.0 → 0.3.0
+
+[33mcommit d07ce20de0d10f2d288f7bdd634506c5194d5d12[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:21:47 2021 -0400
+
+    make version.sh executable
+
+[33mcommit f9c733167f91a90a7a6000142e130cb5bea5ce06[m[33m ([m[1;33mtag: v0.2.0[m[33m, [m[1;32mmaster[m[33m)[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Mon Aug 30 11:20:31 2021 -0400
+
+    Bump version: 0.1.0 → 0.2.0
+
+[33mcommit e454f2d303481ebfdd0640e62ca1846ca9f20369[m[33m ([m[1;33mtag: v1.0.4[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;31mdev/test-deploy[m[33m, [m[1;31mdev/master[m[33m)[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Thu Aug 26 17:19:00 2021 -0400
+
+    Make PI interactions hidden by default
+
+[33mcommit 0d565def3c575bf789f261f96443cd8143386e78[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Aug 26 16:35:13 2021 -0400
+
+    reduce number of times we update the loading bar
+
+[33mcommit 7b1372dba8cd24af64bc0824650f612b77aa67f5[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Thu Aug 26 15:53:10 2021 -0400
+
+    update line shape settings/ skip rows with no drawable interactions
+
+[33mcommit 871888a854eb482775dbcda7df0e19e4037bf21e[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Thu Aug 26 13:45:44 2021 -0400
+
+    make aromatic interaction lines a little smaller
+
+[33mcommit 6f8619fcde3a7ed33d9e972aacadaea9fb2f9433[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Wed Aug 25 10:54:22 2021 -0400
+
+    Nx 785 pi interactions (#51)
+    
+    - Add new more PI interaction types to menu.
+    - Create InteractionStructure model, which allows us to support interactions between rings of atoms.
+    - Update whole application to use InteractionStructures instead of Atoms. (Comments, variable names, etc.)
+    - Clean up some tech debt (Get rid of atom.frame)
+
+[33mcommit 7c3e997cf3131aa2800638a492aa9b66d13bae7b[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Aug 23 16:34:15 2021 -0400
+
+    VSCode task for starting development server  (#50)
+    
+    * Update run.py
+    
+    * Update tasks.json
+    
+    * Add tasks for setting up dev container
+    
+    * optimize plugin dockerfile
+
+[33mcommit 8f6961b78eeebc1289257c49a38742a4306e94cb[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Aug 23 13:29:37 2021 -0400
+
+    Arpeggio-service improve dockerfile caching (#49)
+    
+    * avoid rebuilding Python 3.7 every time code updates
+
+[33mcommit 4eb9c6db2ae2a77ac0209597784d7979af0e1447[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Wed Aug 18 15:15:04 2021 -0400
+
+    use build and deploy scripts for prod deploys
+
+[33mcommit 652d686430c1cde0560428c2e1488391529ceefa[m[33m ([m[1;33mtag: v1.0.3[m[33m)[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Wed Aug 18 14:59:33 2021 -0400
+
+    Deploy to prod Github action (#48)
+
+[33mcommit 17d416df712c898fefc16422f257eca49ba36f5d[m
+Author: mjrosengrant <mike@rosengrant.me>
+Date:   Thu Aug 5 16:23:24 2021 -0400
+
+    Make sure we build before we redeploy
+
+[33mcommit 89f748103c142ce2bd7c9b8b307ca3a888044389[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Aug 5 16:11:24 2021 -0400
+
+    Create deploy-to-dev.yml
+
+[33mcommit ffe8e77ec3d7dce10abd5233543ffc7c2115dec5[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Aug 2 20:29:45 2021 -0400
+
+    justMyCode = false in launch config
+
+[33mcommit dbd8c0658fcb79ea0c9c1b06e934d8c0e9bd623a[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Aug 2 18:09:19 2021 -0400
+
+    Nx 774 deploy script tweaks (#46)
+    
+    
+    * create redeploy.sh when deploy.sh run
+    
+    * add redeploy.sh to .gitignore
+    
+    * change .yaml files to .yml
+    
+    * Update README.md
+
+[33mcommit 3c1b37db544ac925efcf4243f186b59c6e9b2115[m[33m ([m[1;33mtag: v1.0.2[m[33m, [m[1;32mpi-pi-updates[m[33m)[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Wed Jul 28 16:56:27 2021 -0400
+
+    Docker settings update (#45)
+    
+    
+    * Enables multiple instances to run on same server without port clashes
+    
+    * add docker-compose override to .gitignore
+    
+    * Dont expose arpeggio to host during deploys.
+
+[33mcommit 749b4adb5ac35b3aa7ff428c2ac8734a019739df[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Wed Jul 28 16:36:21 2021 -0400
+
+    Nx 770 distance labels (#44)
+    
+    * create InteractionLine class
+    
+    * Add distances button to the ui
+    
+    * Use toggle switch for distance
+    
+    * Update plugin to use LineManger and LabelManager for tracking Shapes
+    
+    * Instantiate InteractionLine with Constructor, not form
+    
+    * Add ability to show and hide labels
+    
+    * Optimize label deletion by combining with line destroy
+
+[33mcommit 32b04399975a246ff5a6a0bccc968f3a2fb043f6[m[33m ([m[1;33mtag: v1.0.1[m[33m)[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jul 19 13:15:19 2021 -0400
+
+    Add error notifications when user doesn't select complexes or ligands (#43)
+
+[33mcommit 72de6e39d0f9300ad784cd779141e863b627c8b2[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri Jul 16 17:38:03 2021 -0400
+
+    improved menu padding
+
+[33mcommit 14122d5e37cef3c7620fc460abb2567589aac24b[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jul 15 18:29:29 2021 -0400
+
+    Send Update text to user in calculate button/ README updates (#42)
+    
+    * Use calculate button to provide user with status updates
+    
+    * change plugin description
+    
+    * Update README
+    
+    * Add line count to finished calculating notification
+
+[33mcommit 838d5162ae9b7d0d515c185ef5c0cae9b6517a16[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jul 15 13:57:47 2021 -0400
+
+    add spacer layoutnode to json
+
+[33mcommit a73b4dd2f2676a4f0cab5616eb1b11b61bc238c0[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jul 15 13:00:39 2021 -0400
+
+    UI changes (#41)
+    
+    
+    * Add padding to Structure Labels
+    
+    * Add Display Title
+
+[33mcommit aa7946ca186cd9f6722fa47f8b92fafd93161cf5[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Wed Jul 14 19:15:05 2021 -0400
+
+    Random Design/Color Fixes (#40)
+    
+    * Lighter color purple for hydrophobic interactions
+    
+    * Fix Red highlight color on Clear Frames button
+    
+    * Update README.md
+
+[33mcommit 0f7d80e313d6be391f5489dca64ce81c00efc018[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Wed Jul 14 13:24:36 2021 -0400
+
+    use struct.full_name instead of struct.name
+
+[33mcommit 97e70fd83dbe48a309e0aedb89fafd13148e1911[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Wed Jul 14 13:13:34 2021 -0400
+
+    Batch destroy (#39)
+    
+    * Use new destroy_multiple command
+    
+    * Update requirements.txt
+
+[33mcommit 65b49d95937da526952c5ad3ca9352c977e1b699[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Wed Jul 14 11:06:22 2021 -0400
+
+    Switch over to PDBeurope/arpeggio (#38)
+    
+    *   Migrate arpeggio services to Python 3.7
+    
+    *   Modify plugin to parse json response from new Arpeggio
+    
+    *   Temporarily using fork until open Github issue is resolved upstream
+
+[33mcommit 35286a4501e33c47f79915ce285a9b2ac83d3ec8[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jul 13 22:28:38 2021 -0400
+
+    Update run.py
+
+[33mcommit 9c1e911c6fa2f0c150e02c559b7e09cc051b026b[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jul 13 20:56:37 2021 -0400
+
+    Feedback improvements (#37)
+    
+    * Fix dropdown not showing selected item for non-presenters
+    
+    * Fix selections
+    
+    * Remove selection when specify structures used
+    
+    * Better logic for showing and hiding ligands dropdown
+
+[33mcommit 31e7a16dfe1fc8ef4f58dedd1ad4b26d6987ff35[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jul 13 15:01:28 2021 -0400
+
+    Update run.py
+
+[33mcommit e9fe766c1de9dfd30185c8a6b5cb651331e33047[m[33m ([m[1;32mfix-stuff[m[33m)[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jul 13 13:21:06 2021 -0400
+
+    Fix -n flag
+
+[33mcommit ffa3b095a52572501a2150f65487b1bb7076bc51[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jul 13 11:38:49 2021 -0400
+
+    Create ArgumentParser for setting up plugin (#36)
+    
+    * Set up ArgumentParser for run.py
+
+[33mcommit 621c8c4fae3a06cdcea06c3562eb40256c9263b3[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jul 12 14:06:49 2021 -0400
+
+    Improvements/Updates (#35)
+    
+    
+    -    Allow list of ligand complexes to be passed
+    -    Consolidate selected complex and ligand complexes when possible
+    -    refactor get_interaction_selections()
+    -    Some extra logging
+    -    Design feedback on menu. Labels/ Button order
+
+[33mcommit 16dd47d0dad3765719025936428d05860629ed16[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jul 12 09:56:10 2021 -0400
+
+    Avoid leaving orphaned files on arpeggio-service (#34)
+    
+    * remove temp_dir when done
+    
+    * Better memory management
+
+[33mcommit 22a05aa8fd3f80445d2655f402b4162b3f93e9ee[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri Jul 9 16:04:49 2021 -0400
+
+    handle memory better in arpeggio-service (#33)
+
+[33mcommit bc989769b343d786cd472628952c3d52ebd54d3e[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri Jul 9 15:10:22 2021 -0400
+
+    Revisions (#32)
+    
+    * Autofill structure 1 when complex added to workspace
+    * Add redeploy.sh
+
+[33mcommit 93bcaa665b24388cfbd4ba98a79c065064f8017d[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri Jul 9 13:29:34 2021 -0400
+
+    Change Specify Ligand Text
+
+[33mcommit 0fed8333590ef89d04e756c68ae1344ad6d63631[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri Jul 9 13:23:22 2021 -0400
+
+    Flatten project folders (#31)
+    
+    * Flatten project folders
+
+[33mcommit 8c7a37133d4ec8fd7fd0359b59b23980dde5e4cd[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri Jul 9 13:14:59 2021 -0400
+
+    Feature: default complex/ Improved atom selections (#30)
+    
+    * Set default selected complex to first complex with any atoms selected.
+    * Add ability to pass multiple ligands from menu into calculate_interactions function
+    * Fix bug with sending multiple selections to arpeggio
+    * Extend gunicorn timeouts for arpeggio-service
+
+[33mcommit 3777b9619780b314cef9b25c2f6eb20c5951c2f5[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jul 6 16:57:37 2021 -0400
+
+    Undo integration workaround, make self._interaction_lines a property (#29)
+    
+    * Specify requests version in requirements.txt
+    * Get rid of try/except for integrations
+    * Make interaction_lines a property on Plugin object
+
+[33mcommit 4c9f9cdd5ff82f94edbc80a3c0ec462fbc9f21ac[m[33m ([m[1;32msmall-refactor[m[33m)[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jul 6 12:54:29 2021 -0400
+
+    Batch shapes upgrade (#28)
+    
+    * use upload multiple function
+    * remove upload_line fn
+
+[33mcommit 61ea6b791c86b727c7a26b83d2c2e233c56504f9[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jul 1 14:28:56 2021 -0400
+
+    rename containers in docker-compose
+
+[33mcommit 602c17f161aa23e9e7b68cac081ee43a8b724c93[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jul 1 13:56:55 2021 -0400
+
+    Update requirements.txt
+
+[33mcommit 0ef1af1f5011055a926f7f07e94d3e49574e1e6d[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jul 1 12:40:10 2021 -0400
+
+    Fix Clear frame button color
+
+[33mcommit 1dc47e04fdc56d3426dbe9c7e4bf029894d63c76[m[33m ([m[1;32mbtn-color-fix[m[33m)[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jun 29 19:06:24 2021 -0400
+
+    Feedback Iteration (#27)
+    
+    - Made 'Clear Frames' Button a lighter Red
+    - Added new state "Show Default" for toggle interaction settings
+    - Rename line_settings to default_line_settings
+
+[33mcommit 9c13a1ccced21ed24279b25474ce22e5b0f0a258[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jun 24 14:58:05 2021 -0700
+
+    Minor cleanups
+    
+    Update ChemicalInteractions.py
+
+[33mcommit d68bc83b7de6caa11ec6241c6000f90e549e8ff3[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jun 24 14:11:38 2021 -0700
+
+    Add button to clear interaction lines that are currently visible (#26)
+    
+    * Add clear frame button
+    
+    * Consolidate line_in_frame logic into one function
+    
+    * Add Logging for elapsed calculation time
+    
+    * Add async notification function, remove destroyed lines from self._interaction_lines
+
+[33mcommit 617164377c43d51735779e2c3977fb8c60820b95[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jun 24 00:33:52 2021 -0700
+
+    Refactor things for readability (#25)
+    
+    - Break down get_interactions and parse_and_upload into smaller pieces
+    - Rename those two functions to be more descriptive
+    - Better comments throughout plugin
+    - Refactor part where we determine atom's current frame
+    - BUG FIX: If comparing two different complexes, by default only get interactions related to ligand
+
+[33mcommit fb197361feaecb76cc589a121f9f02219e7cff0d[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jun 22 16:25:28 2021 -0700
+
+    FEATURE: Selected atom interactions vs show all interactions (#24)
+    
+    * Set up buttons for atom selection
+    * Add support for selected atoms on complex to complex interactions
+    * Refresh complexes on submit to get up to date selections
+    * Add function for getting selected atom paths
+    * Update menu.json
+
+[33mcommit 3efdffac9259cd4a40bb50fa0c54df601cb05206[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jun 22 11:39:55 2021 -0700
+
+    Add Loading bar while calculating interactions (#23)
+    
+    * Add simple loading bar.
+    * Loading bar goes under the calculate button
+
+[33mcommit 9031cf78531d67132d9c0fe2e56699710adc2c05[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jun 22 10:09:10 2021 -0700
+
+    Fix multiple residues error (#22)
+    
+    * refactor get_atom_from_path to fix multiple residue error
+    * Change how we add selections
+    * Default to finding interactions with LIGANDS
+
+[33mcommit d5ff68c21ddeb121c083ba78f8a609c75ef8bcb8[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jun 21 17:15:39 2021 -0400
+
+    UI updates (#21)
+    
+    - Structure dropdowns instead of buttons.
+    - Store ligand information on dropdown items instead of class variables
+    - Fix unique naming issue (complex {1}, complex {2}, etc...)
+    - Better error handling
+
+[33mcommit 39d5be54a64bc303d44920bc07234ed7b054369f[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jun 17 16:29:34 2021 -0400
+
+    Update README.md
+
+[33mcommit 47dc1b01845c6e75c2251a24bb1a14c8ba3baa2c[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jun 17 15:10:38 2021 -0400
+
+    Update line shapes
+    
+    Update hydrophobic line shape
+    Update weak polar line shape
+
+[33mcommit 2397b29abb96cd789c2b7c0090e9b25be3b6b3a1[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jun 17 14:27:06 2021 -0400
+
+    Update README.md
+
+[33mcommit 2ca6d7d576311627c0e9fce891d3b7df1aeb792f[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jun 17 14:26:03 2021 -0400
+
+    Cleanup get_atom function (#20)
+    
+    * Refactor get_atom function
+    
+    * rename get_atom to get_atom_from_path
+    
+    * rename docker-compose file
+    
+    * Remove frames mode setting
+
+[33mcommit 2906b26353a9e800edfbe1575f7141206f858a67[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Wed Jun 16 18:20:00 2021 -0400
+
+    Readme updates (#18)
+    
+    * Update README.md
+
+[33mcommit 68bdda9220d4de0b926c68914a5661b63c2bfea2[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jun 15 12:55:34 2021 -0400
+
+    Update deploy.sh
+
+[33mcommit a982e728158a95c932f2cb4adb10e1106a010b70[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jun 15 12:51:19 2021 -0400
+
+    Bug fix
+
+[33mcommit 04f8a86182d990b1a83548b42632a604b6471b3b[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jun 14 22:01:40 2021 -0400
+
+    Better error handling/ ligand button bug fix (#17)
+
+[33mcommit 6eca16e1e9b0d89c44981758ca2c19127c178d88[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jun 14 16:46:49 2021 -0400
+
+    Menu fixes (#16)
+    
+    * Fix bug with re-rendering ligand list with multiple complexes
+    
+    * Add a compose file for deployments (no volumes, no ssh)
+    
+    * Update menus.py
+
+[33mcommit 76c73bb4a418841692998c136546874d3119d406[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jun 14 16:06:52 2021 -0400
+
+    rename folder to chem_interactions (#15)
+    
+    * Rename nanome_chemical_interactions to chem_interactions
+    * Update docker-compose.yaml
+
+[33mcommit 8102e15c9b6d2ea1fc03db0eb0657791b9176efd[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jun 14 15:35:26 2021 -0400
+
+    Setup integration hook (#10)
+    
+    * Update run.py
+    * Add workaround to make sure plugin doesn't break before nanome-lib is released
+
+[33mcommit 482fcd1b284c0cf2f8a307c654c36b7e8195b3f3[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jun 14 13:29:53 2021 -0400
+
+    Better color matches to current hbond tool (#14)
+
+[33mcommit 3d030441e4ba5a585fd60e3bb9263b988cc9eaed[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jun 14 12:56:48 2021 -0400
+
+    Idempotent Interactions Calculate (#13)
+    
+    Pressing calculate more than once will no longer keep drawing new lines
+
+[33mcommit 2dd41926ab26d9c0897d65ecee8f4ae595a6c61c[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri Jun 11 16:05:46 2021 -0400
+
+    fix enable-frames-mode (#12)
+
+[33mcommit a633f11ad7205575eeaf35ea378404ef9fa12e48[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri Jun 11 10:50:51 2021 -0400
+
+    Update LICENSE (#11)
+    
+    * Update LICENSE
+
+[33mcommit 7602b79f63d527474bd4513d98d45720e5e2bf56[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri Jun 11 00:06:19 2021 -0400
+
+    General Code cleanups and refactor (#9)
+    
+    * Clean up get_interactions function
+    * frames mode is set up in its own function
+    * pass complexes into update_interaction_lines
+    * better variable naming
+
+[33mcommit f2a09e10e91bcd0b06b9606c89c73d0ccdd7dd62[m[33m ([m[1;32mupdate_interaction_lines-old[m[33m)[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Wed Jun 9 13:23:23 2021 -0400
+
+    Connect interaction lines to frames (#8)
+    
+    * Take frames into account when drawing interaction lines
+
+[33mcommit d37a33451c772e0267ad8e9db7cd9c44c63fed1c[m[33m ([m[1;32mframes-partial-fix[m[33m)[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Tue Jun 8 10:19:41 2021 -0400
+
+    Make toggle buttons more closely match designs (#7)
+
+[33mcommit a66b88fa39f210e9c4be11fe0a3ce6b5ed6d29e9[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Mon Jun 7 12:17:06 2021 -0400
+
+    Complex ligand choices update (#6)
+    
+    - More efficient ligand selection
+    - Update Hydrogen interaction colors to match existing hbonds tool
+
+[33mcommit 9afea349303c8d6e44900b89f3ee844b4972d75c[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri Jun 4 13:16:34 2021 -0400
+
+    Use stream to speed up line updating (#5)
+    
+    * Use stream for redrawing interaction lines
+
+[33mcommit 23733ae031bda0bd452fa803cd896b4f5e356948[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jun 3 13:11:32 2021 -0400
+
+    Update default colors to match spec. (#4)
+    
+    * Separate out default interaction settings from field instantiation
+    
+    * Update color options according to design specs
+
+[33mcommit 19ef8e442246ed282a5199e83d00bb5bee70afee[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Thu Jun 3 12:02:06 2021 -0400
+
+    Feedback improvements (#3)
+    
+    - Added ability to find interactions across complexes in Entry list
+    - Pass ARGS from deploy.sh into plugin container
+    - Make menu more adaptive to entry list changes
+    - Make filenames to arpeggio-services more flexible
+    - Optimize Menu render time
+    - Add show/hide all interactions toggle
+
+[33mcommit f0ba3deea87a2d2d4aca3c8d964cf4b4335d21bc[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri May 28 19:10:35 2021 -0400
+
+    Clean up form  (#2)
+    
+    * Make interactions section match designs
+    
+    * Add reference
+    
+    * spacing
+    
+    * vscode cleanups
+    
+    * rename ligands function to extract_ligands
+    
+    * rename ligands() to extract_ligands(0
+
+[33mcommit b784edca04a1773ed19d2a7979a5f458ae2a6279[m
+Author: Mike Rosengrant <mjrosengrant@users.noreply.github.com>
+Date:   Fri May 28 19:05:51 2021 -0400
+
+    First iteration of working chemical interaction calculations (#1)
+    
+    * formatting cleanup
+    
+    * formatting fix
+    
+    * Start docker-compose file
+    
+    * Fix up docker-compose
+    
+    * Add new menu/ volume on plugin docker image
+    
+    * Move dockerfile
+    
+    * Remove old server/ move docker compose
+    
+    * make server debuggable
+    
+    * symlink
+    
+    * delete extra stuff
+    
+    * add arpeggio-service to repo
+    
+    * merge arpeggio-service repo into this one
+    
+    * remove dockerfile were not using
+    
+    * Make endpoint a POST endpoint
+    
+    * Cleanup variable names
+    
+    * Looking Good Looking Good!
+    
+    * clean up docker build/deploy files
+    
+    * Move dockerfile into nanome_chemical_properties
+    
+    * update request to arpeggio-services
+    
+    * cleanups
+    
+    * add clean_pdb code
+    
+    * arpeggio services is working!
+    
+    * clean up variable names/ logic
+    
+    * changes
+    
+    * update env
+    
+    * Add notification on interactions retrieval
+    
+    * Better config setting
+    
+    * change
+    
+    * small fixes
+    
+    * Successfully unpack arpeggio response zip file
+    
+    * delete sample file
+    
+    * start to parse .contacts arpeggio file
+    Co-authored-by: Astrovicis <max@nanome.ai>
+    
+    * add volumes/ update env file location
+    
+    * Move run.py file, fix relative imports
+    
+    * fix relative imports again
+    
+    * imports
+    
+    * remove devcontainer
+    
+    * First interaction lines drawn in Nanome!
+    
+    * save
+    
+    * render all interactions/ add clean function to arpeggio-service
+    
+    * Start using clean endpoint
+    
+    * add tmp to .gitignore
+    
+    * error handling
+    
+    * small change
+    
+    * Add vscode to repo
+    
+    * add depends_on to docker-compose
+    
+    * Small changes
+    
+    * Start setting up form
+    
+    * form work
+    
+    * save state
+    
+    * More Progess!
+    
+    * progress
+    
+    * redo upload
+    
+    * description
+    
+    * Move menu into separate folder
+    
+    * updates
+    
+    * add async line upload
+    
+    * cleanup folder structure
+    
+    * First pass at color form
+    
+    * req.txt
+    
+    * Better color form
+    
+    * Progress on Interactions UI
+    
+    * Better button toggling
+    
+    * Flesh out InteractionsForm/ Better UI Handling
+    
+    * Set Default Interaction color
+    
+    * Add defaults to every Interaction form
+    
+    * Colors and visibility being set!
+    
+    * Fix dropdown flickering dropdown/ clean up code
+    
+    * create draw_interaction_line/collect_interaction_data fns,
+    
+    * variable rename
+    
+    * Code review changes
+    
+    Co-authored-by: Alex McNerney <ajm13@users.noreply.github.com>
+    Co-authored-by: Astrovicis <max@nanome.ai>
+    
+    * next iter cleanups
+    
+    * todo
+    
+    * spacing
+    
+    * Run arpeggio-service with gunicorn
+    
+    * Pass ARGS to plugin run command
+    
+    * Fix arpeggio-service wsgi app
+    
+    * First pass at fixing atom_paths list
+    
+    * Pass selected_residue into get_interactions
+    
+    * Better interactions rendering
+    
+    * Small cleanups
+    
+    * Dynamically change colors and visibility after interactions calculated
+    
+    * Better Form validation
+    
+    * rename atom paths to selection, use RESNAME:resname for selection flag. Seems more reliable
+    
+    * remove unneeded function
+    
+    * return more ligands
+    
+    * Remove ChemInteractionsForm
+    
+    Co-authored-by: Alex McNerney <ajm13@users.noreply.github.com>
+    Co-authored-by: Astrovicis <max@nanome.ai>
+
+[33mcommit d3293afe5266db8a3e9f2cf882cf8dfba655740c[m
+Author: Astrovicis <max@nanome.ai>
+Date:   Wed Mar 17 16:59:45 2021 -0700
+
+    add interaction type list item prefab
+
+[33mcommit dc3e69e9c630648aa3a86c4a8cfbbf19940e115f[m
+Author: Astrovicis <max@nanome.ai>
+Date:   Wed Mar 17 16:28:37 2021 -0700
+
+    add display menu
+
+[33mcommit 15bd523726687351e34e07c571499406b2299a02[m
+Author: Max Howard <max@nanome.ai>
+Date:   Mon Mar 15 22:32:46 2021 +0000
+
+    and again
+
+[33mcommit bbd24152e69a32831b8895f0c79441190684564e[m
+Author: Max Howard <max@nanome.ai>
+Date:   Mon Mar 15 22:32:30 2021 +0000
+
+    clean up utils/common
+
+[33mcommit b4703254cc92b4c718647d28b4db903799939c12[m
+Author: Max Howard <max@nanome.ai>
+Date:   Mon Mar 15 21:57:59 2021 +0000
+
+    add comments, fix response error catching
+
+[33mcommit fc891a0e0fa91802f846ddddc8a5a6652670b9f4[m
+Author: Max Howard <max@nanome.ai>
+Date:   Mon Mar 15 21:27:50 2021 +0000
+
+    better menu, dynamic residues, requirements.txt
+
+[33mcommit d6a2d5d9a36d3d6d2473b4f15be7fbfcfc4fae08[m
+Author: Max Howard <max@nanome.ai>
+Date:   Fri Mar 12 02:18:47 2021 +0000
+
+    upload lines
+
+[33mcommit 8823d5775f2e6c32ac9f0c6f8e18a2054bdf2b51[m
+Author: Max Howard <max@nanome.ai>
+Date:   Fri Mar 12 01:51:42 2021 +0000
+
+    match atoms
+
+[33mcommit cabd87318da76f5b74ed54122675517e3757892e[m
+Author: Max Howard <max@nanome.ai>
+Date:   Fri Mar 12 01:39:46 2021 +0000
+
+    allow plugin to choose dockerfile, start processing interaction data
+
+[33mcommit db076fde16f86f4e5095d549a3c92066fa3c4c1b[m
+Author: Max Howard <max@nanome.ai>
+Date:   Thu Mar 11 22:03:50 2021 +0000
+
+    server + get data from plugin
+
+[33mcommit 11ecdcc2f61376274734523085200fc21ef3f374[m
+Author: Max Howard <max@nanome.ai>
+Date:   Wed Mar 10 21:12:14 2021 +0000
+
+    initial commit
