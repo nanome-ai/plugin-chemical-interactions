@@ -1,0 +1,24 @@
+name: Bump version workflow
+
+on:
+  push:
+    branches:
+    - master
+jobs:
+  bump-version:
+    name: Bump package version
+    if: "!contains(github.event.head_commit.message, 'Bump version')"
+    runs-on: ubuntu-20.04
+    steps:
+    - name: actions/checkout
+      uses: actions/checkout@v2
+      with:
+          persist-credentials: true
+    - name: run version script, bump version, and push commit to master
+      run: >
+        git config --global user.email "hello@nanome.ai"
+        && git config --global user.name "Nanome"
+        && pip install bump2version
+        && chmod +x ./version.sh
+        && ./version.sh patch
+        && git push origin master
