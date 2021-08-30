@@ -4,7 +4,6 @@ on:
   push:
     branches:
     - version-fork
-
 jobs:
   bump-version:
     name: Bump package version
@@ -17,9 +16,9 @@ jobs:
           persist-credentials: true
     - name: run version script
       run: >
-        git config --global user.email "mike.rosengrant@nanome.ai"
-        && git config --global user.name "Mike R"
+        git config --global user.email "hello@nanome.ai"
+        && git config --global user.name "Nanome"
         && pip install bump2version
         && chmod +x ./version.sh
-        && ./version.sh minor
+        && ./version.sh patch
         && git push origin version-fork
