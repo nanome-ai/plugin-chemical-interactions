@@ -17,6 +17,7 @@ jobs:
           persist-credentials: false
     - name: run version script
       run: >
+        git stash &&
         pip install bump2version &&
         chmod +x ./version.sh &&
         ./version.sh minor
