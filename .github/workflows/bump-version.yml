@@ -16,4 +16,4 @@ jobs:
       with:
           persist-credentials: false
     - name: run version script
-      run: ./version.sh minor
+      run: chmod +x ./version.sh && ./version.sh minor
