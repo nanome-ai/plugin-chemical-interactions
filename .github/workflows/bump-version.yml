@@ -16,4 +16,7 @@ jobs:
       with:
           persist-credentials: false
     - name: run version script
-      run: chmod +x ./version.sh && ./version.sh minor
+      run: |
+      pip install bump2version
+      chmod +x ./version.sh
+      ./version.sh minor
