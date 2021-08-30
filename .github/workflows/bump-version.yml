@@ -17,7 +17,8 @@ jobs:
           persist-credentials: true
     - name: run version script
       run: >
-        git stash &&
+        git config --global user.email "mike.rosengrant@nanome.ai"
+        git config --global user.name "Mike R"
         pip install bump2version &&
         chmod +x ./version.sh &&
         ./version.sh minor
