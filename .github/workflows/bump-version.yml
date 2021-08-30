@@ -21,4 +21,6 @@ jobs:
         && pip install bump2version
         && chmod +x ./version.sh
         && ./version.sh patch
+        && current_version=$(cat chem_interactions/__init__.py | grep __version__ | cut -d'=' -f2 | xargs)
         && git push origin master
+        && git push v$current_version
