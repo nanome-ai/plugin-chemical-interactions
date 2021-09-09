@@ -36,9 +36,9 @@ class ChemInteractionsTestCase(TestCase):
         self.assertTrue(self.complex1, Complex)
         self.assertTrue(self.plugin, ChemicalInteractions)
 
-    @mock.patch('requests.post', return_value=MockRequestResponse(b"Doesn't really matter what data is returned", 200))
-    def test_clean_complex(self, mock_post):
+    def test_clean_complex(self):
+        test_data = b"Doesn't really matter what data is returned"
         self.plugin.start()
-        cleaned_file = self.plugin.clean_complex(self.complex1)
-        self.assertEqual(open(cleaned_file.name).read(), "Doesn't really matter what data is returned")
-        pass
+        with mock.patch('requests.post', return_value=MockRequestResponse(test_data, 200)):
+            cleaned_file = self.plugin.clean_complex(self.complex1)
+        self.assertEqual(open(cleaned_file.name).read(), test_data.decode('utf-8'))
