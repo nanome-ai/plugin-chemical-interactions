@@ -6,7 +6,8 @@ from nanome.api.structure import Complex
 
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
 
-fixtures_dir = f'{os.getcwd()}/chem_interactions/tests/fixtures'
+BASE_DIR = os.path.join(os.path.dirname(__file__))
+fixtures_dir = f'{BASE_DIR}/fixtures'
 
 
 class ChemInteractionsTestCase(unittest.TestCase):
