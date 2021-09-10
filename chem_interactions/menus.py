@@ -6,7 +6,7 @@ import nanome
 from utils import extract_ligands
 from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
-from nanome.util import async_callback, Logs
+from nanome.util import async_callback
 from nanome.util.enums import NotificationTypes
 from forms import LineSettingsForm, color_map, default_line_settings
 
