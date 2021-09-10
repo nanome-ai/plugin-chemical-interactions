@@ -1,5 +1,5 @@
+import itertools
 import os
-import pickle
 from unittest import TestCase, mock
 
 from nanome.api.structure import Atom, Complex
@@ -21,51 +21,56 @@ class MockRequestResponse:
 class ChemInteractionsTestCase(TestCase):
 
     def setUp(self):
-        with open(f'{fixtures_dir}/1a9l.pickle', 'rb') as f:
-            self.complex1 = pickle.load(f)
-
-        with open(f'{fixtures_dir}/1fsv.pickle', 'rb') as f:
-            self.complex2 = pickle.load(f)
+        tyl_pdb = f'{fixtures_dir}/1tyl.pdb'
+        self.complex = Complex.io.from_pdb(path=tyl_pdb)
 
         self.plugin = ChemicalInteractions()
         with mock.patch.dict(os.environ, {"INTERACTIONS_URL": mocked_interactions_url}):
             self.plugin.start()
 
     def test_setup(self):
-        self.assertTrue(self.complex1, Complex)
+        self.assertTrue(self.complex, Complex)
         self.assertTrue(self.plugin, ChemicalInteractions)
 
     def test_clean_complex(self):
         test_data = b"Doesn't really matter what data is returned"
         with mock.patch('requests.post', return_value=MockRequestResponse(test_data, 200)):
-            cleaned_file = self.plugin.clean_complex(self.complex1)
+            cleaned_file = self.plugin.clean_complex(self.complex)
         self.assertEqual(open(cleaned_file.name).read(), test_data.decode('utf-8'))
 
     def test_get_atom_path(self):
         # I think the first atom is always consistent?
-        atom = next(self.complex1.atoms)
-        expected_atom_path = "/A/1/O5'"
+        atom = next(self.complex.atoms)
+        expected_atom_path = "/A/1/N"
         atom_path = self.plugin.get_atom_path(atom)
         self.assertEqual(atom_path, expected_atom_path)
         pass
 
     def test_get_residue_path(self):
         # I think the first residue is always consistent?
-        res = next(self.complex1.residues)
+        res = next(self.complex.residues)
         expected_residue_path = "/A/1/"
         residue_path = self.plugin.get_residue_path(res)
         self.assertEqual(residue_path, expected_residue_path)
         pass
 
     def test_get_selected_atom_paths(self):
-        atom = next(self.complex1.atoms)
+        atom = next(self.complex.atoms)
         atom.selected = True
         atom_path = self.plugin.get_atom_path(atom)
-        atom_paths = self.plugin.get_selected_atom_paths(self.complex1)
+        atom_paths = self.plugin.get_selected_atom_paths(self.complex)
         self.assertEqual(len(atom_paths), 1)
         self.assertTrue(atom_path in atom_paths)
 
     def test_get_atom_from_path(self):
-        atom_path = "A/1/O5'"
-        atom = self.plugin.get_atom_from_path(self.complex1, atom_path)
+        atom_path = "A/1/N"
+        atom = self.plugin.get_atom_from_path(self.complex, atom_path)
         self.assertTrue(isinstance(atom, Atom))
+
+    def test_get_interaction_selections(self):
+        atom_count = 10
+        atoms = itertools.islice(self.complex.atoms, atom_count)
+        for atom in atoms:
+            atom.selected = True
+        selection = self.plugin.get_interaction_selections(self.complex, [self.complex], [], True)
+        self.assertEqual(len(selection.split(',')), atom_count)
