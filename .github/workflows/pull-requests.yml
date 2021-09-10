@@ -1,0 +1,12 @@
+name: Deploy to PROD.
+on:
+  push:
+      branches: [ master ]
+    pull_request:
+      branches: [ master ]
+
+jobs:
+  run tests:
+    steps:
+    - uses: actions/checkout@v2
+    - run: python run_tests.py
