@@ -1,7 +1,5 @@
-name: Deploy to PROD.
+name: Validate Pull Requests
 on:
-  push:
-    branches: [ master ]
   pull_request:
     branches: [ master ]
 
