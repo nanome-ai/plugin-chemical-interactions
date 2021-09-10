@@ -46,7 +46,6 @@ class ChemInteractionsTestCase(TestCase):
         expected_atom_path = "/A/1/N"
         atom_path = self.plugin.get_atom_path(atom)
         self.assertEqual(atom_path, expected_atom_path)
-        pass
 
     def test_get_residue_path(self):
         # I think the first residue is always consistent?
@@ -54,7 +53,6 @@ class ChemInteractionsTestCase(TestCase):
         expected_residue_path = "/A/1/"
         residue_path = self.plugin.get_residue_path(res)
         self.assertEqual(residue_path, expected_residue_path)
-        pass
 
     def test_get_selected_atom_paths(self):
         atom = next(self.complex.atoms)
