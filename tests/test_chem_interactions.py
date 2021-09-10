@@ -1,21 +1,33 @@
+import asyncio
 import itertools
+import json
 import os
-from unittest import TestCase, mock
-
+from unittest import TestCase, mock, skip
 from nanome.api.structure import Atom, Complex
 
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
+from chem_interactions.forms import default_line_settings
+
+from unittest.mock import MagicMock
 
 fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures')
-
-
-mocked_interactions_url = "https://fake-arpeggio-service.com"
 
 
 class MockRequestResponse:
     def __init__(self, content_data, status_code):
         self.content = content_data
         self.status_code = status_code
+
+
+class MockProcessNetwork:
+    def __init__(self, responses):
+        self.request_count = 0
+        self.responses = responses
+
+    def _send(self, code, arg, expects_response):
+        breakpoint()
+        self.request_count += 1
+        return self.responses[self.request_count - 1]
 
 
 class ChemInteractionsTestCase(TestCase):
@@ -25,8 +37,9 @@ class ChemInteractionsTestCase(TestCase):
         self.complex = Complex.io.from_pdb(path=tyl_pdb)
 
         self.plugin = ChemicalInteractions()
-        with mock.patch.dict(os.environ, {"INTERACTIONS_URL": mocked_interactions_url}):
+        with mock.patch.dict(os.environ, {"INTERACTIONS_URL": "https://fake-arpeggio-service.com"}):
             self.plugin.start()
+        self.plugin._network = MagicMock()
 
     def test_setup(self):
         self.assertTrue(self.complex, Complex)
@@ -74,3 +87,11 @@ class ChemInteractionsTestCase(TestCase):
             atom.selected = True
         selection = self.plugin.get_interaction_selections(self.complex, [self.complex], [], True)
         self.assertEqual(len(selection.split(',')), atom_count)
+
+    def test_parse_contacts_data(self):
+        contacts_data = json.loads(open(f'{fixtures_dir}/1tyl_contacts_data.json').read())
+        # Known value from 1tyl_contacts_data.json
+        expected_line_count = 86
+        loop = asyncio.get_event_loop()
+        line_manager = loop.run_until_complete(self.plugin.parse_contacts_data(contacts_data, [self.complex], default_line_settings))
+        self.assertEqual(len(line_manager.all_lines()), expected_line_count)
