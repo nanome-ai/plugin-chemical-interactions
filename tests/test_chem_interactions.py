@@ -31,6 +31,7 @@ class ChemInteractionsTestCase(TestCase):
         self.plugin._network = MagicMock()
 
     def test_setup(self):
+        self.assertEqual(1, 2)
         self.assertTrue(self.complex, Complex)
         self.assertTrue(self.plugin, ChemicalInteractions)
 
