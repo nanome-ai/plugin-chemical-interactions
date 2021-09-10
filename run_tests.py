@@ -10,4 +10,10 @@ sys.path.append(chem_interactions_dir)
 test_directory = 'tests'
 Logs._set_verbose(True)
 suite = unittest.TestLoader().discover(test_directory)
-unittest.TextTestRunner(verbosity=1).run(suite)
+
+output = unittest.TextTestRunner(verbosity=1).run(suite)
+
+if output.wasSuccessful():
+    sys.exit(0)
+else:
+    sys.exit(1)
