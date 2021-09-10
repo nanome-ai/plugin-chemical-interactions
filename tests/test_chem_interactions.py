@@ -19,17 +19,6 @@ class MockRequestResponse:
         self.status_code = status_code
 
 
-class MockProcessNetwork:
-    def __init__(self, responses):
-        self.request_count = 0
-        self.responses = responses
-
-    def _send(self, code, arg, expects_response):
-        breakpoint()
-        self.request_count += 1
-        return self.responses[self.request_count - 1]
-
-
 class ChemInteractionsTestCase(TestCase):
 
     def setUp(self):

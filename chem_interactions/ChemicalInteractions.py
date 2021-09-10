@@ -168,6 +168,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         clean_url = f'{self.interactions_url}/clean'
         response = requests.post(clean_url, files=file_data)
+
         cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
         with open(cleaned_file.name, 'wb') as f:
             f.write(response.content)
