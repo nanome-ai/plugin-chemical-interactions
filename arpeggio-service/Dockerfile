@@ -1,8 +1,6 @@
 FROM continuumio/miniconda3:4.8.2
 
-# RUN conda install python=3.7.10
 RUN conda install -c openbabel openbabel
-
 WORKDIR /app
 
 COPY requirements.txt .
