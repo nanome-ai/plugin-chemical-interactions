@@ -63,7 +63,7 @@ Dependencies:
     pdb_noext, pdb_ext = os.path.splitext(pdb_path)
     pdb_ext = pdb_ext.replace('.', '')
     
-    pdb_parser = PDBParser()
+    pdb_parser = PDBParser(QUIET=True)
     structure = pdb_parser.get_structure(os.path.split(os.path.splitext(pdb_path)[0])[1], pdb_path)
     
     # OUTPUT LABEL

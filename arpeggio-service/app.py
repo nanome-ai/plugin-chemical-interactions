@@ -50,7 +50,7 @@ def index():
         # Set up and run arpeggio command
         arpeggio_path = '/opt/conda/bin/arpeggio'
 
-        cmd = ['python', arpeggio_path, input_filepath]
+        cmd = ['python', arpeggio_path, '--mute', input_filepath]
         if 'selection' in request.form:
             selections = request.form['selection'].split(',')
             cmd.append('-s')

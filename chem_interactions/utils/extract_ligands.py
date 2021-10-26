@@ -31,7 +31,7 @@ MAX_COV_BOND = MAX_COV_RADIUS * 2
 
 def extract_ligands(pdb_tempfile):
     # LOAD THE PDB
-    pdb_parser = PDBParser()
+    pdb_parser = PDBParser(QUIET=True)
     id = os.path.split(os.path.splitext(pdb_tempfile.name)[0])[1]
     fl = pdb_tempfile.name
     structure = pdb_parser.get_structure(id, fl)
