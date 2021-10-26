@@ -1,4 +1,5 @@
 import asyncio
+import json
 import requests
 import tempfile
 import time
@@ -123,7 +124,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # make the request to get interactions
         response = requests.post(self.interactions_url, data=data, files=files)
         if response.status_code != 200:
-            self.send_notification(NotificationTypes.error, response.json()['error'])
+            # If request fails, log error message.
+            try:
+                response_data = response.json()
+            except json.decoder.JSONDecodeError:
+                error_message = response.content.decode()
+            else:
+                if isinstance(response_data, dict) and 'message' in response_data:
+                    error_message = response_data.get('message')
+                else:
+                    error_message = json.dumps(response_data)
+
+            notification_message = f"Request to Interactions Server returned a {response.status_code}. Please check logs."
+            Logs.error(error_message)
+            self.send_notification(NotificationTypes.error, notification_message)
             return
 
         msg = "Interaction data retrieved!"
