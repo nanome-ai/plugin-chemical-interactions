@@ -130,8 +130,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             except json.decoder.JSONDecodeError:
                 error_message = response.content.decode()
             else:
-                if isinstance(response_data, dict) and 'message' in response_data:
-                    error_message = response_data.get('message')
+                if isinstance(response_data, dict) and 'error' in response_data:
+                    error_message = response_data.get('error')
                 else:
                     error_message = json.dumps(response_data)
 
