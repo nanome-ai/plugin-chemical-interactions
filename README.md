@@ -4,13 +4,18 @@ A Nanome plugin to Calculate and visualize interatomic contacts between small an
 
 
 ## Dependencies
-The host machine must support `docker` and `docker-compose`. All other dependencies are handled within the individual containers.
+The host machine must support `docker` All other dependencies are handled within the individual containers.
+Optionally, a docker-compose.yml is available for use.
 
 
 ## Deployments
 
 To start the plugin with production settings, we have a script available at `./docker/deploy.sh`
 
+```sh
+./docker/build.sh
+./docker/deploy.sh <args>
+```
 
 There's two methods of configuring your plugin.
 
@@ -47,44 +52,35 @@ For example
 
 When `./docker/deploy.sh` is run, the command is copied into `docker/redeploy.sh` which can be used to redeploy your application without remembering the provided flags.
 
-
 ### 2) Using a .env file
-Alternatively, the chemical-interactions plugin supports storing NTS credentials in a `.env` file. This provides less flexibility, and if your environment requires a keyfile, that is not yet supported
+Alternatively, the chemical-interactions plugin supports storing NTS credentials in a `.env` file.
 
-
-First thing you need to do is create a `.env` file in the top-level directory containing NTS connection information
+First thing you need to do is create a `.env` file in the top-level directory, which contains NTS connection information
 ```
-NTS_HOST=nts-foobar.example.com
+NTS_HOST=foobar.example.com
 NTS_PORT=5555
 ``` 
-
 And then running the plugin is as simple as
 ```sh
-./docker/deploy.sh
+./docker/deploy.sh --env-file <path to .env file> <plugin_args>
 ```
+Note that env files can be used alongside plugin args, but `-a` and `-p` will always take precedence over `NTS_HOST` and `NTS_PORT`
 
-## Architecture
-The Plugin is broken into two separate containers.
-- **plugin**: Runs the Nanome Plugin Instance.
+
+## Architecture.
+The `chem_interactions` contains the entirety of the application.
   - Handles all interactions with Nanome application
   - Renders menus
-  - Submits data to arpeggio-services
   - Visualizes interactions data in VR.
-- **arpeggio-services**:
-  - Wrapper API for Arpeggio library, which calculates interactions between molecules.
-  - Cleans data to be compatible with interactions command
-  - Returns JSON containing interaction results, which is consumed by chem_interactions.
-  - See https://github.com/PDBeurope/arpeggio
 
+There's a separate conda environment installed in the container, where arpeggio is executed.
+  - Returns JSON containing interaction results, which is parsed by the plugin.
+  - See https://github.com/PDBeurope/arpeggio for more.
 
 ##  Development
-`docker-compose.yml` is optimized for development, with debug enabled and the code mounted as volumes. If you use the VSCode IDE, we provide tasks and launch configurations to ease development.
+`docker-compose.yml` is optimized for development, with debug enabled and the code mounted as volumes.
 
-### How to get a VScode debugger in your Plugin instance.
-1. In your workspace, Open the command pallete, Select `Task: Run Task`, and choose `[wip] plugin container`
-2. Open the command pallete again, Select `Remote Containers: Attach to a running Container`, and select the one containing your plugin. VScode should open a new window attached to your container.
-3. Click the "Run and Debug" button on the left, and select "run.py" from the dropdown on top. You may need to update the args field in `launch.json` to match your NTS settings.
-4. Press play, and VScode should start your plugin in debug mode, and will allow you to set breakpoints as needed
+If you use the VSCode IDE, we provide a .devcontainer, and debug launch configurations to ease development.
 
 
 ### License
