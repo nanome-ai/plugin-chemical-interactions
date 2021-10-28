@@ -6,9 +6,12 @@ WORKDIR $work_dir
 ENV ARGS=''
 ARG CACHEBUST
 
+COPY docker ${work_dir}/docker
+RUN ./docker/build.sh
+
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY . $work_dir
 
-CMD python run.py {ARGS}
+CMD python chem_interactions/run.py {ARGS}

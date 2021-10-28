@@ -171,6 +171,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
+        import docker
+        client = docker.from_env()
+        container = client.containers.get('chemical-interactions-server')
+        image = container.image
+        client.containers.run(image, "/opt/conda/lib/python3.7/site-packages/arpeggio --help")
+
         temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
         complex.io.to_pdb(temp_file.name, PDBOPTIONS)
         with open(temp_file.name, 'r') as pdb_stream:

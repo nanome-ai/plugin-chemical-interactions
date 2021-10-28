@@ -7,30 +7,30 @@ services:
   plugin:
     container_name: chemical-interactions-plugin
     build:
-      context: chem_interactions
+      context: .
     environment:
       NTS_HOST: ${NTS_HOST:-}
       NTS_PORT: ${NTS_PORT:-}
       ARGS: ${ARGS:-}
       INTERACTIONS_URL: http://arpeggio:8000
-    command: python -X dev run.py -r -v ${ARGS}
+    command: python -X dev chem_interactions/run.py -r -v ${ARGS}
     stdin_open: true
     tty: true
     volumes:
-      - "./chem_interactions:/app"
+      - ".:/app"
       # - "../nanome-lib/nanome:/opt/conda/lib/python3.7/site-packages/nanome"
-    depends_on:
-      - arpeggio
-  arpeggio:
-    container_name: chemical-interactions-server
-    build:
-      context: arpeggio-service
-    ports:
-      - 8000:8000
-    environment:
-      FLASK_ENV: development
-      FLASK_APP: wsgi.py
-    stdin_open: true
-    tty: true
-    volumes:
-      - "./arpeggio-service:/app"
+    # depends_on:
+    #   - arpeggio
+  # arpeggio:
+  #   container_name: chemical-interactions-server
+  #   build:
+  #     context: arpeggio-service
+  #   ports:
+  #     - 8000:8000
+  #   environment:
+  #     FLASK_ENV: development
+  #     FLASK_APP: wsgi.py
+  #   stdin_open: true
+  #   tty: true
+  #   volumes:
+  #     - "./arpeggio-service:/app"
