@@ -130,6 +130,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
+        if not contacts_data:
+            print('Arpeggio Call failed')
+            return
         new_line_manager = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
 
         all_new_lines = new_line_manager.all_lines()
@@ -627,12 +630,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             output_dir = f'{temp_dir}/{temp_uuid}'
             cmd.extend(['-o', output_dir])
 
-            subprocess.call(cmd)
+            subprocess.run(cmd, stdout=subprocess.PIPE)
 
             try:
                 output_filename = next(fname for fname in os.listdir(output_dir))
             except Exception:
-                return {'error': 'Arpeggio call failed'}, 400
+                return
+                # return {'error': 'Arpeggio call failed'}, 400
 
             output_filepath = f'{output_dir}/{output_filename}'
             with open(output_filepath, 'r') as f:
