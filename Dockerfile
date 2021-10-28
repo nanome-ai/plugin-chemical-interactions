@@ -6,12 +6,22 @@ WORKDIR $work_dir
 ENV ARGS=''
 ARG CACHEBUST
 
-COPY docker ${work_dir}/docker
-RUN ./docker/build.sh
+# Build arpeggio environment.
+COPY environment.yml $work_dir/environment.yml
+RUN conda env update -f environment.yml
+
+# ENV arp_python=/opt/conda/envs/arpeggio/bin/python
+# RUN conda activate arpeggio
+# RUN pip install -r arpeggio_service/requirements.txt
+# RUN conda deactivate
 
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY . $work_dir
+
+# RUN source activate arpeggio
+# RUN pip install git+https://github.com/PDBeurope/arpeggio.git@master#egg=arpeggio
+
 
 CMD python chem_interactions/run.py {ARGS}

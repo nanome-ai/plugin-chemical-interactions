@@ -1,0 +1,11 @@
+# This environment runs arpeggio.
+
+name: arpeggio
+channels:
+  # - conda-forge
+  - openbabel
+dependencies:
+  - python=3.7
+  - openbabel
+  - pip:
+      - git+https://github.com/PDBeurope/arpeggio.git@master#egg=arpeggio
