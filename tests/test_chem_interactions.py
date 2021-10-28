@@ -35,10 +35,10 @@ class ChemInteractionsTestCase(TestCase):
         self.assertTrue(self.plugin, ChemicalInteractions)
 
     def test_clean_complex(self):
-        test_data = b"Doesn't really matter what data is returned"
-        with mock.patch('requests.post', return_value=MockRequestResponse(test_data, 200)):
-            cleaned_file = self.plugin.clean_complex(self.complex)
-        self.assertEqual(open(cleaned_file.name).read(), test_data.decode('utf-8'))
+        # Make sure clean_complex function returns valid pdb can be parsed into a Complex structure.
+        cleaned_file = self.plugin.clean_complex(self.complex)
+        cleaned_complex = Complex.io.from_pdb(path=cleaned_file.name)
+        self.assertTrue(sum(1 for atom in cleaned_complex.atoms) > 0)
 
     def test_get_atom_path(self):
         # I think the first atom is always consistent?
