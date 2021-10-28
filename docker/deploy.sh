@@ -7,15 +7,16 @@ cd "$parent_path"
 echo "./deploy.sh $*" > redeploy.sh
 chmod +x redeploy.sh
 
-# default env file
-ENV_FILE='../.env' 
-
-# Create on the fly .env file to pass args into plugin container
-ARGS="$*"
-if [ -n "$ARGS" ];  then
-    tmpfile=$(mktemp)
-    echo ARGS=${ARGS} > $tmpfile
-    ENV_FILE=$tmpfile
+existing=$(docker ps -aq -f name=chem_interactions)
+if [ -n "$existing" ]; then
+    echo "removing existing container"
+    docker rm -f $existing
 fi
 
-docker-compose -f ../docker-compose-deploy.yml --env-file $ENV_FILE up -d
+ARGS="$*"
+echo "$ARGS"
+docker run \
+--name chem_interactions \
+--restart unless-stopped \
+-e ARGS="$ARGS" \
+chem_interactions

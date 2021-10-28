@@ -15,4 +15,4 @@ RUN pip install -r requirements.txt
 
 COPY . $work_dir
 
-CMD python chem_interactions/run.py {ARGS}
+CMD python chem_interactions/run.py ${ARGS}
