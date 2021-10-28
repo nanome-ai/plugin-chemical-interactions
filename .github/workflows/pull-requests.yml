@@ -9,4 +9,5 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: pip install -r requirements.txt
+    - run: conda env update -f arpeggio_env.yml
     - run: python run_tests.py
