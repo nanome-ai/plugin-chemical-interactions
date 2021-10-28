@@ -7,8 +7,8 @@ ENV ARGS=''
 ARG CACHEBUST
 
 # Build arpeggio environment.
-COPY environment.yml $work_dir/environment.yml
-RUN conda env update -f environment.yml
+COPY arpeggio_environ.yml $work_dir/arpeggio_environ.yml
+RUN conda env update -f arpeggio_environ.yml
 
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
