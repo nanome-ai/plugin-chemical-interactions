@@ -2,7 +2,6 @@
 
 name: arpeggio
 channels:
-  # - conda-forge
   - openbabel
 dependencies:
   - python=3.7

@@ -6,7 +6,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/chem_interactions/run.py",
-            "args": ["-v", "-n", "[wip]-chem-inter", "-r"],
+            "args": ["-v", "-n", "[wip]-chem-inter"],
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env",
         }

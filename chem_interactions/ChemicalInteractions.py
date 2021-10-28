@@ -1,6 +1,5 @@
 import asyncio
 import json
-# import requests
 import os
 import subprocess
 import tempfile
@@ -11,8 +10,7 @@ import uuid
 import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
-# from nanome.util.enums import NotificationTypes
-from nanome.util import async_callback, Color, Logs, Vector3
+from nanome.util import async_callback, Color, enums, Logs, Vector3
 
 from forms import LineSettingsForm
 from menus import ChemInteractionsMenu
@@ -131,8 +129,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
         if not contacts_data:
-            print('Arpeggio Call failed')
+            notification_message = "Arpeggio call failed. Please check logs."
+            self.send_notification(enums.NotificationTypes.error, notification_message)
             return
+
         new_line_manager = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
 
         all_new_lines = new_line_manager.all_lines()
@@ -577,7 +577,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def send_async_notification(self, message):
         """Send notification asynchronously."""
-        notifcation_type = nanome.util.enums.NotificationTypes.message
+        notifcation_type = enums.NotificationTypes.message
         self.send_notification(notifcation_type, message)
 
     def render_distance_labels(self, complexes):
@@ -635,6 +635,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             try:
                 output_filename = next(fname for fname in os.listdir(output_dir))
             except Exception:
+                Logs.error('Arpeggio Call failed')
                 return
 
             output_filepath = f'{output_dir}/{output_filename}'
