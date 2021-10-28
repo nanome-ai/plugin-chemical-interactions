@@ -12,4 +12,4 @@ services:
       NTS_HOST: ${NTS_HOST:-}
       NTS_PORT: ${NTS_PORT:-}
       ARGS: ${ARGS:-}
-    command: python chem_interactions/run.py ${ARGS}
+    command: python run.py ${ARGS}

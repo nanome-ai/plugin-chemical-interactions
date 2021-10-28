@@ -13,7 +13,7 @@ services:
       NTS_PORT: ${NTS_PORT:-}
       ARGS: ${ARGS:-}
       INTERACTIONS_URL: http://arpeggio:8000
-    command: python -X dev chem_interactions/run.py -r -v ${ARGS}
+    command: python -X dev run.py -r -v ${ARGS}
     stdin_open: true
     tty: true
     volumes:

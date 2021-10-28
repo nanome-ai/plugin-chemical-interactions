@@ -3,12 +3,12 @@ from os import environ, path
 from Bio.PDB.Residue import Residue as BioResidue
 
 import nanome
-from utils import extract_ligands
+from .utils import extract_ligands
 from nanome.api.structure import Complex
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label
 from nanome.util import async_callback
 from nanome.util.enums import NotificationTypes
-from forms import LineSettingsForm, color_map, default_line_settings
+from .forms import LineSettingsForm, color_map, default_line_settings
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True

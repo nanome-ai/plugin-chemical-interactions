@@ -1,7 +1,7 @@
 import argparse
 import os
 import nanome
-from ChemicalInteractions import ChemicalInteractions
+from chem_interactions.ChemicalInteractions import ChemicalInteractions
 from nanome.util.enums import Integrations
 
 

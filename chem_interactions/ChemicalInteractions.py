@@ -12,10 +12,10 @@ from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
 from nanome.util import async_callback, Color, enums, Logs, Vector3
 
-from forms import LineSettingsForm
-from menus import ChemInteractionsMenu
-from models import InteractionLine, LineManager, LabelManager, InteractionStructure
-from utils import ComplexUtils
+from .forms import LineSettingsForm
+from .menus import ChemInteractionsMenu
+from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
+from .utils import ComplexUtils
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -613,7 +613,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         output_data = {}
         # Set up and run arpeggio command
-        arpeggio_path = '/opt/conda/envs/arpeggio/bin/arpeggio'
+        arpeggio_path = 'arpeggio'
 
         cmd = [
             'conda', 'run', '-n', 'arpeggio',
