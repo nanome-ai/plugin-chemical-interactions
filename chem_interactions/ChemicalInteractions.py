@@ -127,23 +127,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # make the request to get interactions
         files = [cleaned_file]
         contacts_data = self.run_arpeggio_process(data, files)
-        # response = requests.post(self.interactions_url, data=data, files=files)
-        # if response.status_code != 200:
-        #     # If request fails, log error message.
-        #     try:
-        #         response_data = response.json()
-        #     except json.decoder.JSONDecodeError:
-        #         error_message = response.content.decode()
-        #     else:
-        #         if isinstance(response_data, dict) and 'error' in response_data:
-        #             error_message = response_data.get('error')
-        #         else:
-        #             error_message = json.dumps(response_data)
-
-        #     notification_message = f"Request to Interactions Server returned a {response.status_code}. Please check logs."
-        #     Logs.error(error_message)
-        #     self.send_notification(NotificationTypes.error, notification_message)
-        #     return
 
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
@@ -175,7 +158,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
-        temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
+        temp_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
         complex.io.to_pdb(temp_file.name, PDBOPTIONS)
 
         filename = temp_file.name.split('/')[-1]
@@ -629,7 +612,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Set up and run arpeggio command
         arpeggio_path = '/opt/conda/envs/arpeggio/bin/arpeggio'
 
-        cmd = ['python', arpeggio_path, '--mute', input_filepath]
+        cmd = [
+            'conda', 'run', '-n', 'arpeggio',
+            arpeggio_path, '--mute', input_filepath
+        ]
         if 'selection' in data:
             selections = data['selection'].split(',')
             cmd.append('-s')
