@@ -8,6 +8,5 @@ dependencies:
   - python=3.7
   - openbabel
   - pip:
-      # - git+https://github.com/PDBeurope/arpeggio.git@master#egg=arpeggio
-      - git+https://github.com/mjrosengrant/arpeggio.git@master
+      - git+https://github.com/mjrosengrant/arpeggio.git@remove-check
       - biopython
