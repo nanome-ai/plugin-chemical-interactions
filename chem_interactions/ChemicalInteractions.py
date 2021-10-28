@@ -1,10 +1,12 @@
 import asyncio
-# import json
+import json
 # import requests
+import os
 import subprocess
 import tempfile
 import time
 from os import environ
+import uuid
 
 import nanome
 from nanome.api.structure import Complex
@@ -123,7 +125,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             data['selection'] = selection
 
         # make the request to get interactions
-        contacts_data = self.run_arpeggio_process(data=data, files=files)
+        files = [cleaned_file]
+        contacts_data = self.run_arpeggio_process(data, files)
         # response = requests.post(self.interactions_url, data=data, files=files)
         # if response.status_code != 200:
         #     # If request fails, log error message.
@@ -613,3 +616,39 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message('Clearing distance labels')
         self.show_distance_labels = False
         Shape.destroy_multiple(self.label_manager.all_labels())
+
+    @staticmethod
+    def run_arpeggio_process(data, files):
+        if len(files) != 1:
+            raise Exception("Invalid data")
+
+        input_file = files[0]
+        input_filepath = input_file.name
+
+        output_data = {}
+        # Set up and run arpeggio command
+        arpeggio_path = '/opt/conda/envs/arpeggio/bin/arpeggio'
+
+        cmd = ['python', arpeggio_path, '--mute', input_filepath]
+        if 'selection' in data:
+            selections = data['selection'].split(',')
+            cmd.append('-s')
+            cmd.extend(selections)
+
+        # Create directory for output
+        temp_uuid = uuid.uuid4()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = f'{temp_dir}/{temp_uuid}'
+            cmd.extend(['-o', output_dir])
+
+            subprocess.call(cmd)
+
+            try:
+                output_filename = next(fname for fname in os.listdir(output_dir))
+            except Exception:
+                return {'error': 'Arpeggio call failed'}, 400
+
+            output_filepath = f'{output_dir}/{output_filename}'
+            with open(output_filepath, 'r') as f:
+                output_data = json.load(f)
+            return output_data
