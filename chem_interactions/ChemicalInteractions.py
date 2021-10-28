@@ -164,7 +164,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         input_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
         complex.io.to_pdb(input_file.name, PDBOPTIONS)
 
-        print(input_file.name)
         input_filename = input_file.name.split('/')[-1]
         clean_pdb_script = 'clean_pdb.py'
         cmd = [
@@ -173,7 +172,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         subprocess.run(cmd, stdout=subprocess.PIPE, encoding='utf-8')
         cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
         cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
-        print(os.listdir())
         cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
 
         with open(cleaned_file.name, 'wb') as f:
