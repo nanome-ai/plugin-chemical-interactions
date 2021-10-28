@@ -20,8 +20,4 @@ RUN pip install -r requirements.txt
 
 COPY . $work_dir
 
-# RUN source activate arpeggio
-# RUN pip install git+https://github.com/PDBeurope/arpeggio.git@master#egg=arpeggio
-
-
 CMD python chem_interactions/run.py {ARGS}
