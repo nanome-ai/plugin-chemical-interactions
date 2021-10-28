@@ -322,7 +322,7 @@ class ChemInteractionsMenu():
         dropdown_items = []
         for name, color_rgb in color_map.items():
             color_hex = '#%02x%02x%02x' % color_rgb
-            colored_name = f'<mark={color_hex}>    </mark> {name}'
+            colored_name = f'<color={color_hex}>■</color> {name}'
             dd_item = DropdownItem(colored_name)
             dd_item.rgb = color_rgb
             dropdown_items.append(dd_item)
