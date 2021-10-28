@@ -7,22 +7,9 @@ services:
     restart: always
     container_name: chemical-interactions-plugin
     build:
-      context: chem_interactions
+      context: .
     environment:
       NTS_HOST: ${NTS_HOST:-}
       NTS_PORT: ${NTS_PORT:-}
       ARGS: ${ARGS:-}
-      INTERACTIONS_URL: http://arpeggio:8000
-    command: python run.py ${ARGS}
-    depends_on:
-      - arpeggio
-  arpeggio:
-    restart: always
-    container_name: chemical-interactions-server
-    build:
-      context: arpeggio-service
-    ports:
-      - 8000
-    environment:
-      FLASK_ENV: production
-      FLASK_APP: wsgi.py
+    command: python chem_interactions/run.py ${ARGS}
