@@ -8,5 +8,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: pip install -r chem_interactions/requirements.txt
+    - run: pip install -r requirements.txt
     - run: python run_tests.py

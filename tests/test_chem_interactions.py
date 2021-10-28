@@ -2,7 +2,7 @@ import asyncio
 import itertools
 import json
 import os
-from unittest import TestCase, mock, skip
+from unittest import TestCase, mock
 from nanome.api.structure import Atom, Complex
 
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
