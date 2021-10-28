@@ -161,20 +161,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
-        temp_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
-        complex.io.to_pdb(temp_file.name, PDBOPTIONS)
+        input_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
+        complex.io.to_pdb(input_file.name, PDBOPTIONS)
 
-        filename = temp_file.name.split('/')[-1]
-        # file_data = {filename: pdb_contents}
-        # clean_url = f'{self.interactions_url}/clean'
+        input_filename = input_file.name.split('/')[-1]
         clean_pdb_script = 'clean_pdb.py'
         cmd = [
-            'conda', 'run', '-n', 'arpeggio', 'python', clean_pdb_script, temp_file.name
+            'conda', 'run', '-n', 'arpeggio', 'python', clean_pdb_script, input_file.name
         ]
         subprocess.run(cmd, stdout=subprocess.PIPE, encoding='utf-8')
-
-        cleaned_filename = '{}.clean.pdb'.format(filename.split('.')[0])
-        cleaned_filepath = '/tmp/{}'.format(cleaned_filename)
+        cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
+        cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
 
         cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
         with open(cleaned_file.name, 'wb') as f:
