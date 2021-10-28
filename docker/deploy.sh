@@ -3,7 +3,6 @@
 # Determine whether environment variables coming from env-file, or plugin arguments.
 env_arg=""
 deploy_args=""
-echo $PWD
 while [ $# -gt 0 ]; do
   case $1 in
     --env-file ) env_arg="$1 $PWD/$2" && shift 2;;
@@ -26,7 +25,8 @@ if [ -n "$existing" ]; then
     docker rm -f $existing
 fi
 
-docker run \
+# Run docker container
+docker run -d \
 --name chem_interactions \
 $env_arg \
 --restart unless-stopped \

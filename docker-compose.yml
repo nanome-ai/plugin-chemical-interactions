@@ -7,7 +7,7 @@ services:
   plugin:
     container_name: chemical-interactions-plugin
     build:
-      context: .
+      dockerfile: docker/Dockerfile
     environment:
       NTS_HOST: ${NTS_HOST:-}
       NTS_PORT: ${NTS_PORT:-}
