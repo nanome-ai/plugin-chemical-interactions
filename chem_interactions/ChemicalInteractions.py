@@ -636,7 +636,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 output_filename = next(fname for fname in os.listdir(output_dir))
             except Exception:
                 return
-                # return {'error': 'Arpeggio call failed'}, 400
 
             output_filepath = f'{output_dir}/{output_filename}'
             with open(output_filepath, 'r') as f:
