@@ -18,19 +18,3 @@ services:
     tty: true
     volumes:
       - ".:/app"
-      # - "../nanome-lib/nanome:/opt/conda/lib/python3.7/site-packages/nanome"
-    # depends_on:
-    #   - arpeggio
-  # arpeggio:
-  #   container_name: chemical-interactions-server
-  #   build:
-  #     context: arpeggio-service
-  #   ports:
-  #     - 8000:8000
-  #   environment:
-  #     FLASK_ENV: development
-  #     FLASK_APP: wsgi.py
-  #   stdin_open: true
-  #   tty: true
-  #   volumes:
-  #     - "./arpeggio-service:/app"
