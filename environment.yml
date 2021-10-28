@@ -9,3 +9,4 @@ dependencies:
   - openbabel
   - pip:
       - git+https://github.com/PDBeurope/arpeggio.git@master#egg=arpeggio
+      - biopython

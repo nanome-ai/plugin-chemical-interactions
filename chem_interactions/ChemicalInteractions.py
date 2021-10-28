@@ -1,6 +1,7 @@
 import asyncio
-import json
-import requests
+# import json
+# import requests
+import subprocess
 import tempfile
 import time
 from os import environ
@@ -8,7 +9,7 @@ from os import environ
 import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
-from nanome.util.enums import NotificationTypes
+# from nanome.util.enums import NotificationTypes
 from nanome.util import async_callback, Color, Logs, Vector3
 
 from forms import LineSettingsForm
@@ -122,27 +123,27 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             data['selection'] = selection
 
         # make the request to get interactions
-        response = requests.post(self.interactions_url, data=data, files=files)
-        if response.status_code != 200:
-            # If request fails, log error message.
-            try:
-                response_data = response.json()
-            except json.decoder.JSONDecodeError:
-                error_message = response.content.decode()
-            else:
-                if isinstance(response_data, dict) and 'error' in response_data:
-                    error_message = response_data.get('error')
-                else:
-                    error_message = json.dumps(response_data)
+        contacts_data = self.run_arpeggio_process(data=data, files=files)
+        # response = requests.post(self.interactions_url, data=data, files=files)
+        # if response.status_code != 200:
+        #     # If request fails, log error message.
+        #     try:
+        #         response_data = response.json()
+        #     except json.decoder.JSONDecodeError:
+        #         error_message = response.content.decode()
+        #     else:
+        #         if isinstance(response_data, dict) and 'error' in response_data:
+        #             error_message = response_data.get('error')
+        #         else:
+        #             error_message = json.dumps(response_data)
 
-            notification_message = f"Request to Interactions Server returned a {response.status_code}. Please check logs."
-            Logs.error(error_message)
-            self.send_notification(NotificationTypes.error, notification_message)
-            return
+        #     notification_message = f"Request to Interactions Server returned a {response.status_code}. Please check logs."
+        #     Logs.error(error_message)
+        #     self.send_notification(NotificationTypes.error, notification_message)
+        #     return
 
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
-        contacts_data = response.json()
         new_line_manager = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
 
         all_new_lines = new_line_manager.all_lines()
@@ -174,21 +175,21 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
         complex.io.to_pdb(temp_file.name, PDBOPTIONS)
 
-        temp_file.name.split('/')
         filename = temp_file.name.split('/')[-1]
         # file_data = {filename: pdb_contents}
-
         # clean_url = f'{self.interactions_url}/clean'
-        clean_pdb_script = 'arpeggio_service/clean_pdb.py'
-        import subprocess
+        clean_pdb_script = 'clean_pdb.py'
         cmd = [
-            'conda', 'run', '-n', 'arpeggio', 'python', clean_pdb_script, filename
+            'conda', 'run', '-n', 'arpeggio', 'python', clean_pdb_script, temp_file.name
         ]
-        output = subprocess.run(cmd, stdout=subprocess.PIPE, encoding='utf-8')
+        subprocess.run(cmd, stdout=subprocess.PIPE, encoding='utf-8')
+
+        cleaned_filename = '{}.clean.pdb'.format(filename.split('.')[0])
+        cleaned_filepath = '/tmp/{}'.format(cleaned_filename)
 
         cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
         with open(cleaned_file.name, 'wb') as f:
-            f.write(output)
+            f.write(open(cleaned_filepath).read().encode())
         return cleaned_file
 
     @staticmethod
