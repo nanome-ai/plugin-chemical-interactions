@@ -5,7 +5,6 @@ import os
 import unittest
 from unittest.mock import MagicMock
 
-import nanome
 from nanome.api.structure import Atom, Complex
 
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
@@ -13,12 +12,6 @@ from chem_interactions.forms import default_line_settings
 
 
 fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures')
-
-
-class MockRequestResponse:
-    def __init__(self, content_data, status_code):
-        self.content = content_data
-        self.status_code = status_code
 
 
 class ChemInteractionsTestCase(unittest.TestCase):
