@@ -39,4 +39,4 @@ jobs:
           git fetch
           git pull
           docker-compose build
-          docker-compose -f docker-compose-deploy.yml -f docker-compose.override.yml --env-file .env up -d 
+          docker-compose -f docker-compose-deploy.yml -f docker-compose.override.yml --env-file .env up -d
