@@ -614,6 +614,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         output_data = {}
         # Set up and run arpeggio command
+        exe_path = 'conda'
         arpeggio_path = 'arpeggio'
         args = [
             'run', '-n', 'arpeggio',
@@ -632,8 +633,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             output_dir = f'{temp_dir}/{temp_uuid}'
             args.extend(['-o', output_dir])
 
-            p = Process(arpeggio_path, args, True)
-            p.on_error = Logs.error
+            p = Process(exe_path, args, True)
+            # p.on_error = Logs.error  # Has noisy output, uncomment if needed.
             p.on_output = Logs.debug
             exit_code = await p.start()
             Logs.debug(f'Arpeggio Exit code: {exit_code}')
