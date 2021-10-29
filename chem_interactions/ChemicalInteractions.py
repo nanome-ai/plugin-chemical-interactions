@@ -1,20 +1,20 @@
 import asyncio
 import json
-import requests
+import os
 import tempfile
 import time
 from os import environ
+import uuid
 
 import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
-from nanome.util.enums import NotificationTypes
-from nanome.util import async_callback, Color, Logs, Vector3
+from nanome.util import async_callback, Color, enums, Logs, Vector3, Process
 
-from forms import LineSettingsForm
-from menus import ChemInteractionsMenu
-from models import InteractionLine, LineManager, LabelManager, InteractionStructure
-from utils import ComplexUtils
+from .forms import LineSettingsForm
+from .menus import ChemInteractionsMenu
+from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
+from .utils import ComplexUtils
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -105,7 +105,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             full_complex = selected_complex
 
         # Clean complex and return as tempfile
-        cleaned_file = self.clean_complex(full_complex)
+        cleaned_file = await self.clean_complex(full_complex)
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
             cleaned_data = f.read()
@@ -122,27 +122,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             data['selection'] = selection
 
         # make the request to get interactions
-        response = requests.post(self.interactions_url, data=data, files=files)
-        if response.status_code != 200:
-            # If request fails, log error message.
-            try:
-                response_data = response.json()
-            except json.decoder.JSONDecodeError:
-                error_message = response.content.decode()
-            else:
-                if isinstance(response_data, dict) and 'error' in response_data:
-                    error_message = response_data.get('error')
-                else:
-                    error_message = json.dumps(response_data)
-
-            notification_message = f"Request to Interactions Server returned a {response.status_code}. Please check logs."
-            Logs.error(error_message)
-            self.send_notification(NotificationTypes.error, notification_message)
-            return
+        files = [cleaned_file]
+        contacts_data = await self.run_arpeggio_process(data, files)
 
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
-        contacts_data = response.json()
+        if not contacts_data:
+            notification_message = "Arpeggio call failed. Please check logs."
+            self.send_notification(enums.NotificationTypes.error, notification_message)
+            return
+
         new_line_manager = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
 
         all_new_lines = new_line_manager.all_lines()
@@ -169,23 +158,28 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
         asyncio.create_task(self.send_async_notification(notification_txt))
 
-    def clean_complex(self, complex):
+    async def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
-        temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
-        complex.io.to_pdb(temp_file.name, PDBOPTIONS)
-        with open(temp_file.name, 'r') as pdb_stream:
-            pdb_contents = pdb_stream.read()
+        input_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
+        complex.io.to_pdb(input_file.name, PDBOPTIONS)
 
-        temp_file.name.split('/')
-        filename = temp_file.name.split('/')[-1]
-        file_data = {filename: pdb_contents}
-
-        clean_url = f'{self.interactions_url}/clean'
-        response = requests.post(clean_url, files=file_data)
-
+        input_filename = input_file.name.split('/')[-1]
+        clean_pdb_script = 'clean_pdb.py'
+        exe_path = 'conda'
+        args = [
+            'run', '-n', 'arpeggio', 'python', clean_pdb_script, input_file.name
+        ]
+        p = Process(exe_path, args, True)
+        p.on_error = Logs.error
+        p.on_output = Logs.debug
+        exit_code = await p.start()
+        Logs.debug(f'Clean Complex Exit code: {exit_code}')
+        cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
+        cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
         cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
+
         with open(cleaned_file.name, 'wb') as f:
-            f.write(response.content)
+            f.write(open(cleaned_filepath).read().encode())
         return cleaned_file
 
     @staticmethod
@@ -584,7 +578,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def send_async_notification(self, message):
         """Send notification asynchronously."""
-        notifcation_type = nanome.util.enums.NotificationTypes.message
+        notifcation_type = enums.NotificationTypes.message
         self.send_notification(notifcation_type, message)
 
     def render_distance_labels(self, complexes):
@@ -609,3 +603,49 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message('Clearing distance labels')
         self.show_distance_labels = False
         Shape.destroy_multiple(self.label_manager.all_labels())
+
+    @staticmethod
+    async def run_arpeggio_process(data, files):
+        if len(files) != 1:
+            raise Exception("Invalid data")
+
+        input_file = files[0]
+        input_filepath = input_file.name
+
+        output_data = {}
+        # Set up and run arpeggio command
+        exe_path = 'conda'
+        arpeggio_path = 'arpeggio'
+        args = [
+            'run', '-n', 'arpeggio',
+            arpeggio_path,
+            '--mute',
+            input_filepath
+        ]
+        if 'selection' in data:
+            selections = data['selection'].split(',')
+            args.append('-s')
+            args.extend(selections)
+
+        # Create directory for output
+        temp_uuid = uuid.uuid4()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = f'{temp_dir}/{temp_uuid}'
+            args.extend(['-o', output_dir])
+
+            p = Process(exe_path, args, True)
+            # p.on_error = Logs.error  # Has noisy output, uncomment if needed.
+            p.on_output = Logs.debug
+            exit_code = await p.start()
+            Logs.debug(f'Arpeggio Exit code: {exit_code}')
+
+            try:
+                output_filename = next(fname for fname in os.listdir(output_dir))
+            except Exception:
+                Logs.error('Arpeggio results not found.')
+                return
+
+            output_filepath = f'{output_dir}/{output_filename}'
+            with open(output_filepath, 'r') as f:
+                output_data = json.load(f)
+            return output_data

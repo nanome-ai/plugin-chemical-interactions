@@ -1,5 +1,19 @@
 #!/bin/bash
 
+# Determine whether environment variables coming from env-file, or plugin arguments.
+env_arg=""
+deploy_args=""
+
+container_name="chemical-interactions"
+
+while [ $# -gt 0 ]; do
+  case $1 in
+    --env-file ) env_arg="$1 $PWD/$2" && shift 2;;
+    *) deploy_args=$deploy_args" $1" && shift ;;
+  esac
+done
+
+# cd into docker folder, so that we can use relative paths
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
@@ -7,15 +21,17 @@ cd "$parent_path"
 echo "./deploy.sh $*" > redeploy.sh
 chmod +x redeploy.sh
 
-# default env file
-ENV_FILE='../.env' 
-
-# Create on the fly .env file to pass args into plugin container
-ARGS="$*"
-if [ -n "$ARGS" ];  then
-    tmpfile=$(mktemp)
-    echo ARGS=${ARGS} > $tmpfile
-    ENV_FILE=$tmpfile
+# Remove existing docker container
+existing=$(docker ps -aq -f name=$container_name)
+if [ -n "$existing" ]; then
+    echo "removing existing container"
+    docker rm -f $existing
 fi
 
-docker-compose -f ../docker-compose-deploy.yml --env-file $ENV_FILE up -d
+# Run docker container
+docker run -d \
+--name $container_name \
+$env_arg \
+--restart unless-stopped \
+-e ARGS="$deploy_args" \
+$container_name

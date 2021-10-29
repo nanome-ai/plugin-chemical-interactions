@@ -1,5 +1,10 @@
 #!/bin/bash
 
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+cd "$parent_path"
+
+container_name="chemical-interactions"
+
 cachebust=0
 while [ $# -gt 0 ]; do
   case $1 in
@@ -13,4 +18,4 @@ if [ ! -f ".cachebust" ] || (($cachebust)); then
 fi
 
 cachebust=`cat .cachebust`
-docker-compose build --build-arg CACHEBUST=$cachebust
+docker build -f Dockerfile --build-arg CACHEBUST=$cachebust -t $container_name:latest ..

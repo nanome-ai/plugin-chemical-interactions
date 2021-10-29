@@ -2,17 +2,11 @@
     "version": "2.0.0",
     "configurations": [
         {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
-        },
-        {
             "name": "run.py",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/chem_interactions/run.py",
+            "program": "${workspaceFolder}/run.py",
+            "args": ["-v", "-n", "[wip]-chem-inter"],
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env",
         }

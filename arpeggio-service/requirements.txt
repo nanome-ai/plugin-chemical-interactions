@@ -1,3 +1,0 @@
-Flask
-gunicorn
-git+https://github.com/PDBeurope/arpeggio.git@master#egg=arpeggio

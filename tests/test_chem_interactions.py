@@ -2,31 +2,26 @@ import asyncio
 import itertools
 import json
 import os
-from unittest import TestCase, mock, skip
+import unittest
+from unittest.mock import MagicMock
+
 from nanome.api.structure import Atom, Complex
 
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
 from chem_interactions.forms import default_line_settings
 
-from unittest.mock import MagicMock
 
 fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 
-class MockRequestResponse:
-    def __init__(self, content_data, status_code):
-        self.content = content_data
-        self.status_code = status_code
-
-
-class ChemInteractionsTestCase(TestCase):
+class ChemInteractionsTestCase(unittest.TestCase):
 
     def setUp(self):
         tyl_pdb = f'{fixtures_dir}/1tyl.pdb'
         self.complex = Complex.io.from_pdb(path=tyl_pdb)
 
         self.plugin = ChemicalInteractions()
-        with mock.patch.dict(os.environ, {"INTERACTIONS_URL": "https://fake-arpeggio-service.com"}):
+        with unittest.mock.patch.dict(os.environ, {"INTERACTIONS_URL": "https://fake-arpeggio-service.com"}):
             self.plugin.start()
         self.plugin._network = MagicMock()
 
@@ -34,11 +29,13 @@ class ChemInteractionsTestCase(TestCase):
         self.assertTrue(self.complex, Complex)
         self.assertTrue(self.plugin, ChemicalInteractions)
 
+    @unittest.skip("TODO: figure out how to test Processes.")
     def test_clean_complex(self):
-        test_data = b"Doesn't really matter what data is returned"
-        with mock.patch('requests.post', return_value=MockRequestResponse(test_data, 200)):
-            cleaned_file = self.plugin.clean_complex(self.complex)
-        self.assertEqual(open(cleaned_file.name).read(), test_data.decode('utf-8'))
+        # Make sure clean_complex function returns valid pdb can be parsed into a Complex structure.
+        loop = asyncio.get_event_loop()
+        result = loop.run_until_complete(self.plugin.clean_complex(self.complex))
+        cleaned_complex = Complex.io.from_pdb(path=result.name)
+        self.assertTrue(sum(1 for atom in cleaned_complex.atoms) > 0)
 
     def test_get_atom_path(self):
         # I think the first atom is always consistent?

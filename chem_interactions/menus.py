@@ -3,12 +3,12 @@ from os import environ, path
 from Bio.PDB.Residue import Residue as BioResidue
 
 import nanome
-from utils import extract_ligands
+from .utils import extract_ligands
 from nanome.api.structure import Complex
-from nanome.api.ui import Dropdown, DropdownItem, Button, Label, LoadingBar
+from nanome.api.ui import Dropdown, DropdownItem, Button, Label
 from nanome.util import async_callback
 from nanome.util.enums import NotificationTypes
-from forms import LineSettingsForm, color_map, default_line_settings
+from .forms import LineSettingsForm, color_map, default_line_settings
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -289,8 +289,9 @@ class ChemInteractionsMenu():
             residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
             self.update_complex_data(residue_complex)
 
-        loading_bar = LoadingBar()
-        self.ln_loading_bar.set_content(loading_bar)
+        loading_bar = self.ln_loading_bar.get_content()
+        loading_bar.percentage = 0.0
+        self.ln_loading_bar.enabled = True
         self.plugin.update_node(self.ln_loading_bar)
 
         interaction_data = self.collect_interaction_data()
@@ -307,7 +308,8 @@ class ChemInteractionsMenu():
             self.reset_calculate_btn()
             raise
 
-        self.ln_loading_bar.set_content(None)
+        self.ln_loading_bar.enabled = False
+        loading_bar.percentage = 0.0
         self.plugin.update_node(self.ln_loading_bar)
         self.reset_calculate_btn()
 
@@ -320,7 +322,7 @@ class ChemInteractionsMenu():
         dropdown_items = []
         for name, color_rgb in color_map.items():
             color_hex = '#%02x%02x%02x' % color_rgb
-            colored_name = f'<mark={color_hex}>    </mark> {name}'
+            colored_name = f'<color={color_hex}>■</color> {name}'
             dd_item = DropdownItem(colored_name)
             dd_item.rgb = color_rgb
             dropdown_items.append(dd_item)

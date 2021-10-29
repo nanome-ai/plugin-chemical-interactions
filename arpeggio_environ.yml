@@ -1,0 +1,12 @@
+# This environment runs arpeggio.
+
+name: arpeggio
+channels:
+  - openbabel
+dependencies:
+  - python=3.7
+  - openbabel
+  - pip
+  - pip:
+      - git+https://github.com/mjrosengrant/arpeggio.git@remove-check
+      - biopython

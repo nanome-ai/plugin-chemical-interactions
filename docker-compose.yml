@@ -5,9 +5,9 @@ version: "3.9"
 
 services:
   plugin:
-    container_name: chemical-interactions-plugin
+    container_name: chemical-interactions
     build:
-      context: chem_interactions
+      dockerfile: docker/Dockerfile
     environment:
       NTS_HOST: ${NTS_HOST:-}
       NTS_PORT: ${NTS_PORT:-}
@@ -17,20 +17,4 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - "./chem_interactions:/app"
-      # - "../nanome-lib/nanome:/opt/conda/lib/python3.7/site-packages/nanome"
-    depends_on:
-      - arpeggio
-  arpeggio:
-    container_name: chemical-interactions-server
-    build:
-      context: arpeggio-service
-    ports:
-      - 8000:8000
-    environment:
-      FLASK_ENV: development
-      FLASK_APP: wsgi.py
-    stdin_open: true
-    tty: true
-    volumes:
-      - "./arpeggio-service:/app"
+      - ".:/app"
