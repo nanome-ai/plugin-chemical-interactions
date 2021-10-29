@@ -3,7 +3,6 @@ import json
 import os
 import tempfile
 import time
-from os import environ
 import uuid
 
 import nanome
@@ -24,7 +23,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def start(self):
         self.residue = ''
-        self.interactions_url = environ.get('INTERACTIONS_URL')
         self.menu = ChemInteractionsMenu(self)
         self.show_distance_labels = False
 
