@@ -21,6 +21,5 @@ jobs:
           latestTag=$(git describe --tags `git rev-list --tags --max-count=1`)
           echo $latestTag
           git checkout $latestTag
-          cd docker
-          ./build.sh
-          ./deploy.sh
+          ./docker/build.sh
+          ./docker/deploy.sh --env-file .env

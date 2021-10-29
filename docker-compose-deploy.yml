@@ -3,9 +3,8 @@
 version: "3.9"
 
 services:
-  plugin:
+  chemical-interactions:
     restart: always
-    container_name: chemical-interactions-plugin
     build:
       context: .
     environment:
