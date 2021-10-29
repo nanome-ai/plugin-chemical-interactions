@@ -40,12 +40,7 @@ class ChemInteractionsTestCase(unittest.TestCase):
     def test_clean_complex(self):
         # Make sure clean_complex function returns valid pdb can be parsed into a Complex structure.
         loop = asyncio.get_event_loop()
-        # clean_call_fut = self.plugin.clean_complex(self.complex)
-        nanome.PluginInstance._instance = self.plugin
-        nanome.PluginInstance._instance.is_async = True
         result = loop.run_until_complete(self.plugin.clean_complex(self.complex))
-
-        # clean_call_fut.result()
         cleaned_complex = Complex.io.from_pdb(path=result.name)
         self.assertTrue(sum(1 for atom in cleaned_complex.atoms) > 0)
 
