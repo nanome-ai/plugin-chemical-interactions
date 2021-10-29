@@ -3,7 +3,7 @@
 version: "3.9"
 
 services:
-  plugin:
+  chemical-interactions:
     container_name: chemical-interactions
     build:
       dockerfile: docker/Dockerfile
