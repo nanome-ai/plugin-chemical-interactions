@@ -21,8 +21,7 @@ class ChemInteractionsTestCase(unittest.TestCase):
         self.complex = Complex.io.from_pdb(path=tyl_pdb)
 
         self.plugin = ChemicalInteractions()
-        with unittest.mock.patch.dict(os.environ, {"INTERACTIONS_URL": "https://fake-arpeggio-service.com"}):
-            self.plugin.start()
+        self.plugin.start()
         self.plugin._network = MagicMock()
 
     def test_setup(self):
