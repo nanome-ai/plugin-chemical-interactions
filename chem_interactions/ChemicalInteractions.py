@@ -156,7 +156,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
         asyncio.create_task(self.send_async_notification(notification_txt))
 
-    async def clean_complex(self, complex):
+    @staticmethod
+    async def clean_complex(complex):
         """Clean complex to prep for arpeggio."""
         input_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
         complex.io.to_pdb(input_file.name, PDBOPTIONS)

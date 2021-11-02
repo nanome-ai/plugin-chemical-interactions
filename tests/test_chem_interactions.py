@@ -4,7 +4,6 @@ import json
 import os
 import unittest
 from unittest.mock import MagicMock
-
 from nanome.api.structure import Atom, Complex
 
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
@@ -19,7 +18,6 @@ class ChemInteractionsTestCase(unittest.TestCase):
     def setUp(self):
         tyl_pdb = f'{fixtures_dir}/1tyl.pdb'
         self.complex = Complex.io.from_pdb(path=tyl_pdb)
-
         self.plugin = ChemicalInteractions()
         self.plugin.start()
         self.plugin._network = MagicMock()
@@ -28,7 +26,6 @@ class ChemInteractionsTestCase(unittest.TestCase):
         self.assertTrue(self.complex, Complex)
         self.assertTrue(self.plugin, ChemicalInteractions)
 
-    @unittest.skip("TODO: figure out how to test Processes.")
     def test_clean_complex(self):
         # Make sure clean_complex function returns valid pdb can be parsed into a Complex structure.
         loop = asyncio.get_event_loop()
@@ -78,3 +75,12 @@ class ChemInteractionsTestCase(unittest.TestCase):
         loop = asyncio.get_event_loop()
         line_manager = loop.run_until_complete(self.plugin.parse_contacts_data(contacts_data, [self.complex], default_line_settings))
         self.assertEqual(len(line_manager.all_lines()), expected_line_count)
+
+    def test_run_arpeggio(self):
+        arpeggio_data = json.loads(open(f'{fixtures_dir}/1tyl_ligand_selections.json').read())
+        cleaned_pdb = f'{fixtures_dir}/1tyl_cleaned.pdb'
+        loop = asyncio.get_event_loop()
+        contacts_data = {}
+        with open(cleaned_pdb) as f:
+            contacts_data = loop.run_until_complete(self.plugin.run_arpeggio_process(arpeggio_data, [f]))
+        self.assertTrue(contacts_data)
