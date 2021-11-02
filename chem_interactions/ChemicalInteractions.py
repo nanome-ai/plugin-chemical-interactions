@@ -626,7 +626,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = f'{temp_dir}/{temp_uuid}'
             cmd.extend(['-o', output_dir])
-            exit_code = subprocess.call(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            exit_code = subprocess.call(cmd)
             Logs.message(f'Arpeggio Exit code: {exit_code}')
             if exit_code != 0:
                 raise Exception("Arpeggio failed, Please check logs.")
