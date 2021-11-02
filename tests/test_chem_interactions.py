@@ -82,6 +82,5 @@ class ChemInteractionsTestCase(unittest.TestCase):
         loop = asyncio.get_event_loop()
         contacts_data = {}
         with open(cleaned_pdb) as f:
-            files = [f]
-            contacts_data = loop.run_until_complete(self.plugin.run_arpeggio_process(arpeggio_data, files))
+            contacts_data = loop.run_until_complete(self.plugin.run_arpeggio_process(arpeggio_data, [f]))
         self.assertTrue(contacts_data)
