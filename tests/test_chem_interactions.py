@@ -2,13 +2,15 @@ import asyncio
 import itertools
 import json
 import os
+import nanome
 import unittest
 from unittest.mock import MagicMock
 from nanome.api.structure import Atom, Complex
+from nanome._internal._process import _ProcessManager
 
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
 from chem_interactions.forms import default_line_settings
-
+from multiprocessing import Pipe
 
 fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures')
 
