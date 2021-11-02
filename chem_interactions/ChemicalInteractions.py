@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import subprocess
 import tempfile
 import time
 import uuid
@@ -156,21 +157,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
         asyncio.create_task(self.send_async_notification(notification_txt))
 
-    async def clean_complex(self, complex):
+    @staticmethod
+    async def clean_complex(complex):
         """Clean complex to prep for arpeggio."""
         input_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
         complex.io.to_pdb(input_file.name, PDBOPTIONS)
 
         input_filename = input_file.name.split('/')[-1]
         clean_pdb_script = 'clean_pdb.py'
-        exe_path = 'conda'
-        args = [
-            'run', '-n', 'arpeggio', 'python', clean_pdb_script, input_file.name
+        cmd = [
+            'conda', 'run', '-n', 'arpeggio', 'python', clean_pdb_script, input_file.name
         ]
-        p = Process(exe_path, args, True)
-        p.on_error = Logs.error
-        p.on_output = Logs.debug
-        exit_code = await p.start()
+
+        exit_code = subprocess.call(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         Logs.debug(f'Clean Complex Exit code: {exit_code}')
         cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
         cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
