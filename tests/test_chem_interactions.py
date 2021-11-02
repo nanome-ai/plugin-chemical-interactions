@@ -4,7 +4,6 @@ import json
 import os
 import unittest
 from unittest.mock import MagicMock
-
 from nanome.api.structure import Atom, Complex
 
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
@@ -28,7 +27,6 @@ class ChemInteractionsTestCase(unittest.TestCase):
         self.assertTrue(self.complex, Complex)
         self.assertTrue(self.plugin, ChemicalInteractions)
 
-    @unittest.skip("TODO: figure out how to test Processes.")
     def test_clean_complex(self):
         # Make sure clean_complex function returns valid pdb can be parsed into a Complex structure.
         loop = asyncio.get_event_loop()
