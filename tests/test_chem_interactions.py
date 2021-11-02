@@ -18,7 +18,6 @@ class ChemInteractionsTestCase(unittest.TestCase):
     def setUp(self):
         tyl_pdb = f'{fixtures_dir}/1tyl.pdb'
         self.complex = Complex.io.from_pdb(path=tyl_pdb)
-
         self.plugin = ChemicalInteractions()
         self.plugin.start()
         self.plugin._network = MagicMock()
@@ -80,8 +79,9 @@ class ChemInteractionsTestCase(unittest.TestCase):
     def test_run_arpeggio(self):
         arpeggio_data = json.loads(open(f'{fixtures_dir}/1tyl_arpeggio_input.json').read())
         cleaned_pdb = f'{fixtures_dir}/1tyl_cleaned.pdb'
-
         loop = asyncio.get_event_loop()
+        contacts_data = {}
         with open(cleaned_pdb) as f:
             files = [f]
-            loop.run_until_complete(self.plugin.run_arpeggio_process(arpeggio_data, files))
+            contacts_data = loop.run_until_complete(self.plugin.run_arpeggio_process(arpeggio_data, files))
+        self.assertTrue(contacts_data)
