@@ -9,7 +9,7 @@ import uuid
 import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
-from nanome.util import async_callback, Color, enums, Logs, Vector3
+from nanome.util import async_callback, Color, enums, Logs, Vector3, Process
 
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu
@@ -165,12 +165,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         input_filename = input_file.name.split('/')[-1]
         clean_pdb_script = 'clean_pdb.py'
-        cmd = [
-            'conda', 'run', '-n', 'arpeggio', 'python', clean_pdb_script, input_file.name
+        exe_path = 'conda'
+        args = [
+            'run', '-n', 'arpeggio', 'python', clean_pdb_script, input_file.name
         ]
-
-        exit_code = subprocess.call(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        Logs.message(f'Clean Complex Exit code: {exit_code}')
+        p = Process(exe_path, args, True)
+        p.on_error = Logs.error
+        p.on_output = Logs.debug
+        exit_code = await p.start()
+        Logs.debug(f'Clean Complex Exit code: {exit_code}')
         cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
         cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
         cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
@@ -611,28 +614,37 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         output_data = {}
         # Set up and run arpeggio command
+        exe_path = 'conda'
         arpeggio_path = 'arpeggio'
-        cmd = [
-            'conda', 'run', '-n', 'arpeggio',
-            arpeggio_path, input_filepath
+        args = [
+            'run', '-n', 'arpeggio',
+            arpeggio_path,
+            '--mute',
+            input_filepath
         ]
         if 'selection' in data:
             selections = data['selection'].split(',')
-            cmd.append('-s')
-            cmd.extend(selections)
+            args.append('-s')
+            args.extend(selections)
 
         # Create directory for output
         temp_uuid = uuid.uuid4()
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = f'{temp_dir}/{temp_uuid}'
-            cmd.extend(['-o', output_dir])
-            exit_code = subprocess.call(cmd)
-            Logs.message(f'Arpeggio Exit code: {exit_code}')
-            if exit_code != 0:
-                raise Exception("Arpeggio failed, Please check logs.")
+            args.extend(['-o', output_dir])
 
-            # Arpeggio output is in a directory with a single file
-            output_filename = next(fname for fname in os.listdir(output_dir))
+            p = Process(exe_path, args, True)
+            # p.on_error = Logs.error  # Has noisy output, uncomment if needed.
+            p.on_output = Logs.debug
+            exit_code = await p.start()
+            Logs.debug(f'Arpeggio Exit code: {exit_code}')
+
+            try:
+                output_filename = next(fname for fname in os.listdir(output_dir))
+            except Exception:
+                Logs.error('Arpeggio results not found.')
+                return
+
             output_filepath = f'{output_dir}/{output_filename}'
             with open(output_filepath, 'r') as f:
                 output_data = json.load(f)
