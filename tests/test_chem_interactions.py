@@ -76,3 +76,12 @@ class ChemInteractionsTestCase(unittest.TestCase):
         loop = asyncio.get_event_loop()
         line_manager = loop.run_until_complete(self.plugin.parse_contacts_data(contacts_data, [self.complex], default_line_settings))
         self.assertEqual(len(line_manager.all_lines()), expected_line_count)
+
+    def test_run_arpeggio(self):
+        arpeggio_data = json.loads(open(f'{fixtures_dir}/1tyl_arpeggio_input.json').read())
+        cleaned_pdb = f'{fixtures_dir}/1tyl_cleaned.pdb'
+
+        loop = asyncio.get_event_loop()
+        with open(cleaned_pdb) as f:
+            files = [f]
+            loop.run_until_complete(self.plugin.run_arpeggio_process(arpeggio_data, files))
