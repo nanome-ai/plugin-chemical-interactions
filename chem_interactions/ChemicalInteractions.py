@@ -177,8 +177,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
         cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
 
-        with open(cleaned_file.name, 'wb') as f:
-            f.write(open(cleaned_filepath).read().encode())
+        with open(cleaned_file.name, 'wb') as output_file, open(cleaned_filepath, 'r') as input_file:
+            output_file.write(input_file.read().encode())
         return cleaned_file
 
     @staticmethod

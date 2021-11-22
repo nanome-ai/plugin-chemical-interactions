@@ -69,7 +69,8 @@ class ChemInteractionsTestCase(unittest.TestCase):
         self.assertEqual(len(selection.split(',')), atom_count)
 
     def test_parse_contacts_data(self):
-        contacts_data = json.loads(open(f'{fixtures_dir}/1tyl_contacts_data.json').read())
+        with open(f'{fixtures_dir}/1tyl_contacts_data.json') as f:
+            contacts_data = json.loads(f.read())
         # Known value from 1tyl_contacts_data.json
         expected_line_count = 86
         loop = asyncio.get_event_loop()
@@ -77,7 +78,8 @@ class ChemInteractionsTestCase(unittest.TestCase):
         self.assertEqual(len(line_manager.all_lines()), expected_line_count)
 
     def test_run_arpeggio(self):
-        arpeggio_data = json.loads(open(f'{fixtures_dir}/1tyl_ligand_selections.json').read())
+        with open(f'{fixtures_dir}/1tyl_ligand_selections.json') as f:
+            arpeggio_data = json.loads(f.read())
         cleaned_pdb = f'{fixtures_dir}/1tyl_cleaned.pdb'
         loop = asyncio.get_event_loop()
         contacts_data = {}
