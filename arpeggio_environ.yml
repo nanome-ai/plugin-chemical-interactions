@@ -8,5 +8,5 @@ dependencies:
   - openbabel
   - pip
   - pip:
-      - git+https://github.com/mjrosengrant/arpeggio.git@remove-check
+      - git+https://github.com/mjrosengrant/arpeggio.git
       - biopython
