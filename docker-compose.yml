@@ -4,7 +4,6 @@ version: "3.9"
 
 services:
   chemical-interactions:
-    container_name: chemical-interactions
     build:
       dockerfile: docker/Dockerfile
     environment:
