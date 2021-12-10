@@ -1,6 +1,8 @@
 import argparse
-import os
+import logging
+import logging.config
 import nanome
+import os
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
 from nanome.util.enums import Integrations
 
@@ -22,6 +24,9 @@ def create_parser():
 def main():
     parser = create_parser()
     args, _ = parser.parse_known_args()
+
+    logging_config_file = 'logging_config.ini'
+    logging.config.fileConfig(logging_config_file)
 
     default_title = 'Chemical Interactions'
     arg_name = args.name or []

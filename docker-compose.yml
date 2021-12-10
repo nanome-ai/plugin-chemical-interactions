@@ -10,6 +10,8 @@ services:
       NTS_HOST: ${NTS_HOST:-}
       NTS_PORT: ${NTS_PORT:-}
       ARGS: ${ARGS:-}
+      GRAYLOG_HOST: ${GRAYLOG_HOST:-}
+      GRAYLOG_PORT: ${GRAYLOG_PORT:-}
     command: python -X dev run.py -r -v ${ARGS}
     stdin_open: true
     tty: true
