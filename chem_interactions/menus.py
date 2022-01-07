@@ -120,7 +120,7 @@ class ChemInteractionsMenu():
             elif isinstance(struct, Substructure):
                 struct_name = struct.name
 
-            # # Make sure we have a unique name for every structure
+            # Make sure we have a unique name for every structure
             ddi_label = struct_name
             if ddi_label in ddi_labels:
                 num = 1
@@ -134,8 +134,7 @@ class ChemInteractionsMenu():
             if isinstance(struct, Complex):
                 ddi.complex = struct
             elif isinstance(struct, Substructure):
-                ddi.ligand = struct
-
+                ddi.ligand = list(struct.residues)
             complex_ddis.append(ddi)
 
         return complex_ddis
@@ -232,15 +231,10 @@ class ChemInteractionsMenu():
             if item.selected
         ]
 
-        if len(selected_complexes) != 1:
+        if not selected_complexes:
             self.plugin.send_notification(NotificationTypes.error, 'Please Select a Complex.')
             self.reset_calculate_btn()
             return
-
-        # Determine selection type (Show all interactions or only selected atoms)
-        selected_atoms_only = False
-        if self.btn_show_selected_interactions.selected:
-            selected_atoms_only = True
 
         selected_complex = selected_complexes[0]
         ligand_ddis = [item for item in self.dd_ligands.items if item.selected]
@@ -250,22 +244,25 @@ class ChemInteractionsMenu():
         if self.btn_show_selected_interactions.selected:
             selected_atoms_only = True
 
-        residues = []
-        residue_complexes = []
+        ligand_residues = []
         if ligand_ddis:
             for ligand_ddi in ligand_ddis:
                 selected_ligand = getattr(ligand_ddi, 'ligand', None)
                 if selected_ligand:
-                    residues.append(selected_ligand)
+                    # Should be a list of residues
+                    ligand_residues.extend(selected_ligand)
+
                 residue_complex = getattr(ligand_ddi, 'complex', None)
-                if residue_complex:
-                    residue_complexes.append(residue_complex)
+                if residue_complex and not selected_ligand:
+                    deep_comp = (await self.plugin.request_complexes([residue_complex.index]))[0]
+                    ligand_residues.extend(list(deep_comp.residues))
         elif selected_atoms_only:
             # Find first complex with selected atoms, and set residue complex to that.
             complexes = await self.plugin.request_complexes([c.index for c in self.complexes])
             for comp in complexes:
-                if any([a.selected for a in comp.atoms]):
-                    residue_complexes.append(comp)
+                for rez in comp.residues:
+                    if any(a.selected for a in rez.atoms):
+                        ligand_residues.append(rez)
         else:
             # If no ligand selected from dropdown, and not atom selection mode, raise error
             self.plugin.send_notification(NotificationTypes.error, 'Please Select a Ligand.')
@@ -283,9 +280,9 @@ class ChemInteractionsMenu():
         self.update_complex_data(selected_complex)
 
         # Get up to date residue_complex
-        for residue_complex in residue_complexes:
-            residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
-            self.update_complex_data(residue_complex)
+        # for residue_complex in residue_complexes:
+        #     residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
+        #     self.update_complex_data(residue_complex)
 
         loading_bar = self.ln_loading_bar.get_content()
         loading_bar.percentage = 0.0
@@ -297,8 +294,8 @@ class ChemInteractionsMenu():
         distance_labels = self.btn_distance_labels.selected
         try:
             await self.plugin.calculate_interactions(
-                selected_complex, residue_complexes, interaction_data,
-                ligands=residues, selected_atoms_only=selected_atoms_only, distance_labels=distance_labels)
+                selected_complex, ligand_residues, interaction_data,
+                selected_atoms_only=selected_atoms_only, distance_labels=distance_labels)
         except Exception:
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
@@ -447,10 +444,12 @@ class ChemInteractionsMenu():
             # Find ligands nested inside of complex, and add them to dropdown.
             mol = list(deep_complex.molecules)[deep_complex.current_frame]
             ligands = await mol.get_ligands()
+            for ligand in ligands:
+                # make sure complex is stored on residue, we will need it later
+                for residue in ligand.residues:
+                    residue.comp = deep_complex
+
             new_ligand_ddis = self.create_structure_dropdown_items(ligands)
-            # Also store complex information on the dropdown items.
-            for ddi in new_ligand_ddis:
-                ddi.complex = deep_complex
             ligand_ddis.extend(new_ligand_ddis)
         else:
             ligand_ddis = self.create_structure_dropdown_items(self.complexes)
