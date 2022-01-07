@@ -1,10 +1,8 @@
-import tempfile
 from os import environ, path
-from Bio.PDB.Residue import Residue as BioResidue
 
 import nanome
-from .utils import extract_ligands
 from nanome.api.structure import Complex
+from nanome.api.structure.substructure import Substructure
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label
 from nanome.util import async_callback
 from nanome.util.enums import NotificationTypes
@@ -119,8 +117,8 @@ class ChemInteractionsMenu():
             struct_name = ''
             if isinstance(struct, Complex):
                 struct_name = struct.full_name
-            elif isinstance(struct, BioResidue):
-                struct_name = struct.resname
+            elif isinstance(struct, Substructure):
+                struct_name = struct.name
 
             # # Make sure we have a unique name for every structure
             ddi_label = struct_name
@@ -135,7 +133,7 @@ class ChemInteractionsMenu():
 
             if isinstance(struct, Complex):
                 ddi.complex = struct
-            elif isinstance(struct, BioResidue):
+            elif isinstance(struct, Substructure):
                 ddi.ligand = struct
 
             complex_ddis.append(ddi)
@@ -447,9 +445,8 @@ class ChemInteractionsMenu():
             item.complex = deep_complex
 
             # Find ligands nested inside of complex, and add them to dropdown.
-            temp_file = tempfile.NamedTemporaryFile(suffix='.pdb')
-            deep_complex.io.to_pdb(temp_file.name, PDBOPTIONS)
-            ligands = extract_ligands(temp_file)
+            mol = list(deep_complex.molecules)[deep_complex.current_frame]
+            ligands = await mol.get_ligands()
             new_ligand_ddis = self.create_structure_dropdown_items(ligands)
             # Also store complex information on the dropdown items.
             for ddi in new_ligand_ddis:

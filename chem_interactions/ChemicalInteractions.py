@@ -226,12 +226,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if ligands:
             # If a ligand has been specified, get residue path based on residue serial.
             for lig in ligands:
-                chain_name = lig.parent.id
+                lig_residue = next(lig.residues)
+                lig_chain_name = lig_residue.chain.name
                 # Find complexes that contain selected lig.
                 for comp in complexes:
                     residues = (
                         res for res in comp.residues
-                        if res.serial == lig._id[1] and res.chain.name in [chain_name, f"H{chain_name}", f"H_{chain_name}"]
+                        if res.serial == lig_residue.serial and res.chain.name in [lig_chain_name, f"H{lig_chain_name}", f"H_{lig_chain_name}"]
                     )
                     for residue in residues:
                         residue_path = self.get_residue_path(residue)
