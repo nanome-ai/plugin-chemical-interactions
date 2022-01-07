@@ -9,6 +9,7 @@
             "args": ["-v", "-n", "[wip]-chem-inter"],
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env",
+            "justMyCode": false,
         }
     ]
 }
