@@ -18,7 +18,13 @@ class ChemInteractionsTestCase(unittest.TestCase):
 
     def setUp(self):
         tyl_pdb = f'{fixtures_dir}/1tyl.pdb'
+        tyl_protein = f'{fixtures_dir}/1TYL_protein.sdf'
+        tyl_ligand = f'{fixtures_dir}/1TYL_ligand.sdf'
+        
         self.complex = Complex.io.from_pdb(path=tyl_pdb)
+        self.tyl_protein = Complex.io.from_sdf(path=tyl_protein)
+        self.tyl_ligand = Complex.io.from_sdf(path=tyl_ligand)
+        
         self.plugin_instance = ChemicalInteractions()
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
@@ -62,7 +68,7 @@ class ChemInteractionsTestCase(unittest.TestCase):
         atoms = itertools.islice(self.complex.atoms, atom_count)
         for atom in atoms:
             atom.selected = True
-        selection = self.plugin_instance.get_interaction_selections(self.complex, [self.complex], [], True)
+        selection = self.plugin_instance.get_interaction_selections(self.complex, [self.complex], True)
         self.assertEqual(len(selection.split(',')), atom_count)
 
     def test_parse_contacts_data(self):
@@ -96,17 +102,53 @@ class ChemInteractionsTestCase(unittest.TestCase):
         for atom in ligand_chain.atoms:
             atom.selected = True
 
-        # Set up event loop 
+        selected_complex = self.complex
+        ligand_residues = list(self.complex.residues)
+        selected_atoms_only = True
+        distance_labels = False
+        self.validate_calculate_interactions(
+            selected_complex,
+            ligand_residues,
+            selected_atoms_only=selected_atoms_only,
+            distance_labels=distance_labels)
+
+    @unittest.skip("Ligand and Protein don't align, so no interactions found")
+    @patch('nanome._internal._network._ProcessNetwork._instance')
+    def test_calculate_interactions_separate_ligand(self, patch):
+        selected_complex = self.tyl_protein
+        ligand_residues = list(self.tyl_ligand.residues)
+        distance_labels = True
+        self.validate_calculate_interactions(
+            selected_complex, ligand_residues, distance_labels=distance_labels)
+
+    def validate_calculate_interactions(
+            self, selected_complex, ligand_residues, selected_atoms_only=False, distance_labels=False):
+        """Test async call to calculate interactions."""
         event_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(event_loop)
 
-        async def run_calculate_interactions():
-            # Make sure running calculate_interactions with selected atoms adds lines to line manager
-            self.assertEqual(len(self.plugin_instance.line_manager.all_lines()), 0)
+        async def run_calculate_interactions(
+            selected_complex, ligand_residues, selected_atoms_only=False, distance_labels=False):
+            """Run plugin.calculate_interactions with provided args and make sure lines are added to LineManager."""
+            
+            line_count = len(self.plugin_instance.line_manager.all_lines())
+            self.assertEqual(line_count, 0)
             await self.plugin_instance.calculate_interactions(
-                self.complex, [], default_line_settings, selected_atoms_only=True)
-            self.assertTrue(len(self.plugin_instance.line_manager.all_lines()) > 0)
+                selected_complex, ligand_residues, default_line_settings,
+                selected_atoms_only=selected_atoms_only,
+                distance_labels=distance_labels)
+
+            new_line_count = len(self.plugin_instance.line_manager.all_lines())
+            self.assertTrue(new_line_count > 0)
+            if distance_labels:
+                label_count = len(self.plugin_instance.label_manager.all_labels())
+                self.assertTrue(label_count > 0)
+        
         coro = asyncio.coroutine(run_calculate_interactions)
-        event_loop.run_until_complete(coro())
+
+        event_loop.run_until_complete(coro(
+            selected_complex, ligand_residues,
+            selected_atoms_only=selected_atoms_only,
+            distance_labels=distance_labels))
         # event_loop.close()
 

@@ -93,8 +93,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if type(lig_comp) == Complex and len(list(lig_comp.molecules)) == 0:
                 ligand_residues[i] = (await self.request_complexes([lig_comp.index]))[0]
 
-        # rez.comp manually added in menus.py
-        lig_complexes = set([rez.comp for rez in ligand_residues])
+        # Sometimes residues don't have a complex associated, so we manually add the complex
+        # as rez.comp. This is a little hacky, but it works.
+        lig_complexes = []
+        for rez in ligand_residues:
+            if rez.complex:
+                lig_complexes.append(rez.complex)
+            elif getattr(rez, 'comp', None):
+                lig_complexes.append(rez.comp)
         complexes = [selected_complex, *[lig_comp for lig_comp in lig_complexes if lig_comp.index != selected_complex.index]]
 
         # If the ligands are not part of selected complex, merge into one complex.
