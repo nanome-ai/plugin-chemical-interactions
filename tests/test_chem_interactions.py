@@ -104,6 +104,7 @@ class ChemInteractionsTestCase(unittest.TestCase):
             target_complex,
             ligand_residues,
             selected_atoms_only=selected_atoms_only)
+
     @unittest.skip("Ligand and Protein don't align, so no interactions found")
     @patch('nanome._internal._network._ProcessNetwork._instance')
     def test_calculate_interactions_separate_ligand(self, patch):
