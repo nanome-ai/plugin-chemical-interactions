@@ -70,12 +70,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @async_callback
     async def calculate_interactions(
-            self, selected_complex, ligand_residues, line_settings,
+            self, target_complex, ligand_residues, line_settings,
             selected_atoms_only=False, distance_labels=False):
         """Calculate interactions between complexes, and upload interaction lines to Nanome.
 
-        selected_complex: Nanome Complex object
-        ligand_residues: List of Complex objects containing the ligand. Often is the same as selected_complex.
+        target_complex: Nanome Complex object
+        ligand_residues: List of Complex objects containing the ligand. Often is the same as target_complex.
         line_settings: Data accepted by LineSettingsForm.
         ligands: List: Names of substructures to calculate interactions for.
         selected_atoms_only: bool. show interactions only for selected atoms.
@@ -86,8 +86,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         start_time = time.time()
 
         # Let's make sure we have deep complexes
-        if len(list(selected_complex.molecules)) == 0:
-            selected_complex = await self.request_complexes([selected_complex.index])
+        if len(list(target_complex.molecules)) == 0:
+            target_complex = await self.request_complexes([target_complex.index])
 
         for i, lig_comp in enumerate(ligand_residues):
             if type(lig_comp) == Complex and len(list(lig_comp.molecules)) == 0:
@@ -101,13 +101,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 lig_complexes.append(rez.complex)
             elif getattr(rez, 'comp', None):
                 lig_complexes.append(rez.comp)
-        complexes = [selected_complex, *[lig_comp for lig_comp in lig_complexes if lig_comp.index != selected_complex.index]]
+        complexes = [target_complex, *[lig_comp for lig_comp in lig_complexes if lig_comp.index != target_complex.index]]
 
         # If the ligands are not part of selected complex, merge into one complex.
-        if any([lc.index != selected_complex.index for lc in ligand_residues]):
-            full_complex = ComplexUtils.combine_ligands(selected_complex, complexes)
+        if any([lc.index != target_complex.index for lc in ligand_residues]):
+            full_complex = ComplexUtils.combine_ligands(target_complex, complexes)
         else:
-            full_complex = selected_complex
+            full_complex = target_complex
 
         # Clean complex and return as tempfile
         cleaned_file = await self.clean_complex(full_complex)
@@ -119,7 +119,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         filename = cleaned_file.name.split('/')[-1]
         files = {filename: cleaned_data}
         data = {}
-        selection = self.get_interaction_selections(selected_complex, ligand_residues, selected_atoms_only)
+        selection = self.get_interaction_selections(target_complex, ligand_residues, selected_atoms_only)
         Logs.debug(f'Selections: {selection}')
 
         if selection:
@@ -216,10 +216,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             selections.add(atompath)
         return selections
 
-    def get_interaction_selections(self, selected_complex, ligand_residues, selected_atoms_only):
+    def get_interaction_selections(self, target_complex, ligand_residues, selected_atoms_only):
         """Generate valid list of selections to send to interactions service.
 
-        selected_complex: Nanome Complex object
+        target_complex: Nanome Complex object
         ligand_residues: List of Residue objects containing ligands interacting with selected complex.
         interactions data: Data accepted by LineSettingsForm.
         ligands: List, Biopython Residue object. Can be empty
@@ -230,7 +230,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         selections = set()
         if selected_atoms_only:
             # Get all selected atoms from both the selected complex and ligand complex
-            comp_selections = self.get_selected_atom_paths(selected_complex)
+            comp_selections = self.get_selected_atom_paths(target_complex)
             selections = selections.union(comp_selections)
             for rez in ligand_residues:
                 rez_selections = self.get_selected_atom_paths(rez)
