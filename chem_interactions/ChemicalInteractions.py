@@ -8,12 +8,11 @@ import uuid
 import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
-from nanome.util import async_callback, Color, enums, Logs, Vector3, Process
+from nanome.util import async_callback, Color, ComplexUtils, enums, Logs, Vector3, Process
 
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
-from .utils import ComplexUtils
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -86,11 +85,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         start_time = time.time()
 
         # Let's make sure we have deep complexes
-        if len(list(target_complex.molecules)) == 0:
+        if sum(1 for _ in target_complex.molecules) == 0:
             target_complex = await self.request_complexes([target_complex.index])
 
         for i, lig_comp in enumerate(ligand_residues):
-            if type(lig_comp) == Complex and len(list(lig_comp.molecules)) == 0:
+            if type(lig_comp) == Complex and sum(1 for _ in lig_comp.molecules) == 0:
                 ligand_residues[i] = (await self.request_complexes([lig_comp.index]))[0]
 
         # Sometimes residues don't have a complex associated, so we manually add the complex
@@ -254,8 +253,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         rtype: nanome.api.Atom object, or None
         """
         chain_name, res_id, atom_name = atom_path.split('/')
-        complex_molecule = list(complex.molecules)[complex.current_frame]
-
+        # Use the molecule from the current frame
+        complex_molecule = next(
+            x for i, x in enumerate(complex.molecules)
+            if i == complex.current_frame
+        )
         # Chain naming seems inconsistent, so we need to check the provided name,
         # as well as heteroatom variations
         atoms = [
@@ -454,6 +456,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
+        breakpoint()
         complexes = complexes or []
         stream_type = nanome.api.streams.Stream.Type.shape_color.value
 
@@ -508,10 +511,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atoms_found = 0
         for comp in complexes:
             try:
-                current_mol = list(comp.molecules)[comp.current_frame]
+                current_mol = next(
+                    mol for i, mol in enumerate(comp.molecules)
+                    if i == comp.current_frame)
             except IndexError:
                 # In case of empty complex, its safe to continue
-                if len(list(comp.molecules)) == 0:
+                mol_count = sum(1 for _ in comp.molecules)
+                if mol_count == 0:
                     continue
                 raise
 

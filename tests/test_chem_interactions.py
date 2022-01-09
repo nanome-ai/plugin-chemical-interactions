@@ -126,6 +126,22 @@ class ChemInteractionsTestCase(unittest.TestCase):
             target_complex, ligand_residues, distance_labels=distance_labels)
 
     @patch('nanome._internal._network._ProcessNetwork._instance')
+    def test_calculate_interactions_specific_structures(self, _):
+        """Test that interactions on a chain ."""
+        # Select all atoms on the ligand chain
+        chain_name = 'HC'
+        ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
+        
+        target_complex = self.complex
+        ligand_residues = list(ligand_chain.residues)
+        selected_atoms_only = False
+        self.validate_calculate_interactions(
+            target_complex,
+            ligand_residues,
+            selected_atoms_only=selected_atoms_only)
+
+
+    @patch('nanome._internal._network._ProcessNetwork._instance')
     def test_calculate_interactions_distance_labels(self, patch):
         """Ensure that distance labels can be added to the InteractionLines."""
         # Select all atoms on the ligand chain

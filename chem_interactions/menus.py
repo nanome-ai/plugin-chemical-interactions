@@ -434,15 +434,18 @@ class ChemInteractionsMenu():
 
             ligand_ddis = self.create_structure_dropdown_items(self.complexes)
             comp = item.complex
-            if len(list(comp.molecules)) == 0:
-                deep_complex = next(iter(await self.plugin.request_complexes([comp.index])))
+            if sum(1 for _ in comp.molecules) == 0:
+                deep_complex = (await self.plugin.request_complexes([comp.index]))[0]
                 self.update_complex_data(deep_complex)
             else:
                 deep_complex = comp
             item.complex = deep_complex
 
             # Find ligands nested inside of complex, and add them to dropdown.
-            mol = list(deep_complex.molecules)[deep_complex.current_frame]
+            mol = next(
+                mol for i, mol in enumerate(deep_complex.molecules)
+                if i == deep_complex.current_frame
+            )
             ligands = await mol.get_ligands()
             for ligand in ligands:
                 # make sure complex is stored on residue, we will need it later
