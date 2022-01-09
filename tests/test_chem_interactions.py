@@ -28,6 +28,8 @@ class ChemInteractionsTestCase(unittest.TestCase):
     def setUp(self):
         tyl_pdb = f'{fixtures_dir}/1tyl.pdb'
         self.complex = Complex.io.from_pdb(path=tyl_pdb)
+        for atom in self.complex.atoms:
+            atom.index = randint(1000000000, 9999999999)
         self.plugin_instance = ChemicalInteractions()
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
@@ -166,9 +168,6 @@ class ChemInteractionsTestCase(unittest.TestCase):
         for atom in ligand_chain.atoms:
             atom.selected = True
 
-        # Add a random atom indices to every atom
-        for atom in target_complex.atoms:
-            atom.index = randint(1000000000, 9999999999)
         ligand_residues = list(target_complex.residues)
         selected_atoms_only = True
         distance_labels = True
@@ -193,14 +192,41 @@ class ChemInteractionsTestCase(unittest.TestCase):
         new_line_count = len(self.plugin_instance.line_manager.all_lines())
         self.assertTrue(new_line_count > 0)
         if distance_labels:
-            label_count = len(self.plugin_instance.label_manager.all_labels())
-            self.assertTrue(label_count > 0)
-    
+            line_count = len(self.plugin_instance.line_manager.all_lines())
+            self.assertTrue(line_count > 0)
+
+    @patch('nanome.api.plugin_instance.PluginInstance.create_writing_stream')
     @patch('nanome._internal._network._ProcessNetwork._instance')
-    def test_menu(self, mock_network):
+    def test_menu(self, mock_network, create_writing_stream_mock):
         async def validate_menu():
+            # Select all atoms on the ligand chain
+            chain_name = 'HC'
+            ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
+            for atom in ligand_chain.atoms:
+                atom.selected = True
+
+            target_complex = self.complex
+            ligand_residues = list(self.complex.residues)
+            selected_atoms_only = True
+            distance_labels = False
+            # with mock_network as mock_network:
+            await self.validate_calculate_interactions(
+                target_complex,
+                ligand_residues,
+                selected_atoms_only=selected_atoms_only,
+                distance_labels=distance_labels)
+
+            line_count = len(self.plugin_instance.line_manager.all_lines())
+            self.assertTrue(line_count > 0)
+            fut = asyncio.Future()
+            fut.set_result((MagicMock(), None))
+            create_writing_stream_mock.return_value = fut
+
             menu = ChemInteractionsMenu(self.plugin_instance)
             self.plugin_instance._menus = [menu]
             await menu.render(complexes=[self.complex])
-            # await menu.update_interaction_lines()
+            updated_line_settings = dict(default_line_settings)
+            updated_line_settings['hydrophobic']['dash_length'] = 0.5
+            await menu.update_interaction_lines()
+
         run_awaitable(validate_menu)
