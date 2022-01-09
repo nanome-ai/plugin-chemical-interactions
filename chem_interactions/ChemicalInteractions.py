@@ -456,7 +456,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
-        breakpoint()
         complexes = complexes or []
         stream_type = nanome.api.streams.Stream.Type.shape_color.value
 

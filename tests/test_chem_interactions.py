@@ -8,11 +8,19 @@ from random import randint
 
 from unittest.mock import MagicMock
 from nanome.api.structure import Atom, Complex, Molecule
+from chem_interactions.menus import ChemInteractionsMenu
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
 from chem_interactions.forms import default_line_settings
 
 
 fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures')
+
+def run_awaitable(awaitable, *args, **kwargs):
+    loop = asyncio.get_event_loop()
+    if loop.is_running:
+        loop = asyncio.new_event_loop()
+    loop.run_until_complete(awaitable(*args, **kwargs))
+    loop.close()
 
 
 class ChemInteractionsTestCase(unittest.TestCase):
@@ -29,7 +37,7 @@ class ChemInteractionsTestCase(unittest.TestCase):
         loop = asyncio.get_event_loop()
         result = loop.run_until_complete(self.plugin_instance.clean_complex(self.complex))
         cleaned_complex = Complex.io.from_pdb(path=result.name)
-        self.assertTrue(sum(1 for atom in cleaned_complex.atoms) > 0)
+        self.assertTrue(sum(1 for _ in cleaned_complex.atoms) > 0)
 
     def test_get_atom_path(self):
         # I think the first atom is always consistent?
@@ -90,7 +98,7 @@ class ChemInteractionsTestCase(unittest.TestCase):
         self.assertTrue(contacts_data)
 
     @patch('nanome._internal._network._ProcessNetwork._instance')
-    def test_calculate_interactions_selected_atoms(self, patch):
+    def test_calculate_interactions_selected_atoms(self, mock_network):
         # Select all atoms on the ligand chain
         chain_name = 'HC'
         ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
@@ -100,10 +108,14 @@ class ChemInteractionsTestCase(unittest.TestCase):
         target_complex = self.complex
         ligand_residues = list(self.complex.residues)
         selected_atoms_only = True
-        self.validate_calculate_interactions(
+        distance_labels = False
+        # with mock_network as mock_network:
+        run_awaitable(
+            self.validate_calculate_interactions,
             target_complex,
             ligand_residues,
-            selected_atoms_only=selected_atoms_only)
+            selected_atoms_only=selected_atoms_only,
+            distance_labels=distance_labels)
 
     @unittest.skip("Ligand and Protein don't align, so no interactions found")
     @patch('nanome._internal._network._ProcessNetwork._instance')
@@ -122,8 +134,11 @@ class ChemInteractionsTestCase(unittest.TestCase):
 
         distance_labels = True
         ligand_residues = list(ligand_complex.residues)
-        self.validate_calculate_interactions(
-            target_complex, ligand_residues, distance_labels=distance_labels)
+        return run_awaitable(
+            self.validate_calculate_interactions,
+            target_complex,
+            ligand_residues,
+            distance_labels=distance_labels)
 
     @patch('nanome._internal._network._ProcessNetwork._instance')
     def test_calculate_interactions_specific_structures(self, _):
@@ -135,11 +150,11 @@ class ChemInteractionsTestCase(unittest.TestCase):
         target_complex = self.complex
         ligand_residues = list(ligand_chain.residues)
         selected_atoms_only = False
-        self.validate_calculate_interactions(
+        return run_awaitable(
+            self.validate_calculate_interactions,
             target_complex,
             ligand_residues,
             selected_atoms_only=selected_atoms_only)
-
 
     @patch('nanome._internal._network._ProcessNetwork._instance')
     def test_calculate_interactions_distance_labels(self, patch):
@@ -157,38 +172,35 @@ class ChemInteractionsTestCase(unittest.TestCase):
         ligand_residues = list(target_complex.residues)
         selected_atoms_only = True
         distance_labels = True
-        self.validate_calculate_interactions(
+        run_awaitable(
+            self.validate_calculate_interactions,
             target_complex,
             ligand_residues,
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
 
-    def validate_calculate_interactions(
+    async def validate_calculate_interactions(
             self, target_complex, ligand_residues, selected_atoms_only=False, distance_labels=False):
-        """Test async call to calculate interactions."""
-        event_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(event_loop)
+        """Run plugin.calculate_interactions with provided args and make sure lines are added to LineManager."""
+        line_count = len(self.plugin_instance.line_manager.all_lines())
+        self.assertEqual(line_count, 0)
 
-        async def run_calculate_interactions(
-            target_complex, ligand_residues, selected_atoms_only=False, distance_labels=False):
-            """Run plugin.calculate_interactions with provided args and make sure lines are added to LineManager."""
-            line_count = len(self.plugin_instance.line_manager.all_lines())
-            self.assertEqual(line_count, 0)
-            await self.plugin_instance.calculate_interactions(
-                target_complex, ligand_residues, default_line_settings,
-                selected_atoms_only=selected_atoms_only,
-                distance_labels=distance_labels)
-
-            new_line_count = len(self.plugin_instance.line_manager.all_lines())
-            self.assertTrue(new_line_count > 0)
-            if distance_labels:
-                label_count = len(self.plugin_instance.label_manager.all_labels())
-                self.assertTrue(label_count > 0)
-        
-        coro = asyncio.coroutine(run_calculate_interactions)
-
-        event_loop.run_until_complete(coro(
-            target_complex, ligand_residues,
+        await self.plugin_instance.calculate_interactions(
+            target_complex, ligand_residues, default_line_settings,
             selected_atoms_only=selected_atoms_only,
-            distance_labels=distance_labels))
-        # event_loop.close()
+            distance_labels=distance_labels)
+
+        new_line_count = len(self.plugin_instance.line_manager.all_lines())
+        self.assertTrue(new_line_count > 0)
+        if distance_labels:
+            label_count = len(self.plugin_instance.label_manager.all_labels())
+            self.assertTrue(label_count > 0)
+    
+    @patch('nanome._internal._network._ProcessNetwork._instance')
+    def test_menu(self, mock_network):
+        async def validate_menu():
+            menu = ChemInteractionsMenu(self.plugin_instance)
+            self.plugin_instance._menus = [menu]
+            await menu.render(complexes=[self.complex])
+            # await menu.update_interaction_lines()
+        run_awaitable(validate_menu)
