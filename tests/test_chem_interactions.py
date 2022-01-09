@@ -208,7 +208,7 @@ class ChemInteractionsTestCase(unittest.TestCase):
             target_complex = self.complex
             ligand_residues = list(self.complex.residues)
             selected_atoms_only = True
-            distance_labels = False
+            distance_labels = True
             # with mock_network as mock_network:
             await self.validate_calculate_interactions(
                 target_complex,
@@ -228,5 +228,12 @@ class ChemInteractionsTestCase(unittest.TestCase):
             updated_line_settings = dict(default_line_settings)
             updated_line_settings['hydrophobic']['dash_length'] = 0.5
             await menu.update_interaction_lines()
+
+            
+            # Test clear_frame()
+            self.assertTrue(line_count > 0)
+            await menu.clear_frame(MagicMock())
+            line_count = len(self.plugin_instance.line_manager.all_lines())
+            self.assertEqual(line_count, 0)
 
         run_awaitable(validate_menu)
