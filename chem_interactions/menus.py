@@ -450,8 +450,13 @@ class ChemInteractionsMenu():
             for ligand in ligands:
                 # make sure complex is stored on residue, we will need it later
                 for residue in ligand.residues:
-                    residue.comp = deep_complex
-
+                    # Find the chain that this residue belongs to, and set parent
+                    rez_chain = next(
+                        chain for chain in mol.chains
+                        if chain.name == residue.chain.name
+                    )
+                    residue._parent = rez_chain
+                
             new_ligand_ddis = self.create_structure_dropdown_items(ligands)
             ligand_ddis.extend(new_ligand_ddis)
         else:

@@ -14,6 +14,7 @@ from nanome.util import async_callback, Color, ComplexUtils, enums, Logs, Vector
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
+from .utils import merge_complexes
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -75,9 +76,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Calculate interactions between complexes, and upload interaction lines to Nanome.
 
         target_complex: Nanome Complex object
-        ligand_residues: List of Complex objects containing the ligand. Often is the same as target_complex.
+        ligand_residues: List of residues to be used as selection.
         line_settings: Data accepted by LineSettingsForm.
-        ligands: List: Names of substructures to calculate interactions for.
         selected_atoms_only: bool. show interactions only for selected atoms.
         distance_labels: bool. States whether we want distance labels on or off
         """
@@ -86,31 +86,23 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         start_time = time.time()
 
         # Let's make sure we have a deep target complex and ligand complexes
-        if sum(1 for _ in target_complex.molecules) == 0:
-            target_complex = await self.request_complexes([target_complex.index])
-
-        # Sometimes residues don't have a complex associated, so we manually add the complex
-        # as rez.comp. This is a little hacky, but it works.
-        lig_complexes = []
+        ligand_complexes = []
         for rez in ligand_residues:
             if rez.complex:
-                lig_complexes.append(rez.complex)
-            elif getattr(rez, 'comp', None):
-                lig_complexes.append(rez.comp)
-
-        for i, lig_comp in enumerate(lig_complexes):
-            if sum(1 for _ in lig_comp.molecules) == 0:
-                ligand_residues[i] = (await self.request_complexes([lig_comp.index]))[0]
-        complexes = [target_complex, *[lig_comp for lig_comp in lig_complexes if lig_comp.index != target_complex.index]]
+                ligand_complexes.append(rez.complex)
+            else:
+                raise Exception('No Complex associated with Residue')
+        complexes = [target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]]
 
         # If the ligands are not part of selected complex, merge into one complex.
         if len(complexes) > 1:
-            full_complex = ComplexUtils.combine_ligands(complexes[0], complexes[1:])
+            full_complex = merge_complexes(complexes, align_reference=target_complex)
         else:
             full_complex = target_complex
 
         # Clean complex and return as tempfile
         cleaned_file = await self.clean_complex(full_complex)
+
         cleaned_data = ''
         with open(cleaned_file.name, 'r') as f:
             cleaned_data = f.read()
@@ -256,7 +248,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         chain_name, res_id, atom_name = atom_path.split('/')
         # Use the molecule from the current frame
         complex_molecule = next(
-            x for i, x in enumerate(complex.molecules)
+            mol for i, mol in enumerate(complex.molecules)
             if i == complex.current_frame
         )
         # Chain naming seems inconsistent, so we need to check the provided name,

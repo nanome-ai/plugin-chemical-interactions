@@ -8,7 +8,7 @@ from random import randint
 
 from unittest.mock import MagicMock
 from nanome.api import ui
-from nanome.api.structure import Atom, Complex, Molecule
+from nanome.api.structure import Atom, Chain, Complex, Molecule
 from chem_interactions.menus import ChemInteractionsMenu
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
 from chem_interactions.forms import default_line_settings
@@ -137,22 +137,24 @@ class CalculateInteractionsTestCase(unittest.TestCase):
     def test_separate_ligand_complex(self, _):
         """Validate calculate_interactions call where ligand is on a separate complex."""
         target_complex = self.complex
-        selected_molecule = next(self.complex.molecules)
         chain_name = 'HC'
+        residue_name = 'TYL'
+        ligand_residue = next(res for res in self.complex.residues if res.name == residue_name)
+        
+        # Build new complex containing ligand residue
         ligand_complex = Complex()
         ligand_molecule = Molecule()
+        ligand_chain = Chain()
+        ligand_chain.name = chain_name
 
-        ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
+        ligand_chain.add_residue(ligand_residue)
         ligand_molecule.add_chain(ligand_chain)
         ligand_complex.add_molecule(ligand_molecule)
-        selected_molecule.remove_chain(ligand_chain)
+
         target_complex.index = 98
         ligand_complex.index = 99
         distance_labels = True
-        # Set comp value on residue
         ligand_residues = list(ligand_complex.residues)
-        for rez in ligand_residues:
-            rez.comp = ligand_complex
 
         return run_awaitable(
             self.validate_calculate_interactions,
@@ -210,7 +212,6 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         new_line_count = len(self.plugin_instance.line_manager.all_lines())
         self.assertTrue(new_line_count > 0)
         if distance_labels:
-            breakpoint()
             label_count = len(self.plugin_instance.label_manager.all_labels())
             self.assertTrue(label_count > 0)
 
