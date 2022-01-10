@@ -1,6 +1,7 @@
 from nanome.api import structure
 from nanome.util import ComplexUtils
 
+
 def merge_complexes(complexes, align_reference):
     """Merge a list of Complexes into one Complex.
 

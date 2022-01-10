@@ -140,7 +140,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         chain_name = 'HC'
         residue_name = 'TYL'
         ligand_residue = next(res for res in self.complex.residues if res.name == residue_name)
-        
+
         # Build new complex containing ligand residue
         ligand_complex = Complex()
         ligand_molecule = Molecule()
