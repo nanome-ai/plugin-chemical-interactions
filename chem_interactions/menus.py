@@ -456,7 +456,7 @@ class ChemInteractionsMenu():
                         if chain.name == residue.chain.name
                     )
                     residue._parent = rez_chain
-                
+
             new_ligand_ddis = self.create_structure_dropdown_items(ligands)
             ligand_ddis.extend(new_ligand_ddis)
         else:
