@@ -15,3 +15,4 @@ services:
     tty: true
     volumes:
       - ".:/app"
+      # - "/home/mike/workspace/nanome-lib/nanome:/opt/conda/lib/python3.7/site-packages/nanome"
