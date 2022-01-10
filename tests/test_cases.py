@@ -103,6 +103,7 @@ class PluginFunctionTestCase(unittest.TestCase):
 
 
 class CalculateInteractionsTestCase(unittest.TestCase):
+    """Test different combinations of args for calculate_interactions."""
 
     def setUp(self):
         tyl_pdb = f'{fixtures_dir}/1tyl.pdb'
@@ -114,8 +115,8 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         self.plugin_instance._network = MagicMock()
 
     @patch('nanome._internal._network._ProcessNetwork._instance')
-    def test_calculate_interactions_selected_atoms(self, mock_network):
-        # Select all atoms on the ligand chain
+    def test_selected_atoms(self, _):
+        """Validate calculate_interactions call using selected atoms."""
         chain_name = 'HC'
         ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
         for atom in ligand_chain.atoms:
@@ -133,8 +134,8 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             distance_labels=distance_labels)
 
     @patch('nanome._internal._network._ProcessNetwork._instance')
-    def test_calculate_interactions_separate_ligand(self, patch):
-        # Split ligand out into separate Complex
+    def test_separate_ligand_complex(self, _):
+        """Validate calculate_interactions call where ligand is on a separate complex."""
         target_complex = self.complex
         selected_molecule = next(self.complex.molecules)
         chain_name = 'HC'
@@ -147,7 +148,8 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         selected_molecule.remove_chain(ligand_chain)
         target_complex.index = 98
         ligand_complex.index = 99
-        distance_labels = True   
+        distance_labels = True
+        # Set comp value on residue
         ligand_residues = list(ligand_complex.residues)
         for rez in ligand_residues:
             rez.comp = ligand_complex
@@ -159,15 +161,15 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             distance_labels=distance_labels)
 
     @patch('nanome._internal._network._ProcessNetwork._instance')
-    def test_calculate_interactions_specific_structures(self, _):
-        """Test that interactions on a chain ."""
-        # Select all atoms on the ligand chain
+    def test_specific_structures(self, _):
+        """Validate calculate_interactions call with no selections, but a list of residues provided."""
         chain_name = 'HC'
         ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
 
         target_complex = self.complex
         ligand_residues = list(ligand_chain.residues)
         selected_atoms_only = False
+
         return run_awaitable(
             self.validate_calculate_interactions,
             target_complex,
@@ -175,7 +177,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             selected_atoms_only=selected_atoms_only)
 
     @patch('nanome._internal._network._ProcessNetwork._instance')
-    def test_calculate_interactions_distance_labels(self, patch):
+    def test_distance_labels(self, _):
         """Ensure that distance labels can be added to the InteractionLines."""
         # Select all atoms on the ligand chain
         target_complex = self.complex
@@ -208,8 +210,9 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         new_line_count = len(self.plugin_instance.line_manager.all_lines())
         self.assertTrue(new_line_count > 0)
         if distance_labels:
-            line_count = len(self.plugin_instance.line_manager.all_lines())
-            self.assertTrue(line_count > 0)
+            breakpoint()
+            label_count = len(self.plugin_instance.label_manager.all_labels())
+            self.assertTrue(label_count > 0)
 
     @patch('nanome.api.plugin_instance.PluginInstance.create_writing_stream')
     @patch('nanome._internal._network._ProcessNetwork._instance')
@@ -218,14 +221,13 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             # Select all atoms on the ligand chain
             chain_name = 'HC'
             ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
-            for atom in ligand_chain.atoms:
-                atom.selected = True
-
             target_complex = self.complex
-            ligand_residues = list(self.complex.residues)
-            selected_atoms_only = True
+            ligand_residues = list(ligand_chain.residues)
+            selected_atoms_only = False
             distance_labels = True
-            # with mock_network as mock_network:
+            
+            line_count = len(self.plugin_instance.line_manager.all_lines())
+            self.assertEqual(line_count, 0)
             await self.validate_calculate_interactions(
                 target_complex,
                 ligand_residues,
@@ -234,6 +236,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
 
             line_count = len(self.plugin_instance.line_manager.all_lines())
             self.assertTrue(line_count > 0)
+            # Set up mocked result for create_writing_stream_mock
             fut = asyncio.Future()
             fut.set_result((MagicMock(), None))
             create_writing_stream_mock.return_value = fut
