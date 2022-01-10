@@ -100,6 +100,7 @@ class PluginFunctionTestCase(unittest.TestCase):
             contacts_data = loop.run_until_complete(self.plugin_instance.run_arpeggio_process(arpeggio_data, [f]))
         self.assertTrue(contacts_data)
 
+
 class CalculateInteractionsTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -245,7 +246,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             menu.reset_calculate_btn()
             menu.toggle_visibility(btn)
             menu.toggle_atom_selection(btn)
-            
+
             # Test clear_frame()
             self.assertTrue(line_count > 0)
             await menu.clear_frame(MagicMock())
