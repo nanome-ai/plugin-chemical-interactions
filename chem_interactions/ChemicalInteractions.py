@@ -1,5 +1,6 @@
 import asyncio
 import json
+import math
 import os
 import tempfile
 import time
@@ -84,13 +85,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message('Starting Interactions Calculation')
         start_time = time.time()
 
-        # Let's make sure we have deep complexes
+        # Let's make sure we have a deep target complex and ligand complexes
         if sum(1 for _ in target_complex.molecules) == 0:
             target_complex = await self.request_complexes([target_complex.index])
-
-        for i, lig_comp in enumerate(ligand_residues):
-            if type(lig_comp) == Complex and sum(1 for _ in lig_comp.molecules) == 0:
-                ligand_residues[i] = (await self.request_complexes([lig_comp.index]))[0]
 
         # Sometimes residues don't have a complex associated, so we manually add the complex
         # as rez.comp. This is a little hacky, but it works.
@@ -100,11 +97,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 lig_complexes.append(rez.complex)
             elif getattr(rez, 'comp', None):
                 lig_complexes.append(rez.comp)
+
+        for i, lig_comp in enumerate(lig_complexes):
+            if sum(1 for _ in lig_comp.molecules) == 0:
+                ligand_residues[i] = (await self.request_complexes([lig_comp.index]))[0]
         complexes = [target_complex, *[lig_comp for lig_comp in lig_complexes if lig_comp.index != target_complex.index]]
 
         # If the ligands are not part of selected complex, merge into one complex.
-        if any([lc.index != target_complex.index for lc in ligand_residues]):
-            full_complex = ComplexUtils.combine_ligands(target_complex, complexes)
+        if len(complexes) > 1:
+            full_complex = ComplexUtils.combine_ligands(complexes[0], complexes[1:])
         else:
             full_complex = target_complex
 
@@ -355,7 +356,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # We update the menu bar incrementally to keep the user updated on progress.
         # Every 3% seems to work well.
         data_len = len(contacts_data)
-        loading_bar_increment = int(data_len * 0.03)
+        loading_bar_increment = math.ceil(data_len * 0.03)
 
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.

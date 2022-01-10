@@ -132,7 +132,6 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
 
-    @unittest.skip("Ligand and Protein don't align, so no interactions found")
     @patch('nanome._internal._network._ProcessNetwork._instance')
     def test_calculate_interactions_separate_ligand(self, patch):
         # Split ligand out into separate Complex
@@ -146,9 +145,13 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         ligand_molecule.add_chain(ligand_chain)
         ligand_complex.add_molecule(ligand_molecule)
         selected_molecule.remove_chain(ligand_chain)
-
-        distance_labels = True
+        target_complex.index = 98
+        ligand_complex.index = 99
+        distance_labels = True   
         ligand_residues = list(ligand_complex.residues)
+        for rez in ligand_residues:
+            rez.comp = ligand_complex
+
         return run_awaitable(
             self.validate_calculate_interactions,
             target_complex,
