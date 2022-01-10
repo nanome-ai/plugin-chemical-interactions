@@ -212,9 +212,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Generate valid list of selections to send to interactions service.
 
         target_complex: Nanome Complex object
-        ligand_residues: List of Residue objects containing ligands interacting with selected complex.
+        ligand_residues: List of Residue objects containing ligands interacting with target complex.
         interactions data: Data accepted by LineSettingsForm.
-        ligands: List, Biopython Residue object. Can be empty
         selected_atoms_only: bool. show interactions only for selected atoms.
 
         :rtype: str, comma separated string of atom paths (eg '/C/20/O,/A/60/C2')

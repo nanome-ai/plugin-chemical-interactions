@@ -279,11 +279,6 @@ class ChemInteractionsMenu():
         selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
         self.update_complex_data(selected_complex)
 
-        # Get up to date residue_complex
-        # for residue_complex in residue_complexes:
-        #     residue_complex = next(iter(await self.plugin.request_complexes([residue_complex.index])))
-        #     self.update_complex_data(residue_complex)
-
         loading_bar = self.ln_loading_bar.get_content()
         loading_bar.percentage = 0.0
         self.ln_loading_bar.enabled = True
