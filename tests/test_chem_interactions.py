@@ -16,6 +16,7 @@ from chem_interactions.forms import default_line_settings
 
 fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures')
 
+
 def run_awaitable(awaitable, *args, **kwargs):
     loop = asyncio.get_event_loop()
     if loop.is_running:
@@ -140,7 +141,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         chain_name = 'HC'
         ligand_complex = Complex()
         ligand_molecule = Molecule()
-        
+
         ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
         ligand_molecule.add_chain(ligand_chain)
         ligand_complex.add_molecule(ligand_molecule)
@@ -160,7 +161,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         # Select all atoms on the ligand chain
         chain_name = 'HC'
         ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
-        
+
         target_complex = self.complex
         ligand_residues = list(ligand_chain.residues)
         selected_atoms_only = False
