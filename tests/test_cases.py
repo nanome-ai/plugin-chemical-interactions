@@ -225,7 +225,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             ligand_residues = list(ligand_chain.residues)
             selected_atoms_only = False
             distance_labels = True
-            
+
             line_count = len(self.plugin_instance.line_manager.all_lines())
             self.assertEqual(line_count, 0)
             await self.validate_calculate_interactions(
