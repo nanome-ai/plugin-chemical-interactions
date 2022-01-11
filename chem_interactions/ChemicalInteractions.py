@@ -138,7 +138,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.line_manager.update(new_line_manager)
 
         if distance_labels:
-            self.render_distance_labels(complexes)
+            await self.render_distance_labels(complexes)
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
@@ -488,7 +488,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if self.show_distance_labels:
             # Refresh label manager
             self.label_manager.clear()
-            self.render_distance_labels(complexes)
+            await self.render_distance_labels(complexes)
 
     def line_in_frame(self, line, complexes):
         """Return boolean stating whether both atoms connected by line are in frame.
@@ -559,11 +559,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     lines_to_destroy.append(line)
                     line_list.remove(line)
                     line_removed = True
-        # Remove any labels that have been created corresponding to this structpair
-        if line_removed:
-            label = self.label_manager.remove_label_for_structpair(struct1_index, struct2_index)
-            if label:
-                labels_to_destroy.append(label)
+            # Remove any labels that have been created corresponding to this structpair
+            if line_removed:
+                label = self.label_manager.remove_label_for_structpair(struct1_index, struct2_index)
+                if label:
+                    labels_to_destroy.append(label)
 
         destroyed_line_count = len(lines_to_destroy)
         Shape.destroy_multiple([*lines_to_destroy, *labels_to_destroy])
@@ -577,13 +577,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         notifcation_type = enums.NotificationTypes.message
         self.send_notification(notifcation_type, message)
 
-    def render_distance_labels(self, complexes):
+    async def render_distance_labels(self, complexes):
         Logs.message('Distance Labels enabled')
 
         # Make sure we have deep complexes.
         shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
         if shallow_complexes:
-            deep_complexes = self.request_complexes([comp.index for comp in shallow_complexes])
+            deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
             for i, comp in enumerate(deep_complexes):
                 if complexes[i].index == comp.index:
                     complexes[i] = comp

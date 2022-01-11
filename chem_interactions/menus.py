@@ -261,11 +261,13 @@ class ChemInteractionsMenu():
                 residue_complex = getattr(ligand_ddi, 'complex', None)
                 if residue_complex and not selected_ligand:
                     deep_comp = (await self.plugin.request_complexes([residue_complex.index]))[0]
+                    self.update_complex_data(deep_comp)
                     ligand_residues.extend(list(deep_comp.residues))
         elif selected_atoms_only:
             # Find first complex with selected atoms, and set residue complex to that.
-            self.complexes = await self.plugin.request_complexes([c.index for c in self.complexes])
-            for comp in self.complexes:
+            complexes = await self.plugin.request_complexes([c.index for c in self.complexes])
+            for comp in complexes:
+                self.update_complex_data(comp)
                 for rez in comp.residues:
                     if any(a.selected for a in rez.atoms):
                         ligand_residues.append(rez)
@@ -502,11 +504,11 @@ class ChemInteractionsMenu():
         self.toggle_ln_ligands_visibility(enable_ligands_node)
         self.plugin.update_menu(self._menu)
 
-    def toggle_distance_labels(self, btn):
-        # self.plugin.render_distance_labels(self.complexes)
+    @async_callback
+    async def toggle_distance_labels(self, btn):
         if btn.selected:
             Logs.message('Rendering Distance Labels')
-            self.plugin.render_distance_labels(self.complexes)
+            await self.plugin.render_distance_labels(self.complexes)
         else:
             Logs.message('Hiding Distance Labels')
             self.plugin.clear_distance_labels()
