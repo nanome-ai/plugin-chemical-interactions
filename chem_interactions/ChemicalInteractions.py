@@ -505,7 +505,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 current_mol = next(
                     mol for i, mol in enumerate(comp.molecules)
                     if i == comp.current_frame)
-            except IndexError:
+            except StopIteration:
                 # In case of empty complex, its safe to continue
                 mol_count = sum(1 for _ in comp.molecules)
                 if mol_count == 0:
