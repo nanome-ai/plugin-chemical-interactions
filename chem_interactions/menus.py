@@ -4,7 +4,7 @@ import nanome
 from nanome.api.structure import Complex
 from nanome.api.structure.substructure import Substructure
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label
-from nanome.util import async_callback
+from nanome.util import async_callback, Logs
 from nanome.util.enums import NotificationTypes
 from .forms import LineSettingsForm, color_map, default_line_settings
 
@@ -187,7 +187,13 @@ class ChemInteractionsMenu():
     @async_callback
     async def clear_frame(self, btn):
         """Clear all interactions that are currently visible."""
+        btn.unusable = True
+        self.plugin.update_content(btn)
+
+        Logs.message('Clearing Frame Interactions')
         self.plugin.clear_visible_lines(self.complexes)
+        btn.unusable = False
+        self.plugin.update_content(btn)
 
     def collect_interaction_data(self):
         """Collect Interaction data from various content widgets."""
@@ -258,8 +264,8 @@ class ChemInteractionsMenu():
                     ligand_residues.extend(list(deep_comp.residues))
         elif selected_atoms_only:
             # Find first complex with selected atoms, and set residue complex to that.
-            complexes = await self.plugin.request_complexes([c.index for c in self.complexes])
-            for comp in complexes:
+            self.complexes = await self.plugin.request_complexes([c.index for c in self.complexes])
+            for comp in self.complexes:
                 for rez in comp.residues:
                     if any(a.selected for a in rez.atoms):
                         ligand_residues.append(rez)
@@ -499,6 +505,8 @@ class ChemInteractionsMenu():
     def toggle_distance_labels(self, btn):
         # self.plugin.render_distance_labels(self.complexes)
         if btn.selected:
+            Logs.message('Rendering Distance Labels')
             self.plugin.render_distance_labels(self.complexes)
         else:
+            Logs.message('Hiding Distance Labels')
             self.plugin.clear_distance_labels()

@@ -540,6 +540,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Clear all interaction lines that are currently visible."""
         lines_to_destroy = []
         labels_to_destroy = []
+
+        # Make sure we have deep complexes.
+        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
+        if shallow_complexes:
+            deep_complexes = self.request_complexes([comp.index for comp in shallow_complexes])
+            for i, comp in enumerate(deep_complexes):
+                if complexes[i].index == comp.index:
+                    complexes[i] = comp
+
         for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
             line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
             line_count = len(line_list)
@@ -570,6 +579,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def render_distance_labels(self, complexes):
         Logs.message('Distance Labels enabled')
+
+        # Make sure we have deep complexes.
+        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
+        if shallow_complexes:
+            deep_complexes = self.request_complexes([comp.index for comp in shallow_complexes])
+            for i, comp in enumerate(deep_complexes):
+                if complexes[i].index == comp.index:
+                    complexes[i] = comp
+
         self.show_distance_labels = True
         for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
             # If theres any visible lines between the two structs in structpair, add a label.
