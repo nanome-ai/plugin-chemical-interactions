@@ -33,13 +33,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.residue = ''
         self.menu = ChemInteractionsMenu(self)
         self.show_distance_labels = False
-        Logs.debug('Chemical Interactions Started')
+        Logs.message('Chemical Interactions Started')
 
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
         complexes = await self.request_complex_list()
-        Logs.debug('Chemical Interactions Run.')
+        Logs.message('Chemical Interactions Run.')
         self.menu.render(complexes=complexes, default_values=True)
 
     @async_callback
@@ -163,7 +163,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             end_time = time.time()
             elapsed_time = end_time - start_time
             msg = f'Interactions Calculation completed in {round(elapsed_time, 2)} seconds'
-            Logs.message(msg)
             Logs.message(msg)
 
         asyncio.create_task(log_elapsed_time(start_time))
