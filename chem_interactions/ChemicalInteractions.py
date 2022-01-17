@@ -444,7 +444,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             anchor.target = struct.line_anchor.index
             # This nudges the line anchor to the center of the structure
             anchor.local_offset = struct.calculate_local_offset()
-
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
