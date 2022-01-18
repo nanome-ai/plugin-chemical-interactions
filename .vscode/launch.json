@@ -6,9 +6,15 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/run.py",
+<<<<<<< HEAD
             "args": ["-v", "-n", "[wip]-chem-inter"],
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env",
+=======
+            "args": ["-v", "-n", "[wip]-chem-inter", "--write-log-file", "true", "-k", "2560387584B83BCCE"],
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env.preprod",
+>>>>>>> change
             "justMyCode": false,
         }
     ]

@@ -30,6 +30,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
+        Logs.message('Chemical Interactions plugin Running')
         complexes = await self.request_complex_list()
         self.menu.render(complexes=complexes, default_values=True)
 
