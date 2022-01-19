@@ -2,10 +2,12 @@
 
 A Nanome plugin to Calculate and visualize interatomic contacts between small and macro molecules.
 
+![chem-interactions-gif](https://media.giphy.com/media/iAUTuXh6UXg4BqRF1X/giphy-downsized.gif)
+
 
 ## Dependencies
-The host machine must support `docker` All other dependencies are handled within the individual containers.
-Optionally, a docker-compose.yml is available for use.
+- Docker (https://docs.docker.com/get-docker/)
+- (Optional) Docker Compose (https://docs.docker.com/compose/install/)
 
 
 ## Deployments
