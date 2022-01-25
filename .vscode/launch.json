@@ -6,7 +6,7 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/run.py",
-            "args": ["-v", "-n", "[wip]-chem-inter", "--remote-logging", "True"],
+            "args": ["-v", "-n", "[wip]-chem-inter"],
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env",
             "justMyCode": false,
