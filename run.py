@@ -37,12 +37,15 @@ def main():
     # CLI Args take priority over environment variables for NTS settnigs
     host = args.host or os.environ.get('NTS_HOST')
     port = args.port or os.environ.get('NTS_PORT') or 0
+    key = args.port or os.environ.get('NTS_KEYFILE') or 0
 
     configs = {}
     if host:
         configs['host'] = host
     if port:
         configs['port'] = int(port)
+    if key:
+        configs['key'] = key
     plugin.run(**configs)
 
 
