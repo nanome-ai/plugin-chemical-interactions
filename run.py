@@ -1,4 +1,3 @@
-import argparse
 import logging
 import logging.config
 import nanome
@@ -7,26 +6,9 @@ from chem_interactions.ChemicalInteractions import ChemicalInteractions
 from nanome.util.enums import Integrations
 
 
-def create_parser():
-    """Create command line parser For Plugin.
-
-    This is a subset of the full parser used by Plugins.
-    These are the args we want to intercept them and potentially override.
-    rtype: argsparser: args parser
-    """
-    parser = argparse.ArgumentParser(description='Parse Arguments to set up Nanome Plugin')
-    parser.add_argument('-a', '--host', help='connects to NTS at the specified IP address')
-    parser.add_argument('-p', '--port', help='connects to NTS at the specified port')
-    parser.add_argument('-n', '--name', nargs='+', help='Name to display for this plugin in Nanome')
-    return parser
-
-
 def main():
-    parser = create_parser()
+    parser = nanome.Plugin.create_parser()
     args, _ = parser.parse_known_args()
-
-    logging_config_file = 'logging_config.ini'
-    logging.config.fileConfig(logging_config_file)
 
     default_title = 'Chemical Interactions'
     arg_name = args.name or []
