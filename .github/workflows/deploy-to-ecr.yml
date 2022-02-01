@@ -35,4 +35,4 @@ jobs:
         dockerfile: docker/Dockerfile
         context: .
         tags: |
-          ${{ ECR_REGISTRY }}/${{ steps.repoName.outputs.reponame }}:latest
+          $ECR_REGISTRY/${{ steps.repoName.outputs.reponame }}:latest
