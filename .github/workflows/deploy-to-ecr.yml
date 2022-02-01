@@ -33,13 +33,4 @@ jobs:
         dockerfile: docker/Dockerfile
         context: .
         tags: |
-          $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-    
-    # - name: Build, tag, and push image to Amazon ECR
-    #   env:
-    #     ECR_REGISTRY: public.ecr.aws/h7r1e4h2
-    #     ECR_REPOSITORY: chemical-interactions
-    #     IMAGE_TAG: latest
-    #   run: |
-    #     docker build --file docker/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-    #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          public.ecr.aws/h7r1e4h2/chemical-interactions:latest
