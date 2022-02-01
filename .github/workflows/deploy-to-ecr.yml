@@ -26,13 +26,11 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v1
 
     - name: Build and Push to ECR public
-      env:
-        ECR_REGISTRY: public.ecr.aws/h7r1e4h2
-        IMAGE_TAG: latest
       id: build-and-push
       uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
       with:
         dockerfile: docker/Dockerfile
         context: .
         tags: |
-          $ECR_REGISTRY/${{ steps.repoName.outputs.reponame }}:latest
+          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.reponame }}:latest
+        create_repo: ${{ steps.repoName.outputs.reponame }}
