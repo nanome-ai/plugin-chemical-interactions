@@ -33,4 +33,4 @@ jobs:
         context: .
         tags: |
           public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.reponame }}:latest
-        create_repo: ${{ steps.repoName.outputs.reponame }}
+        create_repo: true
