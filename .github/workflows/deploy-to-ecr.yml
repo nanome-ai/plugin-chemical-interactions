@@ -21,11 +21,25 @@ jobs:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-    - name: Build, tag, and push image to Amazon ECR
+
+    - name: Build and Push to ECR public
       env:
         ECR_REGISTRY: public.ecr.aws/h7r1e4h2
         ECR_REPOSITORY: chemical-interactions
         IMAGE_TAG: latest
-      run: |
-        docker build --file docker/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        id: build-and-push
+        uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
+        with:
+          dockerfile: docker/Dockerfile
+          context: .
+          tags: |
+            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+    
+    # - name: Build, tag, and push image to Amazon ECR
+    #   env:
+    #     ECR_REGISTRY: public.ecr.aws/h7r1e4h2
+    #     ECR_REPOSITORY: chemical-interactions
+    #     IMAGE_TAG: latest
+    #   run: |
+    #     docker build --file docker/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+    #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
