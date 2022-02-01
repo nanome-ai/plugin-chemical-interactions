@@ -23,7 +23,7 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v1
     - name: Build, tag, and push image to Amazon ECR
       env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REGISTRY: public.ecr.aws/h7r1e4h2/
         ECR_REPOSITORY: chemical-interactions
         IMAGE_TAG: latest
       run: |
