@@ -2,8 +2,6 @@ import os
 import unittest
 import sys
 
-from nanome.util import Logs
-
 chem_interactions_dir = f'{os.getcwd()}/chem_interactions/'
 sys.path.append(chem_interactions_dir)
 

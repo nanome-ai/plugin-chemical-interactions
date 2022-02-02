@@ -9,7 +9,7 @@ import uuid
 import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
-from nanome.util import async_callback, Color, ComplexUtils, enums, Logs, Vector3, Process
+from nanome.util import async_callback, Color, enums, Logs, Process, Vector3
 
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu
@@ -26,11 +26,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.residue = ''
         self.menu = ChemInteractionsMenu(self)
         self.show_distance_labels = False
+        Logs.message('Chemical Interactions Started')
 
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
         complexes = await self.request_complex_list()
+        Logs.message('Chemical Interactions Run.')
         self.menu.render(complexes=complexes, default_values=True)
 
     @async_callback
@@ -83,6 +85,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         ligand_residues = ligand_residues or []
         Logs.message('Starting Interactions Calculation')
+        selection_mode = 'Selected Atoms' if selected_atoms_only else 'Specific Structures'
+        Logs.message(f'Selection Mode = {selection_mode}')
         start_time = time.time()
 
         # Let's make sure we have a deep target complex and ligand complexes
@@ -107,6 +111,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         with open(cleaned_file.name, 'r') as f:
             cleaned_data = f.read()
 
+        size_in_kb = os.path.getsize(cleaned_file.name) / 1000
+        Logs.message(f'Complex File Size (KB): {size_in_kb}')
+
         # Set up data for request to interactions service
         filename = cleaned_file.name.split('/')[-1]
         files = {filename: cleaned_data}
@@ -124,7 +131,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         msg = "Interaction data retrieved!"
         Logs.debug(msg)
         if not contacts_data:
-            notification_message = "Arpeggio call failed. Please check logs."
+            notification_message = "Arpeggio call failed. Please check Logs."
             self.send_notification(enums.NotificationTypes.error, notification_message)
             return
 
@@ -147,7 +154,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             """
             end_time = time.time()
             elapsed_time = end_time - start_time
-            Logs.message(f'Interactions Calculation completed in {round(elapsed_time, 2)} seconds')
+            msg = f'Interactions Calculation completed in {round(elapsed_time, 2)} seconds'
+            Logs.message(msg)
 
         asyncio.create_task(log_elapsed_time(start_time))
 
@@ -444,7 +452,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             anchor.target = struct.line_anchor.index
             # This nudges the line anchor to the center of the structure
             anchor.local_offset = struct.calculate_local_offset()
-
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
@@ -578,8 +585,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.send_notification(notifcation_type, message)
 
     async def render_distance_labels(self, complexes):
-        Logs.message('Distance Labels enabled')
-
         # Make sure we have deep complexes.
         shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
         if shallow_complexes:
@@ -602,12 +607,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         anchor.viewer_offset = Vector3(0, 0, -.01)
                     self.label_manager.add_label(label, struct1_index, struct2_index)
                     break
+
+        label_count = len(self.label_manager.all_labels())
         Shape.upload_multiple(self.label_manager.all_labels())
+        Logs.message(f'Uploaded {label_count} distance labels')
 
     def clear_distance_labels(self):
-        Logs.message('Clearing distance labels')
         self.show_distance_labels = False
+        label_count = len(self.label_manager.all_labels())
         Shape.destroy_multiple(self.label_manager.all_labels())
+        Logs.message(f'Deleted {label_count} distance labels')
 
     @staticmethod
     async def run_arpeggio_process(data, files):

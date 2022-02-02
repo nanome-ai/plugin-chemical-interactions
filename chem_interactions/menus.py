@@ -507,8 +507,6 @@ class ChemInteractionsMenu():
     @async_callback
     async def toggle_distance_labels(self, btn):
         if btn.selected:
-            Logs.message('Rendering Distance Labels')
             await self.plugin.render_distance_labels(self.complexes)
         else:
-            Logs.message('Hiding Distance Labels')
             self.plugin.clear_distance_labels()
