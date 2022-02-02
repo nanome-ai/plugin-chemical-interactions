@@ -34,5 +34,4 @@ docker run -d \
 $env_arg \
 --restart unless-stopped \
 -e ARGS="$deploy_args" \
--v /home/mike/workspace/nanome-lib/nanome:/opt/conda/lib/python3.7/site-packages/nanome \
 $container_name

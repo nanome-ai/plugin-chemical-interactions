@@ -1,5 +1,3 @@
-import logging
-import logging.config
 import nanome
 import os
 from chem_interactions.ChemicalInteractions import ChemicalInteractions

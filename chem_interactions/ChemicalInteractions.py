@@ -1,10 +1,6 @@
 import asyncio
 import json
-import logging
-import logging.config
 import math
-import logging
-import logging.config
 import math
 import os
 import tempfile
@@ -23,8 +19,6 @@ from .utils import merge_complexes
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
-
-logger = logging.getLogger(__name__)
 
 
 class ChemicalInteractions(nanome.AsyncPluginInstance):
@@ -91,8 +85,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         distance_labels: bool. States whether we want distance labels on or off
         """
         ligand_residues = ligand_residues or []
-        msg = 'Starting Interactions Calculation'
-        Logs.message(msg)
+        Logs.message('Starting Interactions Calculation')
         selection_mode = 'Selected Atoms' if selected_atoms_only else 'Specific Structures'
         Logs.message(f'Selection Mode = {selection_mode}')
         start_time = time.time()
