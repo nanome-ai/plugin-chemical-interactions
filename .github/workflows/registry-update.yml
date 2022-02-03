@@ -12,7 +12,7 @@ jobs:
     steps:
     - name: Get repo name
       id: repoName
-      run: >
+      run: |
         prefix=nanome-ai/plugin-
         repo_name=${${{github.repository}}/#$prefix} 
         echo "::set-output name=reponame::$(echo $repo_name)"
