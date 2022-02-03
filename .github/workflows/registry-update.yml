@@ -3,6 +3,8 @@ name: Update ECR Registry
 on:
   push:
     branches: [ master ]
+  pull_request:
+    branches: [ master ]
 jobs:
   build:
     name: Build Image
