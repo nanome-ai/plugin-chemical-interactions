@@ -31,6 +31,7 @@ jobs:
             then
               echo "$status_code" "nanome-lib ${{ github.event.inputs.version_number }} not found"
               exit 1
+          fi
       - name: Commit and Push
         run: |
           git commit -am "Bump nanome-lib version to ${{ github.event.inputs.version_number }}"
