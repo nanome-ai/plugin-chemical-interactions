@@ -23,5 +23,5 @@ jobs:
           git config --global user.name 'nanome-bot'
           git config --global user.email '45469149+nanome-bot@users.noreply.github.com'
           sed -i 's/^nanome.*/nanome==${{ github.event.inputs.version_number }}/' requirements.txt
-          git commit -am "Bump nanome-lib version to ${{ github.event.inputs.version }}"
+          git commit -am "Bump nanome-lib version to ${{ github.event.inputs.version_number }}"
           git push --follow-tags
