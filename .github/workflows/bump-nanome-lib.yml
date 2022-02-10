@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Validate version number is available on PyPi
+      - name: Confirm version number is available on PyPi
         run: |
           status_code=$(curl -s -o /dev/null -w "%{http_code}" https://pypi.org/project/nanome/${{ github.event.inputs.version_number }}/)
           if [[ "200" != "$status_code" ]];
