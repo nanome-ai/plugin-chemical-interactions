@@ -27,7 +27,10 @@ jobs:
       - name: Confirm version number is valid
         run: |
           status_code=$(curl -s -o /dev/null -w "%{http_code}" https://pypi.org/project/nanome/${{ github.event.inputs.version_number }}/)
-          assert_eq "200" "$status_code" "nanome-lib ${{ github.event.inputs.version_number }} not found"
+          if ["$status_code" != "200"]
+            then
+              echo "$status_code" "nanome-lib ${{ github.event.inputs.version_number }} not found"
+              exit 1
       - name: Commit and Push
         run: |
           git commit -am "Bump nanome-lib version to ${{ github.event.inputs.version_number }}"
