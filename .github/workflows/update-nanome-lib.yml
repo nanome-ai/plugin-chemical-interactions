@@ -18,7 +18,7 @@ jobs:
       - name: Bump Version
         run: |
           git status
-          git pull
+          git pull origin update-nanome-lib
           git config --global user.name 'nanome-bot'
           git config --global user.email '45469149+nanome-bot@users.noreply.github.com'
           sed -i 's/^nanome.*/nanome==${{ github.event.inputs.version_number }}/' requirements.txt
