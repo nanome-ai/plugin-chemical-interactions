@@ -5,10 +5,12 @@ version: "3.9"
 services:
   chemical-interactions:
     build:
+      context: .
       dockerfile: docker/Dockerfile
     environment:
       NTS_HOST: ${NTS_HOST:-}
       NTS_PORT: ${NTS_PORT:-}
+      NTS_KEY: ${NTS_KEY:-}
       ARGS: ${ARGS:-}
     command: python -X dev run.py -r -v ${ARGS}
     stdin_open: true
