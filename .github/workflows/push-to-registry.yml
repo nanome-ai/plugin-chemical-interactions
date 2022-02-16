@@ -14,6 +14,7 @@ jobs:
         prefix=nanome-ai/plugin-
         git_repository="${{github.repository}}"
         repo_name=${git_repository/#$prefix} 
+        echo $repo_name
         echo "::set-output name=repo_name::$(echo $repo_name)"
     - name: Check out code
       uses: actions/checkout@v2
