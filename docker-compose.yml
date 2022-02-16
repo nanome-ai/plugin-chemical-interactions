@@ -12,11 +12,8 @@ services:
       NTS_PORT: ${NTS_PORT:-}
       NTS_KEY: ${NTS_KEY:-}
       ARGS: ${ARGS:-}
-    env_file:
-      - .env.dev
     command: python -X dev run.py -r -v ${ARGS}
     stdin_open: true
     tty: true
     volumes:
       - ".:/app"
-      - "/home/mike/workspace/nanome-lib/nanome:/opt/conda/lib/python3.7/site-packages/nanome"
