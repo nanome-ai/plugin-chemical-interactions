@@ -16,6 +16,9 @@ jobs:
         repo_name=${git_repository/#$prefix} 
         echo $repo_name
         echo "::set-output name=repo_name::$(echo $repo_name)"
+    - name: Get short SHA
+      id: sha
+      run: echo "::set-output name=sha7::$(echo ${GITHUB_SHA} | cut -c1-7)"
     - name: Check out code
       uses: actions/checkout@v2
     - name: Configure AWS credentials
