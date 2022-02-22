@@ -96,7 +96,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 ligand_complexes.append(rez.complex)
             else:
                 raise Exception('No Complex associated with Residue')
-        
+
         # make sure at least one atom in the ligand complexes is selected.
         if selected_atoms_only:
             atom_selected = False
