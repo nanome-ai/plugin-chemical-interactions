@@ -106,8 +106,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     break
             if not atom_selected:
                 msg = "Please select at least one atom in the workspace."
+                Logs.warning(msg)
                 self.send_notification(enums.NotificationTypes.error, msg)
-                raise Exception(msg)
+                return
 
         complexes = [target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]]
 
@@ -365,7 +366,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         new_line_manager = LineManager()
         self.menu.set_update_text("Updating Workspace")
 
-        # We update the menu bar incrementally to keep the user updated on progress.
+        # We update the menu bar to keep the user notified on progress.
         # Every 3% seems to work well.
         data_len = len(contacts_data)
         loading_bar_increment = math.ceil(data_len * 0.03)
