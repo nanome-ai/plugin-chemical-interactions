@@ -37,8 +37,7 @@ jobs:
           git push --follow-tags
   push-to-ecr:
     runs-on: ubuntu-latest
-    requires:
-      - bump-version
+    needs: bump-version
     steps:
       # Push image to ECR and tag with new version number
       - name: Configure AWS credentials
