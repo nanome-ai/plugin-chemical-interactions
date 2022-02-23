@@ -43,7 +43,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.NANOME_BOT_PAT }}
-          ref: version-bump
       - name: git setup
         run: |
           git config --global user.name 'nanome-bot'
