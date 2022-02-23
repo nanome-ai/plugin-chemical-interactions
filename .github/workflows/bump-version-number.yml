@@ -26,7 +26,7 @@ jobs:
       - name: Run version.sh
         run: |
           id: new_version_number
-          ./version.sh ${{ github.event.inputs.version_number }}
+          ./version.sh ${{ github.event.inputs.version_part }}
       - name: get new version number
         id: new_version_number
         run: |
