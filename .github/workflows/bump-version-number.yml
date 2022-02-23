@@ -25,7 +25,7 @@ jobs:
           git config --global user.email '45469149+nanome-bot@users.noreply.github.com'
       - name: Run version.sh
         run: |
-          id: new_version_number
+          pip install bump2version
           ./version.sh ${{ github.event.inputs.version_part }}
       - name: get new version number
         id: new_version_number
