@@ -142,8 +142,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         files = [cleaned_file]
         contacts_data = await self.run_arpeggio_process(data, files)
 
-        msg = "Interaction data retrieved!"
-        Logs.debug(msg)
+        Logs.debug("Interaction data retrieved!")
         if not contacts_data:
             notification_message = "Arpeggio call failed. Please check Logs."
             self.send_notification(enums.NotificationTypes.error, notification_message)
@@ -192,7 +191,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         p.on_error = Logs.error
         p.on_output = Logs.debug
         exit_code = await p.start()
-        Logs.debug(f'Clean Complex Exit code: {exit_code}')
+        Logs.message(f'Clean Complex Exit code: {exit_code}')
         cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
         cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
         cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
@@ -665,7 +664,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             p.on_error = Logs.error
             p.on_output = Logs.debug
             exit_code = await p.start()
-            Logs.debug(f'Arpeggio Exit code: {exit_code}')
+            Logs.message(f'Arpeggio Exit code: {exit_code}')
 
             try:
                 output_filename = next(fname for fname in os.listdir(output_dir))
