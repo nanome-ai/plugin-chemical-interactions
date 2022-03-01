@@ -176,7 +176,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if parse_errors:
             self.send_notification(
                 enums.NotificationTypes.warning,
-                "Some interactions could not be rendered. See logs for details.")
+                "Some interaction results could not be parsed. Check logs for details.")
         asyncio.create_task(self.send_async_notification(notification_txt))
 
     @staticmethod
