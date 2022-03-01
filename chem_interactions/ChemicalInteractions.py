@@ -174,9 +174,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
         if parse_errors:
-            self.send_notification(
-                enums.NotificationTypes.warning,
-                "Some interaction results could not be parsed. Check logs for details.")
+            msg = "Some interaction results could not be parsed. Check logs for details."
+            self.send_notification(enums.NotificationTypes.warning, msg)
+            Logs.warning(msg)
         asyncio.create_task(self.send_async_notification(notification_txt))
 
     @staticmethod
@@ -289,8 +289,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             return
 
         if len(atoms) > 1:
-            # If too many atoms found, only look at specified chain name (No heteroatoms)
-            Logs.warning("More than one atom found for atom path {}. Filtering heteroatom chains".format(atom_path))
             atoms = [
                 a for a in complex_molecule.atoms
                 if all([
