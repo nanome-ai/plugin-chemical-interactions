@@ -7,7 +7,7 @@ from unittest.mock import patch
 from random import randint
 
 from unittest.mock import MagicMock
-from nanome.api import ui
+from nanome.api import ui, PluginInstance
 from nanome.api.structure import Atom, Chain, Complex, Molecule
 from chem_interactions.menus import ChemInteractionsMenu
 from chem_interactions.ChemicalInteractions import ChemicalInteractions
@@ -33,6 +33,7 @@ class PluginFunctionTestCase(unittest.TestCase):
         for atom in self.complex.atoms:
             atom.index = randint(1000000000, 9999999999)
         self.plugin_instance = ChemicalInteractions()
+        PluginInstance._instance = self.plugin_instance
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
@@ -112,6 +113,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         for atom in self.complex.atoms:
             atom.index = randint(1000000000, 9999999999)
         self.plugin_instance = ChemicalInteractions()
+        PluginInstance._instance = self.plugin_instance
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
