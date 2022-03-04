@@ -168,7 +168,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             end_time = time.time()
             elapsed_time = end_time - start_time
             msg = f'Interactions Calculation completed in {round(elapsed_time, 2)} seconds'
-            Logs.message(msg)
+            Logs.message(msg, extra={'calculation_time': float(elapsed_time)})
 
         asyncio.create_task(log_elapsed_time(start_time))
 
@@ -329,7 +329,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def parse_atoms_from_atompaths(self, atom_paths, complexes):
         """Return a list of atoms from the complexes based on the atom_paths.
 
-        :rtype: List of Atoms, boolean stating if errors found.
+        :rtype: List of Atoms
         """
         struct_list = []
         for atompath in atom_paths:
@@ -423,7 +423,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
             structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
-            Logs.debug(f"Creating {len(structpair_lines)} lines")
             new_line_manager.add_lines(structpair_lines)
         return new_line_manager
 
