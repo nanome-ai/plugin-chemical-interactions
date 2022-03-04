@@ -20,6 +20,10 @@ PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
 
+class AtomNotFoundException(Exception):
+    pass
+
+
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def start(self):
@@ -148,7 +152,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.send_notification(enums.NotificationTypes.error, notification_message)
             return
 
-        new_line_manager, parse_errors = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
+        new_line_manager = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
 
         all_new_lines = new_line_manager.all_lines()
         msg = f'Adding {len(all_new_lines)} interactions'
@@ -168,15 +172,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             end_time = time.time()
             elapsed_time = end_time - start_time
             msg = f'Interactions Calculation completed in {round(elapsed_time, 2)} seconds'
-            Logs.message(msg)
+            Logs.message(msg, extra={'calculation_time': float(elapsed_time)})
 
         asyncio.create_task(log_elapsed_time(start_time))
 
         notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
-        if parse_errors:
-            msg = "Some interaction results could not be parsed. Check logs for details."
-            self.send_notification(enums.NotificationTypes.warning, msg)
-            Logs.warning(msg)
         asyncio.create_task(self.send_async_notification(notification_txt))
 
     @staticmethod
@@ -270,7 +270,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         rtype: nanome.api.Atom object, or None
         """
         chain_name, res_id, atom_name = atom_path.split('/')
-        # Use the molecule from the current frame
+        # Use the molecule corresponding to current frame
         complex_molecule = next(
             mol for i, mol in enumerate(complex.molecules)
             if i == complex.current_frame
@@ -289,6 +289,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             return
 
         if len(atoms) > 1:
+            # If multiple atoms found, check exact matches (no heteroatoms)
             atoms = [
                 a for a in complex_molecule.atoms
                 if all([
@@ -299,8 +300,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             ]
             if not atoms:
                 msg = f"Error finding atom {atom_path}. Please ensure atoms are uniquely named."
-                Logs.error(msg)
-                raise Exception(msg)
+                Logs.warning(msg)
+                raise AtomNotFoundException(msg)
 
             if len(atoms) > 1:
                 # Just pick the first one? :grimace:
@@ -325,18 +326,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 atom = self.get_atom_from_path(comp, atompath)
                 if atom:
                     break
-            if not atom:
-                raise Exception(f'Atom {atompath} not found')
             atoms.append(atom)
         return atoms
 
     def parse_atoms_from_atompaths(self, atom_paths, complexes):
         """Return a list of atoms from the complexes based on the atom_paths.
 
-        :rtype: List of Atoms, boolean stating if errors found.
+        :rtype: List of Atoms
         """
         struct_list = []
-        parsing_errors = False
         for atompath in atom_paths:
             atom = None
             if ',' in atompath:
@@ -346,21 +344,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             else:
                 # Parse single atom
                 for comp in complexes:
-                    try:
-                        atom = self.get_atom_from_path(comp, atompath)
-                    except Exception:
-                        parsing_errors = True
-                        continue
+                    atom = self.get_atom_from_path(comp, atompath)
                     if atom:
                         break
                 if not atom:
-                    Logs.error(f'Atom {atompath} not found')
-                    parsing_errors = True
                     continue
-
                 struct = InteractionStructure(atom)
             struct_list.append(struct)
-        return struct_list, parsing_errors
+        return struct_list
 
     async def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
@@ -406,9 +397,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_paths = [atom1_path, atom2_path]
 
             # A struct can be either an atom or a list of atoms, indicating an aromatic ring.
-            struct_list, parse_errors = self.parse_atoms_from_atompaths(atom_paths, complexes)
-
+            try:
+                struct_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
+            except AtomNotFoundException:
+                message = (
+                    f"Failed to parse interactions between {atom1_path} and {atom2_path} "
+                    f"skipping {len(interaction_types)} interactions"
+                )
+                Logs.warning(message)
+                continue
             if len(struct_list) != 2:
+                Logs.warning("Failed to parse atom paths, skipping")
                 continue
 
             # if selected_atoms_only = True, and neither of the structures contain selected atoms, don't draw line
@@ -430,9 +429,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
             structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
-            Logs.debug(f"Creating {len(structpair_lines)} lines")
             new_line_manager.add_lines(structpair_lines)
-        return new_line_manager, parse_errors
+        return new_line_manager
 
     async def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.

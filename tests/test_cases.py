@@ -33,7 +33,6 @@ class PluginFunctionTestCase(unittest.TestCase):
         for atom in self.complex.atoms:
             atom.index = randint(1000000000, 9999999999)
         self.plugin_instance = ChemicalInteractions()
-        PluginInstance._instance = self.plugin_instance
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
@@ -85,13 +84,12 @@ class PluginFunctionTestCase(unittest.TestCase):
         # Known value from 1tyl_contacts_data.json
         expected_line_count = 86
         loop = asyncio.get_event_loop()
-        line_manager, errors = loop.run_until_complete(
+        line_manager = loop.run_until_complete(
             self.plugin_instance.parse_contacts_data(
                 contacts_data, [self.complex], default_line_settings
             )
         )
         self.assertEqual(len(line_manager.all_lines()), expected_line_count)
-        self.assertEqual(errors, False)
 
     def test_run_arpeggio(self):
         with open(f'{fixtures_dir}/1tyl_ligand_selections.json') as f:
@@ -113,7 +111,6 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         for atom in self.complex.atoms:
             atom.index = randint(1000000000, 9999999999)
         self.plugin_instance = ChemicalInteractions()
-        PluginInstance._instance = self.plugin_instance
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
