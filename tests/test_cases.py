@@ -33,7 +33,6 @@ class PluginFunctionTestCase(unittest.TestCase):
         for atom in self.complex.atoms:
             atom.index = randint(1000000000, 9999999999)
         self.plugin_instance = ChemicalInteractions()
-        PluginInstance._instance = self.plugin_instance
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
@@ -112,7 +111,6 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         for atom in self.complex.atoms:
             atom.index = randint(1000000000, 9999999999)
         self.plugin_instance = ChemicalInteractions()
-        PluginInstance._instance = self.plugin_instance
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
