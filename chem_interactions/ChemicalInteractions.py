@@ -20,6 +20,10 @@ PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
 
+class AtomNotFoundException(Exception):
+    pass
+
+
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def start(self):
@@ -285,6 +289,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             return
 
         if len(atoms) > 1:
+            # If multiple atoms found, check exact matches (no heteroatoms)
             atoms = [
                 a for a in complex_molecule.atoms
                 if all([
@@ -295,8 +300,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             ]
             if not atoms:
                 msg = f"Error finding atom {atom_path}. Please ensure atoms are uniquely named."
-                Logs.error(msg)
-                raise Exception(msg)
+                Logs.warning(msg)
+                raise AtomNotFoundException(msg)
 
             if len(atoms) > 1:
                 # Just pick the first one? :grimace:
@@ -321,8 +326,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 atom = self.get_atom_from_path(comp, atompath)
                 if atom:
                     break
-            if not atom:
-                raise Exception(f'Atom {atompath} not found')
             atoms.append(atom)
         return atoms
 
@@ -341,16 +344,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             else:
                 # Parse single atom
                 for comp in complexes:
-                    try:
-                        atom = self.get_atom_from_path(comp, atompath)
-                    except Exception:
-                        continue
+                    atom = self.get_atom_from_path(comp, atompath)
                     if atom:
                         break
                 if not atom:
-                    Logs.error(f'Atom {atompath} not found')
                     continue
-
                 struct = InteractionStructure(atom)
             struct_list.append(struct)
         return struct_list
@@ -399,9 +397,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom_paths = [atom1_path, atom2_path]
 
             # A struct can be either an atom or a list of atoms, indicating an aromatic ring.
-            struct_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
-
+            try:
+                struct_list = self.parse_atoms_from_atompaths(atom_paths, complexes)
+            except AtomNotFoundException:
+                message = (
+                    f"Failed to parse interactions between {atom1_path} and {atom2_path} "
+                    f"skipping {len(interaction_types)} interactions"
+                )
+                Logs.warning(message)
+                continue
             if len(struct_list) != 2:
+                Logs.warning("Failed to parse atom paths, skipping")
                 continue
 
             # if selected_atoms_only = True, and neither of the structures contain selected atoms, don't draw line
