@@ -90,7 +90,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         ligand_residues = ligand_residues or []
         Logs.message('Starting Interactions Calculation')
         selection_mode = 'Selected Atoms' if selected_atoms_only else 'Specific Structures'
-        Logs.message(f'Selection Mode = {selection_mode}')
+        extra = {"atom_selection_mode": selection_mode}
+        Logs.message(f'Selection Mode = {selection_mode}', extra=extra)
         start_time = time.time()
 
         # Let's make sure we have a deep target complex and ligand complexes
