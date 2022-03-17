@@ -193,7 +193,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             'run', '-n', 'arpeggio', 'python', clean_pdb_script, input_file.name
         ]
         p = Process(exe_path, args, True)
-        p.on_error = Logs.error
+        p.on_error = Logs.debug
         p.on_output = Logs.debug
         exit_code = await p.start()
         Logs.message(f'Clean Complex Exit code: {exit_code}')
