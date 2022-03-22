@@ -572,7 +572,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         return line_in_frame
 
-    def clear_visible_lines(self, complexes):
+    async def clear_visible_lines(self, complexes):
         """Clear all interaction lines that are currently visible."""
         lines_to_destroy = []
         labels_to_destroy = []
@@ -580,7 +580,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Make sure we have deep complexes.
         shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
         if shallow_complexes:
-            deep_complexes = self.request_complexes([comp.index for comp in shallow_complexes])
+            deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
             for i, comp in enumerate(deep_complexes):
                 if complexes[i].index == comp.index:
                     complexes[i] = comp
