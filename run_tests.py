@@ -2,8 +2,7 @@ import os
 import unittest
 import sys
 
-chem_interactions_dir = f'{os.getcwd()}/chem_interactions/'
-sys.path.append(chem_interactions_dir)
+sys.path.append(f'{os.getcwd()}/plugin/')
 
 test_directory = 'tests'
 suite = unittest.TestLoader().discover(test_directory)

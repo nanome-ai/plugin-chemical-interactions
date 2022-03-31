@@ -1,5 +1,5 @@
 import nanome
-from chem_interactions.ChemicalInteractions import ChemicalInteractions
+from plugin.ChemicalInteractions import ChemicalInteractions
 from nanome.util.enums import Integrations
 
 
