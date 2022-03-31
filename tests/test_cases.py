@@ -9,9 +9,9 @@ from random import randint
 from unittest.mock import MagicMock
 from nanome.api import ui, PluginInstance
 from nanome.api.structure import Atom, Chain, Complex, Molecule
-from chem_interactions.menus import ChemInteractionsMenu
-from chem_interactions.ChemicalInteractions import ChemicalInteractions
-from chem_interactions.forms import default_line_settings
+from plugin.menus import ChemInteractionsMenu
+from plugin.ChemicalInteractions import ChemicalInteractions
+from plugin.forms import default_line_settings
 
 
 fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures')

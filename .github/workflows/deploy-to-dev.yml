@@ -19,7 +19,7 @@ jobs:
   #       && pip install bump2version
   #       && chmod +x ./version.sh
   #       && ./version.sh patch
-  #       && current_version=$(cat chem_interactions/__init__.py | grep __version__ | cut -d'=' -f2 | xargs)
+  #       && current_version=$(cat plugin/__init__.py | grep __version__ | cut -d'=' -f2 | xargs)
   #       && git push origin master
   #       && git push origin v$current_version
   deploy:
@@ -27,16 +27,16 @@ jobs:
     runs-on: ubuntu-latest
     # needs: bump-version
     steps:
-    - name: Fetch, Pull, Deploy
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.PLUGINS_HQ_HOST }}
-        username: ${{ secrets.PLUGINS_HQ_USERNAME }}
-        key: ${{ secrets.PLUGINS_HQ_SECRET_KEY }}
-        port: ${{ secrets.PLUGINS_HQ_PORT }}
-        script: |
-          cd ${{ secrets.PLUGINS_HQ_DEV_PATH }}
-          git fetch
-          git pull
-          docker-compose build
-          docker-compose -f docker-compose-deploy.yml -f docker-compose.override.yml --env-file .env up -d
+      - name: Fetch, Pull, Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PLUGINS_HQ_HOST }}
+          username: ${{ secrets.PLUGINS_HQ_USERNAME }}
+          key: ${{ secrets.PLUGINS_HQ_SECRET_KEY }}
+          port: ${{ secrets.PLUGINS_HQ_PORT }}
+          script: |
+            cd ${{ secrets.PLUGINS_HQ_DEV_PATH }}
+            git fetch
+            git pull
+            docker-compose build
+            docker-compose -f docker-compose-deploy.yml -f docker-compose.override.yml --env-file .env up -d

@@ -24,7 +24,7 @@ There's two methods of configuring your plugin.
 ### 1) Command Line args.
 All Nanome plugins can be configured using the following set of command line args.
 ```sh
-user@localhost:~/plugin-chemical-interactions$ python chem_interactions/run.py --help
+user@localhost:~/plugin-chemical-interactions$ python run.py --help
 usage: run.py [-h] [-a HOST] [-p PORT] [-r] [-v] [-n NAME [NAME ...]]
               [-k KEYFILE] [-i IGNORE]
 
@@ -61,7 +61,7 @@ First thing you need to do is create a `.env` file in the top-level directory, w
 ```
 NTS_HOST=foobar.example.com
 NTS_PORT=5555
-``` 
+```
 And then running the plugin is as simple as
 ```sh
 ./docker/deploy.sh --env-file <path to .env file> <plugin_args>
@@ -70,7 +70,7 @@ Note that env files can be used alongside plugin args, but `-a` and `-p` will al
 
 
 ## Architecture.
-The `chem_interactions` contains the entirety of the application.
+The `plugin` folder contains the entirety of the application.
   - Handles all interactions with Nanome application
   - Renders menus
   - Visualizes interactions data in VR.

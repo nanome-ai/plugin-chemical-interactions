@@ -1,5 +1,5 @@
 {
-    "python.linting.flake8Enabled": true,
-    "python.linting.enabled": true,
-    "python.analysis.extraPaths": ["./chem_interactions", "./arpeggio-services"]
+  "python.linting.flake8Enabled": true,
+  "python.linting.enabled": true,
+  "python.analysis.extraPaths": ["./plugin", "./arpeggio-services"]
 }
