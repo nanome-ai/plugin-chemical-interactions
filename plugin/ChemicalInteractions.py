@@ -677,7 +677,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             args.extend(['-o', output_dir])
 
             p = Process(exe_path, args, True)
-            p.on_error = Logs.error
+            p.on_error = Logs.debug
             p.on_output = Logs.debug
             exit_code = await p.start()
             Logs.message(f'Arpeggio Exit code: {exit_code}')
