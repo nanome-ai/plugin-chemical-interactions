@@ -33,5 +33,6 @@ docker run -d \
 --name $container_name \
 $env_arg \
 --restart unless-stopped \
+-h $(hostname)-$container_name \
 -e ARGS="$deploy_args" \
 $container_name
