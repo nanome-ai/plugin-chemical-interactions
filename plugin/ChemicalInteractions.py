@@ -194,7 +194,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         ]
         p = Process(exe_path, args, True, label='clean_complex')
         p.on_error = Logs.warning
-        p.on_output = Logs.warning
+        p.on_output = Logs.debug
         exit_code = await p.start()
         Logs.message(f'Clean Complex Exit code: {exit_code}')
         cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
@@ -678,7 +678,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             p = Process(exe_path, args, True, label="arpeggio")
             p.on_error = Logs.warning
-            p.on_output = Logs.warning
+            p.on_output = Logs.debug
             exit_code = await p.start()
             Logs.message(f'Arpeggio Exit code: {exit_code}')
 
