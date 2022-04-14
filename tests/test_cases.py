@@ -114,7 +114,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
-    @patch('nanome._internal._network._ProcessNetwork._instance')
+    @patch('nanome._internal._network.PluginNetwork._instance')
     def test_selected_atoms(self, _):
         """Validate calculate_interactions call using selected atoms."""
         chain_name = 'HC'
@@ -133,7 +133,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
 
-    @patch('nanome._internal._network._ProcessNetwork._instance')
+    @patch('nanome._internal._network.PluginNetwork._instance')
     def test_separate_ligand_complex(self, _):
         """Validate calculate_interactions call where ligand is on a separate complex."""
         target_complex = self.complex
@@ -162,7 +162,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             ligand_residues,
             distance_labels=distance_labels)
 
-    @patch('nanome._internal._network._ProcessNetwork._instance')
+    @patch('nanome._internal._network.PluginNetwork._instance')
     def test_specific_structures(self, _):
         """Validate calculate_interactions call with no selections, but a list of residues provided."""
         chain_name = 'HC'
@@ -178,7 +178,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             ligand_residues,
             selected_atoms_only=selected_atoms_only)
 
-    @patch('nanome._internal._network._ProcessNetwork._instance')
+    @patch('nanome._internal._network.PluginNetwork._instance')
     def test_distance_labels(self, _):
         """Ensure that distance labels can be added to the InteractionLines."""
         # Select all atoms on the ligand chain
@@ -216,7 +216,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             self.assertTrue(label_count > 0)
 
     @patch('nanome.api.plugin_instance.PluginInstance.create_writing_stream')
-    @patch('nanome._internal._network._ProcessNetwork._instance')
+    @patch('nanome._internal._network.PluginNetwork._instance')
     def test_menu(self, mock_network, create_writing_stream_mock):
         async def _test_menu():
             # Select all atoms on the ligand chain
