@@ -40,7 +40,7 @@ class PluginFunctionTestCase(unittest.TestCase):
         # Make sure clean_complex function returns valid pdb can be parsed into a Complex structure.
         loop = asyncio.get_event_loop()
         result = loop.run_until_complete(self.plugin_instance.clean_complex(self.complex))
-        cleaned_complex = Complex.io.from_pdb(path=result.name)
+        cleaned_complex = Complex.io.from_pdb(path=result)
         self.assertTrue(sum(1 for _ in cleaned_complex.atoms) > 0)
 
     def test_get_atom_path(self):
@@ -97,8 +97,7 @@ class PluginFunctionTestCase(unittest.TestCase):
         cleaned_pdb = f'{fixtures_dir}/1tyl_cleaned.pdb'
         loop = asyncio.get_event_loop()
         contacts_data = {}
-        with open(cleaned_pdb) as f:
-            contacts_data = loop.run_until_complete(self.plugin_instance.run_arpeggio_process(arpeggio_data, [f]))
+        contacts_data = loop.run_until_complete(self.plugin_instance.run_arpeggio_process(arpeggio_data, cleaned_pdb))
         self.assertTrue(contacts_data)
 
 

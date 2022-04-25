@@ -27,6 +27,7 @@ class AtomNotFoundException(Exception):
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def start(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
         self.residue = ''
         self.menu = ChemInteractionsMenu(self)
         self.show_distance_labels = False
@@ -124,17 +125,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             full_complex = target_complex
 
         # Clean complex and return as tempfile
-        cleaned_file = await self.clean_complex(full_complex)
+        cleaned_filepath = await self.clean_complex(full_complex)
 
         cleaned_data = ''
-        with open(cleaned_file.name, 'r') as f:
+        with open(cleaned_filepath, 'r') as f:
             cleaned_data = f.read()
 
-        size_in_kb = os.path.getsize(cleaned_file.name) / 1000
+        size_in_kb = os.path.getsize(cleaned_filepath) / 1000
         Logs.message(f'Complex File Size (KB): {size_in_kb}')
 
         # Set up data for request to interactions service
-        filename = cleaned_file.name.split('/')[-1]
+        filename = cleaned_filepath.split('/')[-1]
         files = {filename: cleaned_data}
         data = {}
         selection = self.get_interaction_selections(target_complex, ligand_residues, selected_atoms_only)
@@ -144,8 +145,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             data['selection'] = selection
 
         # make the request to get interactions
-        files = [cleaned_file]
-        contacts_data = await self.run_arpeggio_process(data, files)
+        contacts_data = await self.run_arpeggio_process(data, cleaned_filepath)
 
         Logs.debug("Interaction data retrieved!")
         if not contacts_data:
@@ -180,10 +180,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
         asyncio.create_task(self.send_async_notification(notification_txt))
 
-    @staticmethod
-    async def clean_complex(complex):
+    async def clean_complex(self, complex):
         """Clean complex to prep for arpeggio."""
-        input_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False)
+        input_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False, dir=self.temp_dir.name)
         complex.io.to_pdb(input_file.name, PDBOPTIONS)
 
         input_filename = input_file.name.split('/')[-1]
@@ -199,11 +198,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message(f'Clean Complex Exit code: {exit_code}')
         cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
         cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
-        cleaned_file = tempfile.NamedTemporaryFile(suffix='.pdb')
-
-        with open(cleaned_file.name, 'wb') as output_file, open(cleaned_filepath, 'r') as input_file:
-            output_file.write(input_file.read().encode())
-        return cleaned_file
+        return cleaned_filepath
 
     @staticmethod
     def clean_chain_name(original_name):
@@ -648,13 +643,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message(f'Deleted {label_count} distance labels')
 
     @staticmethod
-    async def run_arpeggio_process(data, files):
-        if len(files) != 1:
-            raise Exception("Invalid data")
-
-        input_file = files[0]
-        input_filepath = input_file.name
-
+    async def run_arpeggio_process(data, input_filepath):
         output_data = {}
         # Set up and run arpeggio command
         exe_path = 'conda'
