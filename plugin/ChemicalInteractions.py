@@ -198,6 +198,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message(f'Clean Complex Exit code: {exit_code}')
         cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
         cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
+
+        if not os.path.exists(cleaned_filepath):
+            # If clean_complex fails, just try sending the uncleaned
+            # complex to arpeggio
+            # Not sure how effective that is, but :shrug:
+            Logs.warning('Clean Complex failed. Sending uncleaned file to arpeggio.')
+            cleaned_filepath = input_file.name
         return cleaned_filepath
 
     @staticmethod
