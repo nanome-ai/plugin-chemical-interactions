@@ -285,7 +285,8 @@ class ChemInteractionsMenu():
 
         # Get up to date selected_complex
         selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
-        self.update_complex_data(selected_complex)
+        if selected_complex:
+            self.update_complex_data(selected_complex)
 
         loading_bar = self.ln_loading_bar.get_content()
         loading_bar.percentage = 0.0
