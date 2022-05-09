@@ -97,9 +97,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Let's make sure we have a deep target complex and ligand complexes
         ligand_complexes = []
-        for rez in ligand_residues:
-            if rez.complex:
-                ligand_complexes.append(rez.complex)
+        for res in ligand_residues:
+            if res.complex:
+                ligand_complexes.append(res.complex)
             else:
                 raise Exception('No Complex associated with Residue')
 
@@ -126,17 +126,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Clean complex and return as tempfile
         cleaned_filepath = await self.clean_complex(full_complex)
-
-        cleaned_data = ''
-        with open(cleaned_filepath, 'r') as f:
-            cleaned_data = f.read()
-
         size_in_kb = os.path.getsize(cleaned_filepath) / 1000
         Logs.message(f'Complex File Size (KB): {size_in_kb}')
 
         # Set up data for request to interactions service
-        filename = cleaned_filepath.split('/')[-1]
-        files = {filename: cleaned_data}
         data = {}
         selection = self.get_interaction_selections(target_complex, ligand_residues, selected_atoms_only)
         Logs.debug(f'Selections: {selection}')
@@ -198,6 +191,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message(f'Clean Complex Exit code: {exit_code}')
         cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
         cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
+
+        if not os.path.exists(cleaned_filepath):
+            # If clean_complex fails, just try sending the uncleaned
+            # complex to arpeggio
+            # Not sure how effective that is, but :shrug:
+            Logs.warning('Clean Complex failed. Sending uncleaned file to arpeggio.')
+            cleaned_filepath = input_file.name
         return cleaned_filepath
 
     @staticmethod
@@ -205,8 +205,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         chain_name = str(original_name)
         if chain_name.startswith('H'):
             chain_name = chain_name[1:]
-        elif chain_name.startswith('H_'):
-            chain_name = chain_name[2:]
         return chain_name
 
     def get_residue_path(self, residue):
@@ -272,13 +270,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if i == complex.current_frame
         )
         # Chain naming seems inconsistent, so we need to check the provided name,
-        # as well as heteroatom variations
+        # as well as heteroatom variation
         atoms = [
             a for a in complex_molecule.atoms
             if all([
                 a.name == atom_name,
                 str(a.residue.serial) == str(res_id),
-                a.chain.name in [chain_name, f'H{chain_name}', f'H_{chain_name}']
+                a.chain.name in [chain_name, f'H{chain_name}']
             ])
         ]
         if not atoms:
