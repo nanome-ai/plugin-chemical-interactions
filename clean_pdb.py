@@ -219,7 +219,7 @@ Dependencies:
 
     # WRITE OUT COORDINATES FOR CHAIN BREAKS FOUND WITH THE PDB FILE
     with open('.'.join((pdb_noext, pdb_ext, 'breaks')), 'w') as fo, \
-         open('.'.join((pdb_noext, pdb_ext, 'break_residues')), 'w') as fo2:
+            open('.'.join((pdb_noext, pdb_ext, 'break_residues')), 'w') as fo2:
 
         for chain_break_residue in all_chain_break_residues:
 
