@@ -10,6 +10,7 @@
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env",
             "justMyCode": false,
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

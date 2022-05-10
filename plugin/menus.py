@@ -287,15 +287,27 @@ class ChemInteractionsMenu():
         selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
         if selected_complex:
             self.update_complex_data(selected_complex)
+        interaction_data = self.collect_interaction_data()
+
+        distance_labels = self.btn_distance_labels.selected
+        await self.run_calculation(
+            selected_complex, ligand_residues, interaction_data,
+            selected_atoms_only, distance_labels)
+
+    async def run_calculation(
+        self, selected_complex, ligand_residues, interaction_data,
+            selected_atoms_only=True, distance_labels=False):
+
+        if not self.btn_calculate.unusable:
+            self.btn_calculate.unusable = True
+            self.btn_calculate.text.value.set_all('Calculating...')
+            self.plugin.update_content(self.btn_calculate)
 
         loading_bar = self.ln_loading_bar.get_content()
         loading_bar.percentage = 0.0
         self.ln_loading_bar.enabled = True
         self.plugin.update_node(self.ln_loading_bar)
 
-        interaction_data = self.collect_interaction_data()
-
-        distance_labels = self.btn_distance_labels.selected
         try:
             await self.plugin.calculate_interactions(
                 selected_complex, ligand_residues, interaction_data,
