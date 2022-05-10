@@ -78,7 +78,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @async_callback
     async def calculate_interactions(
-            self, target_complex, ligand_residues, line_settings,
+            self, target_complex: Complex, ligand_residues: list, line_settings: dict,
             selected_atoms_only=False, distance_labels=False):
         """Calculate interactions between complexes, and upload interaction lines to Nanome.
 
