@@ -12,7 +12,7 @@ from nanome.api.shapes import Label, Shape
 from nanome.util import async_callback, Color, enums, Logs, Process, Vector3
 
 from .forms import LineSettingsForm
-from .menus import ChemInteractionsMenu
+from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
 from .utils import merge_complexes
 
@@ -30,6 +30,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.residue = ''
         self.menu = ChemInteractionsMenu(self)
+        self.settings_menu = SettingsMenu(self)
         self.show_distance_labels = False
 
     @async_callback
@@ -51,6 +52,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_complex_removed(self):
         complexes = await self.request_complex_list()
         await self.menu.render(complexes=complexes)
+
+    def on_advanced_settings(self):
+        self.settings_menu.render()
 
     @property
     def line_manager(self):
@@ -162,9 +166,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             else:
                 raise Exception('No Complex associated with Residue')
 
-        self.setup_previous_run(
-            target_complex, ligand_residues, ligand_complexes, line_settings,
-            selected_atoms_only, distance_labels)
+        settings = self.settings_menu.get_settings()
+        if settings['recalculate_on_update']:
+            self.setup_previous_run(
+                target_complex, ligand_residues, ligand_complexes, line_settings,
+                selected_atoms_only, distance_labels)
         if selected_atoms_only:
             # make sure at least one atom in the ligand complexes is selected.
             atom_selected = False

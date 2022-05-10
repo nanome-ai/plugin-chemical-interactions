@@ -15,7 +15,7 @@ def main():
     tags = ['Interactions']
 
     integrations = [Integrations.interactions]
-    plugin = nanome.Plugin(plugin_name, description, tags, integrations=integrations)
+    plugin = nanome.Plugin(plugin_name, description, tags, integrations=integrations, has_advanced=True)
     plugin.set_plugin_class(ChemicalInteractions)
     plugin.run()
 

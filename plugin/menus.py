@@ -13,6 +13,7 @@ PDBOPTIONS.write_bonds = True
 
 BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
 MENU_PATH = path.join(BASE_PATH, 'menu_json', 'menu.json')
+SETTINGS_MENU_PATH = path.join(BASE_PATH, 'menu_json', 'settings.json')
 
 
 class ChemInteractionsMenu():
@@ -523,3 +524,27 @@ class ChemInteractionsMenu():
             await self.plugin.render_distance_labels(self.complexes)
         else:
             self.plugin.clear_distance_labels()
+
+
+class SettingsMenu:
+
+    def __init__(self, plugin):
+        self.plugin = plugin
+        self._menu = nanome.ui.Menu.io.from_json(SETTINGS_MENU_PATH)
+        self._menu.index = 200
+        self.btn_recalculate_on_update.switch.active = True
+        self.btn_recalculate_on_update.toggle_on_press = True
+
+    def render(self):
+        self._menu.enabled = True
+        self.plugin.update_menu(self._menu)
+
+    @property
+    def btn_recalculate_on_update(self):
+        return self._menu.root.find_node('btn_recalculate_on_update').get_content()
+
+    def get_settings(self):
+        recalculate_on_update = self.btn_recalculate_on_update.selected
+        return {
+            'recalculate_on_update': recalculate_on_update
+        }
