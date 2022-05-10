@@ -533,7 +533,8 @@ class SettingsMenu:
         self._menu = nanome.ui.Menu.io.from_json(SETTINGS_MENU_PATH)
         self._menu.index = 200
         self.btn_recalculate_on_update.switch.active = True
-        self.btn_recalculate_on_update.toggle_on_press = True
+        # self.btn_recalculate_on_update.toggle_on_press = True
+        self.btn_recalculate_on_update.register_pressed_callback(self.toggle_recalculate_on_update)
 
     def render(self):
         self._menu.enabled = True
@@ -548,3 +549,12 @@ class SettingsMenu:
         return {
             'recalculate_on_update': recalculate_on_update
         }
+
+    def toggle_recalculate_on_update(self, btn):
+        btn.selected = not btn.selected
+        Logs.message("Set Recalculate on Update to: {}".format(btn.selected))
+        # If button is toggled off, clear the previous run from memory
+        if not btn.selected and hasattr(self.plugin, 'previous_run'):
+            Logs.message("Clearing previous run from memory")
+            del self.plugin.previous_run
+        self.plugin.update_content(btn)
