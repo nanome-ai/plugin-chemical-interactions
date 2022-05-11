@@ -12,7 +12,7 @@ from nanome.api.shapes import Label, Shape
 from nanome.util import async_callback, Color, enums, Logs, Process, Vector3
 
 from .forms import LineSettingsForm
-from .menus import ChemInteractionsMenu
+from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
 from .utils import merge_complexes
 
@@ -30,14 +30,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.residue = ''
         self.menu = ChemInteractionsMenu(self)
+        self.settings_menu = SettingsMenu(self)
         self.show_distance_labels = False
-        Logs.message('Chemical Interactions Started')
 
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
         complexes = await self.request_complex_list()
-        Logs.message('Chemical Interactions Run.')
         self.menu.render(complexes=complexes, default_values=True)
 
     @async_callback
@@ -53,6 +52,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_complex_removed(self):
         complexes = await self.request_complex_list()
         await self.menu.render(complexes=complexes)
+
+    def on_advanced_settings(self):
+        self.settings_menu.render()
 
     @property
     def line_manager(self):
@@ -76,9 +78,71 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def label_manager(self, value):
         self._label_manager = value
 
+    def setup_previous_run(
+        self, target_complex: Complex, ligand_residues: list, ligand_complexes: list, line_settings: dict,
+            selected_atoms_only=False, distance_labels=False):
+        self.previous_run = {
+            'target_complex': target_complex,
+            'ligand_residues': ligand_residues,
+            'ligand_complexes': ligand_complexes,
+            'line_settings': line_settings,
+            'selected_atoms_only': selected_atoms_only,
+            'distance_labels': distance_labels
+        }
+        res_complexes = [res.complex for res in ligand_residues]
+        all_complexes = [target_complex] + res_complexes
+        for comp in all_complexes:
+            comp.register_complex_updated_callback(self.recalculate_interactions)
+
+    @async_callback
+    async def recalculate_interactions(self, updated_comp: Complex):
+        """Recalculate interactions from the previous run."""
+        if not hasattr(self, 'previous_run'):
+            return
+
+        Logs.message("Recalcluating previous run with updated structures.")
+        await self.send_async_notification('Recalculating interactions...')
+        target_complex = self.previous_run['target_complex']
+        ligand_residues = self.previous_run['ligand_residues']
+        ligand_complexes = self.previous_run['ligand_complexes']
+        line_settings = self.previous_run['line_settings']
+        selected_atoms_only = self.previous_run['selected_atoms_only']
+        distance_labels = self.previous_run['distance_labels']
+
+        all_complexes = [target_complex] + ligand_complexes
+        comp_indices_to_update = [
+            comp.index for comp in all_complexes
+            if comp.index != updated_comp.index
+        ]
+        if comp_indices_to_update:
+            updated_comps = await self.request_complexes(comp_indices_to_update)
+            updated_comps.append(updated_comp)
+        else:
+            updated_comps = [updated_comp]
+
+        updated_target_comp = next(
+            cmp for cmp in updated_comps if cmp.index == target_complex.index)
+
+        lig_comp_indices = [cmp.index for cmp in ligand_complexes]
+        updated_lig_comps = [
+            cmp for cmp in updated_comps if cmp.index in lig_comp_indices]
+
+        updated_residues = []
+        for comp in updated_lig_comps:
+            updated_residues.extend([
+                res for res in comp.residues
+                if res.index in [r.index for r in ligand_residues]
+            ])
+
+        await self.menu.run_calculation(
+            updated_target_comp, updated_residues, line_settings,
+            selected_atoms_only=selected_atoms_only,
+            distance_labels=distance_labels
+        )
+
     @async_callback
     async def calculate_interactions(
-            self, target_complex, ligand_residues, line_settings,
+            self, target_complex: Complex, ligand_residues: list, line_settings: dict,
             selected_atoms_only=False, distance_labels=False):
         """Calculate interactions between complexes, and upload interaction lines to Nanome.
 
@@ -103,8 +167,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             else:
                 raise Exception('No Complex associated with Residue')
 
-        # make sure at least one atom in the ligand complexes is selected.
+        settings = self.settings_menu.get_settings()
+        if settings['recalculate_on_update']:
+            self.setup_previous_run(
+                target_complex, ligand_residues, ligand_complexes, line_settings,
+                selected_atoms_only, distance_labels)
         if selected_atoms_only:
+            # make sure at least one atom in the ligand complexes is selected.
             atom_selected = False
             for comp in ligand_complexes:
                 if sum(1 for atom in comp.atoms if atom.selected) > 0:

@@ -13,6 +13,7 @@ PDBOPTIONS.write_bonds = True
 
 BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
 MENU_PATH = path.join(BASE_PATH, 'menu_json', 'menu.json')
+SETTINGS_MENU_PATH = path.join(BASE_PATH, 'menu_json', 'settings.json')
 
 
 class ChemInteractionsMenu():
@@ -287,15 +288,27 @@ class ChemInteractionsMenu():
         selected_complex = next(iter(await self.plugin.request_complexes([selected_complex.index])))
         if selected_complex:
             self.update_complex_data(selected_complex)
+        interaction_data = self.collect_interaction_data()
+
+        distance_labels = self.btn_distance_labels.selected
+        await self.run_calculation(
+            selected_complex, ligand_residues, interaction_data,
+            selected_atoms_only, distance_labels)
+
+    async def run_calculation(
+        self, selected_complex, ligand_residues, interaction_data,
+            selected_atoms_only=True, distance_labels=False):
+
+        if not self.btn_calculate.unusable:
+            self.btn_calculate.unusable = True
+            self.btn_calculate.text.value.set_all('Calculating...')
+            self.plugin.update_content(self.btn_calculate)
 
         loading_bar = self.ln_loading_bar.get_content()
         loading_bar.percentage = 0.0
         self.ln_loading_bar.enabled = True
         self.plugin.update_node(self.ln_loading_bar)
 
-        interaction_data = self.collect_interaction_data()
-
-        distance_labels = self.btn_distance_labels.selected
         try:
             await self.plugin.calculate_interactions(
                 selected_complex, ligand_residues, interaction_data,
@@ -511,3 +524,37 @@ class ChemInteractionsMenu():
             await self.plugin.render_distance_labels(self.complexes)
         else:
             self.plugin.clear_distance_labels()
+
+
+class SettingsMenu:
+
+    def __init__(self, plugin):
+        self.plugin = plugin
+        self._menu = nanome.ui.Menu.io.from_json(SETTINGS_MENU_PATH)
+        self._menu.index = 200
+        self.btn_recalculate_on_update.switch.active = True
+        # self.btn_recalculate_on_update.toggle_on_press = True
+        self.btn_recalculate_on_update.register_pressed_callback(self.toggle_recalculate_on_update)
+
+    def render(self):
+        self._menu.enabled = True
+        self.plugin.update_menu(self._menu)
+
+    @property
+    def btn_recalculate_on_update(self):
+        return self._menu.root.find_node('btn_recalculate_on_update').get_content()
+
+    def get_settings(self):
+        recalculate_on_update = self.btn_recalculate_on_update.selected
+        return {
+            'recalculate_on_update': recalculate_on_update
+        }
+
+    def toggle_recalculate_on_update(self, btn):
+        btn.selected = not btn.selected
+        Logs.message("Set Recalculate on Update to: {}".format(btn.selected))
+        # If button is toggled off, clear the previous run from memory
+        if not btn.selected and hasattr(self.plugin, 'previous_run'):
+            Logs.message("Clearing previous run from memory")
+            del self.plugin.previous_run
+        self.plugin.update_content(btn)
