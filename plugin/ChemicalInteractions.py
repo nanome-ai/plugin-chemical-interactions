@@ -15,6 +15,7 @@ from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
 from .utils import merge_complexes
+from .clean_pdb import clean_pdb
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -194,13 +195,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             full_complex = target_complex
 
         # Clean complex and return as tempfile
-        cleaned_filepath = await self.clean_complex(full_complex)
+        cleaned_filepath = self.get_clean_pdb_file(full_complex)
         size_in_kb = os.path.getsize(cleaned_filepath) / 1000
         Logs.message(f'Complex File Size (KB): {size_in_kb}')
 
         # Set up data for request to interactions service
         data = {}
-        selection = self.get_interaction_selections(target_complex, ligand_residues, selected_atoms_only)
+        selection = self.get_interaction_selections(
+            target_complex, ligand_residues, selected_atoms_only)
         Logs.debug(f'Selections: {selection}')
 
         if selection:
@@ -242,31 +244,23 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
         asyncio.create_task(self.send_async_notification(notification_txt))
 
-    async def clean_complex(self, complex):
+    def get_clean_pdb_file(self, complex):
         """Clean complex to prep for arpeggio."""
-        input_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False, dir=self.temp_dir.name)
-        complex.io.to_pdb(input_file.name, PDBOPTIONS)
-
-        input_filename = input_file.name.split('/')[-1]
-        clean_pdb_script = 'clean_pdb.py'
-        exe_path = 'conda'
-        args = [
-            'run', '-n', 'arpeggio', 'python', clean_pdb_script, input_file.name
-        ]
-        p = Process(exe_path, args, True, label='clean_complex')
-        p.on_error = Logs.warning
-        p.on_output = Logs.message
-        exit_code = await p.start()
-        Logs.message(f'Clean Complex Exit code: {exit_code}')
-        cleaned_filename = '{}.clean.pdb'.format(input_filename.split('.')[0])
-        cleaned_filepath = input_file.name.replace(input_filename, cleaned_filename)
-
+        complex_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False, dir=self.temp_dir.name)
+        complex.io.to_pdb(complex_file.name, PDBOPTIONS)
+        cleaned_filepath = clean_pdb(complex_file.name)
+        if os.path.getsize(cleaned_filepath) / 1000 == 0:
+            message = 'Complex file is empty, unable to clean =(.'
+            Logs.error(message)
+            raise Exception(message)
         if not os.path.exists(cleaned_filepath):
-            # If clean_complex fails, just try sending the uncleaned
+            # If clean_pdb fails, just try sending the uncleaned
             # complex to arpeggio
             # Not sure how effective that is, but :shrug:
             Logs.warning('Clean Complex failed. Sending uncleaned file to arpeggio.')
-            cleaned_filepath = input_file.name
+            cleaned_filepath = complex_file.name
+        else:
+            complex_file.close()
         return cleaned_filepath
 
     @staticmethod

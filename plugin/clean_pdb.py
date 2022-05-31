@@ -32,45 +32,23 @@ from Bio.PDB.Polypeptide import PPBuilder
 # CONSTANTS
 PDB_LINE_TEMPLATE = '{record: <6}{serial: >5} {atom_name: ^4}{altloc: ^1}{resname: ^3} {chain_id: ^1}{resnum: >4}{icode: ^1}   {x: >8.3f}{y: >8.3f}{z: >8.3f}{occ: >6.2f}{tfac: >6.2f}          {element: >2}{charge: >2}'
 
-# MAIN
-if __name__ == '__main__':
-    # ARGUMENT PARSING
-    parser = argparse.ArgumentParser(description='''
 
-#############
-# CLEAN PDB #
-#############
-
-A program for cleaning PDB files.
-
-Dependencies:
-- Python (v2.7)
-- BioPython (>= v1.60)
-
-''', formatter_class=argparse.RawTextHelpFormatter)
-
-    parser.add_argument('pdb', type=str, help='Path to the PDB file to be cleaned.')
-    parser.add_argument('-rmw', '--remove-waters', action='store_true', help='Remove waters.')
-    parser.add_argument('-kh', '--keep-hydrogens', action='store_true', help='Keep hydrogens.')
-    parser.add_argument('-if', '--informative_filenames', action='store_true', help='Keep a record of the flags used for cleaning the output filename.')
-
-    args = parser.parse_args()
-
-    pdb_path = args.pdb
+def clean_pdb(pdb_path, remove_waters=False, keep_hydrogens=False, informative_filenames=False):
     pdb_noext, pdb_ext = os.path.splitext(pdb_path)
     pdb_ext = pdb_ext.replace('.', '')
 
     pdb_parser = PDBParser(QUIET=True)
-    structure = pdb_parser.get_structure(os.path.split(os.path.splitext(pdb_path)[0])[1], pdb_path)
+    struct_id = os.path.split(os.path.splitext(pdb_path)[0])[1]
+    structure = pdb_parser.get_structure(struct_id, pdb_path)
 
     # OUTPUT LABEL
     output_label = 'clean'
 
-    if args.informative_filenames:
-        if args.remove_waters:
+    if informative_filenames:
+        if remove_waters:
             output_label = output_label + '_dry'
 
-        if args.keep_hydrogens:
+        if keep_hydrogens:
             output_label = output_label + '_kh'
 
     # REMOVE MULTIPLE MODELS
@@ -141,14 +119,14 @@ Dependencies:
 
     # WRITE OUT CLEANED PDB
     # MANY OF THE ISSUES ARE SOLVED DURING THE WRITING OUT
-    with open('.'.join((pdb_noext, output_label, pdb_ext)), 'w') as fo:
-
+    output_filepath = '.'.join((pdb_noext, output_label, pdb_ext))
+    with open(output_filepath, 'w') as fo:
         atom_serial = 1
 
         for residue in model.get_residues():
 
             # REMOVE WATERS IF FLAG SET
-            if args.remove_waters:
+            if remove_waters:
                 if residue.get_full_id()[3][0] == 'W':
                     continue
 
@@ -170,7 +148,7 @@ Dependencies:
                     atom = atom.disordered_get()
 
                 # REMOVE HYDROGENS
-                if not args.keep_hydrogens:
+                if not keep_hydrogens:
                     if atom.element.strip() == 'H':
                         continue
 
@@ -239,5 +217,35 @@ Dependencies:
 
             else:
                 raise ValueError('Chain break residue {} had no mainchain atom to extract coordinates from.'.format(chain_break_residue))
-
             fo.write('{}\n'.format(str(break_coord)))
+    return output_filepath
+
+
+# MAIN
+if __name__ == '__main__':
+    # ARGUMENT PARSING
+    parser = argparse.ArgumentParser(description='''
+        #############
+        # CLEAN PDB #
+        #############
+
+        A program for cleaning PDB files.
+
+        Dependencies:
+        - Python > (v3.4)
+        - BioPython (>= v1.60)
+
+        ''', formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument('pdb', type=str, help='Path to the PDB file to be cleaned.')
+    parser.add_argument('-rmw', '--remove-waters', action='store_true', help='Remove waters.')
+    parser.add_argument('-kh', '--keep-hydrogens', action='store_true', help='Keep hydrogens.')
+    parser.add_argument('-if', '--informative_filenames', action='store_true', help='Keep a record of the flags used for cleaning the output filename.')
+
+    args = parser.parse_args()
+
+    pdb_path = args.pdb
+    informative_filenames = args.informative_filenames
+    remove_waters = args.remove_waters
+    keep_hydrogens = args.keep_hydrogens
+    clean_pdb(pdb_path, remove_waters, keep_hydrogens, informative_filenames)
