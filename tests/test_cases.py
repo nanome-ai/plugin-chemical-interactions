@@ -36,10 +36,9 @@ class PluginFunctionTestCase(unittest.TestCase):
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
-    def test_clean_complex(self):
-        # Make sure clean_complex function returns valid pdb can be parsed into a Complex structure.
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(self.plugin_instance.clean_complex(self.complex))
+    def test_get_clean_pdb_file(self):
+        # Make sure get_clean_pdb_file function returns valid pdb can be parsed into a Complex structure.
+        result = self.plugin_instance.get_clean_pdb_file(self.complex)
         cleaned_complex = Complex.io.from_pdb(path=result)
         self.assertTrue(sum(1 for _ in cleaned_complex.atoms) > 0)
 
