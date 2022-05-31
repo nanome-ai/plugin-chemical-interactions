@@ -195,7 +195,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             full_complex = target_complex
 
         # Clean complex and return as tempfile
-        cleaned_filepath = await self.clean_complex(full_complex)
+        cleaned_filepath = self.get_clean_pdb_file(full_complex)
         size_in_kb = os.path.getsize(cleaned_filepath) / 1000
         Logs.message(f'Complex File Size (KB): {size_in_kb}')
 
@@ -244,14 +244,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
         asyncio.create_task(self.send_async_notification(notification_txt))
 
-    async def clean_complex(self, complex):
+    def get_clean_pdb_file(self, complex):
         """Clean complex to prep for arpeggio."""
         complex_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False, dir=self.temp_dir.name)
         complex.io.to_pdb(complex_file.name, PDBOPTIONS)
         cleaned_filepath = clean_pdb(complex_file.name)
-
+        if os.path.getsize(cleaned_filepath) / 1000 == 0:
+            message = 'Complex file is empty, unable to clean =(.'
+            Logs.error(message)
+            raise Exception(message)
         if not os.path.exists(cleaned_filepath):
-            # If clean_complex fails, just try sending the uncleaned
+            # If clean_pdb fails, just try sending the uncleaned
             # complex to arpeggio
             # Not sure how effective that is, but :shrug:
             Logs.warning('Clean Complex failed. Sending uncleaned file to arpeggio.')
