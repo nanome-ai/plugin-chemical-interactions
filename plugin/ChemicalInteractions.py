@@ -734,7 +734,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             try:
                 output_filename = next(fname for fname in os.listdir(output_dir))
-            except Exception:
+            except StopIteration:
                 Logs.error('Arpeggio results not found.')
                 return
 
