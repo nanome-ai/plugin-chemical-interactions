@@ -33,7 +33,7 @@ from Bio.PDB.Polypeptide import PPBuilder
 PDB_LINE_TEMPLATE = '{record: <6}{serial: >5} {atom_name: ^4}{altloc: ^1}{resname: ^3} {chain_id: ^1}{resnum: >4}{icode: ^1}   {x: >8.3f}{y: >8.3f}{z: >8.3f}{occ: >6.2f}{tfac: >6.2f}          {element: >2}{charge: >2}'
 
 
-def clean_pdb(pdb_path, remove_waters=False, keep_hydrogens=False, informative_filenames=False):
+def clean_pdb(pdb_path, remove_waters=False, keep_hydrogens=True, informative_filenames=False):
     pdb_noext, pdb_ext = os.path.splitext(pdb_path)
     pdb_ext = pdb_ext.replace('.', '')
 
@@ -170,21 +170,22 @@ def clean_pdb(pdb_path, remove_waters=False, keep_hydrogens=False, informative_f
                 # ALTLOCS ARE ALWAYS BLANK
                 # CHARGES ARE ALWAYS BLANK(?)
                 # OCCUPANCIES ARE ALWAYS 1.00
-                output_line = PDB_LINE_TEMPLATE.format(record=record,
-                                                       serial=atom_serial,
-                                                       atom_name=atom.name,
-                                                       altloc=' ',
-                                                       resname=residue.resname,
-                                                       chain_id=residue.get_parent().id,
-                                                       resnum=residue.get_id()[1],
-                                                       icode=residue.get_id()[2],
-                                                       x=float(atom.coord[0]),
-                                                       y=float(atom.coord[1]),
-                                                       z=float(atom.coord[2]),
-                                                       occ=1.00,
-                                                       tfac=atom.bfactor,
-                                                       element=atom.element,
-                                                       charge='')
+                output_line = PDB_LINE_TEMPLATE.format(
+                    record=record,
+                    serial=atom_serial,
+                    atom_name=atom.name,
+                    altloc=' ',
+                    resname=residue.resname,
+                    chain_id=residue.get_parent().id,
+                    resnum=residue.get_id()[1],
+                    icode=residue.get_id()[2],
+                    x=float(atom.coord[0]),
+                    y=float(atom.coord[1]),
+                    z=float(atom.coord[2]),
+                    occ=1.00,
+                    tfac=atom.bfactor,
+                    element=atom.element,
+                    charge='')
                 fo.write('{}\n'.format(output_line))
                 atom_serial += 1
                 # RAISE AN ERROR IF WE'VE NOW GOT TOO MANY ATOMS
@@ -201,10 +202,11 @@ def clean_pdb(pdb_path, remove_waters=False, keep_hydrogens=False, informative_f
 
         for chain_break_residue in all_chain_break_residues:
 
-            fo2.write('{},{}{}`{}\n'.format(chain_break_residue.get_parent().id,
-                                            chain_break_residue.get_id()[1],  # RESIDUE NUMBER
-                                            chain_break_residue.get_id()[2].strip(),  # INSERTION CODE
-                                            chain_break_residue.resname.strip()))
+            fo2.write('{},{}{}`{}\n'.format(
+                chain_break_residue.get_parent().id,
+                chain_break_residue.get_id()[1],  # RESIDUE NUMBER
+                chain_break_residue.get_id()[2].strip(),  # INSERTION CODE
+                chain_break_residue.resname.strip()))
 
             if 'CA' in chain_break_residue.child_dict:
                 break_coord = list(chain_break_residue.child_dict['CA'].coord)
