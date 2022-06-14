@@ -1,3 +1,6 @@
+# Modified version of this script:
+# https://github.com/harryjubb/pdbtools/blob/master/clean_pdb.py
+
 # Clean PDB Script
 # ================
 #
