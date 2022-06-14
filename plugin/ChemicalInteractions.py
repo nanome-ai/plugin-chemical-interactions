@@ -213,7 +213,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         Logs.debug("Interaction data retrieved!")
         if not contacts_data:
-            notification_message = "Arpeggio call failed. Please check Logs."
+            notification_message = "Arpeggio run failed. Please make sure source files are valid."
             self.send_notification(enums.NotificationTypes.error, notification_message)
             return
 
@@ -734,7 +734,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             try:
                 output_filename = next(fname for fname in os.listdir(output_dir))
-            except StopIteration:
+            except (StopIteration, FileNotFoundError):
                 Logs.error('Arpeggio results not found.')
                 return
 
