@@ -101,7 +101,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if not hasattr(self, 'previous_run'):
             return
 
-        Logs.message("Recalcluating previous run with updated structures.")
+        Logs.message("Recalculating previous run with updated structures.")
         await self.send_async_notification('Recalculating interactions...')
         target_complex = self.previous_run['target_complex']
         ligand_residues = self.previous_run['ligand_residues']
