@@ -731,7 +731,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             p.on_output = Logs.message
             exit_code = await p.start()
             Logs.message(f'Arpeggio Exit code: {exit_code}')
-            
+
             if not os.path.exists(output_dir) or not os.listdir(output_dir):
                 Logs.error('Arpeggio run failed.')
                 return
