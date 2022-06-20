@@ -731,13 +731,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             p.on_output = Logs.message
             exit_code = await p.start()
             Logs.message(f'Arpeggio Exit code: {exit_code}')
-
-            try:
-                output_filename = next(fname for fname in os.listdir(output_dir))
-            except (StopIteration, FileNotFoundError):
-                Logs.error('Arpeggio results not found.')
+            
+            if not os.path.exists(output_dir) or not os.listdir(output_dir):
+                Logs.error('Arpeggio run failed.')
                 return
 
+            output_filename = next(fname for fname in os.listdir(output_dir))
             output_filepath = f'{output_dir}/{output_filename}'
             with open(output_filepath, 'r') as f:
                 output_data = json.load(f)
