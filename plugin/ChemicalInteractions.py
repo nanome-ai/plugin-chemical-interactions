@@ -456,7 +456,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Typically this filters out rows with only `proximal` interactions.
             if not set(interaction_types).intersection(set(form.data.keys())):
                 continue
-            
+
             # We only want to render interactions involving selected atoms.
             # See arpeggio README for details
             interacting_entities_to_render = ['INTER', 'INTRA_SELECTION', 'SELECTION_WATER']
