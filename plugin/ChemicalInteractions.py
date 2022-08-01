@@ -37,6 +37,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.settings_menu = SettingsMenu(self)
         self.show_distance_labels = False
 
+    def on_stop(self):
+        self.temp_dir.cleanup()
+
     @async_callback
     async def on_run(self):
         self.menu.enabled = True

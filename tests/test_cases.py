@@ -3,6 +3,7 @@ import itertools
 import json
 import os
 import unittest
+from unittest import mock
 from unittest.mock import patch
 from random import randint
 
@@ -112,16 +113,21 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
+    def tearDown(self) -> None:
+        self.plugin_instance.on_stop()
+        return super().tearDown()
+
     @patch('nanome._internal._network.PluginNetwork._instance')
     def test_selected_atoms(self, _):
         """Validate calculate_interactions call using selected atoms."""
+        target_complex = self.complex        
+        # Select ligand residues
         chain_name = 'HC'
-        ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
+        ligand_chain = next(ch for ch in target_complex.chains if ch.name == chain_name)
         for atom in ligand_chain.atoms:
             atom.selected = True
-
-        target_complex = self.complex
-        ligand_residues = list(self.complex.residues)
+        ligand_residues = [res for res in ligand_chain.residues]
+        
         selected_atoms_only = True
         distance_labels = False
         run_awaitable(
@@ -153,11 +159,10 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         ligand_complex.index = 99
         distance_labels = True
         ligand_residues = list(ligand_complex.residues)
-
         return run_awaitable(
             self.validate_calculate_interactions,
             target_complex,
-            ligand_residues,
+            [ligand_residue],
             distance_labels=distance_labels)
 
     @patch('nanome._internal._network.PluginNetwork._instance')
@@ -186,7 +191,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         for atom in ligand_chain.atoms:
             atom.selected = True
 
-        ligand_residues = list(target_complex.residues)
+        ligand_residues = list(ligand_chain.residues)
         selected_atoms_only = True
         distance_labels = True
         run_awaitable(
