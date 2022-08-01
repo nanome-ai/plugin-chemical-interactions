@@ -165,7 +165,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         return run_awaitable(
             self.validate_calculate_interactions,
             target_complex,
-            [ligand_residue],
+            ligand_residues,
             distance_labels=distance_labels)
 
     @patch('nanome._internal._network.PluginNetwork._instance')
