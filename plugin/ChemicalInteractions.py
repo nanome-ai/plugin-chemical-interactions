@@ -187,7 +187,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if atom_selected_count == 0:
                 msg = "Please select at least one atom in the workspace."
             elif atom_selected_count > MAX_SELECTED_ATOMS:
-                msg = F"Please select fewer than {MAX_SELECTED_ATOMS} atoms in the workspace."
+                msg = f"Please select fewer than {MAX_SELECTED_ATOMS} atoms in the workspace."
             else:
                 valid_atom_selection = True
             if not valid_atom_selection:
