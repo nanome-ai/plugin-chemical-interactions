@@ -20,6 +20,9 @@ from .clean_pdb import clean_pdb
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
+DEFAULT_MAX_SELECTED_ATOMS = 1000
+MAX_SELECTED_ATOMS = int(os.environ.get('MAX_SELECTED_ATOMS', 0) or DEFAULT_MAX_SELECTED_ATOMS)
+
 
 class AtomNotFoundException(Exception):
     pass
@@ -175,13 +178,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 selected_atoms_only, distance_labels)
         if selected_atoms_only:
             # make sure at least one atom in the ligand complexes is selected.
-            atom_selected = False
+            atom_selected_count = 0
+            valid_atom_selection = False
             for comp in ligand_complexes:
-                if sum(1 for atom in comp.atoms if atom.selected) > 0:
-                    atom_selected = True
+                atom_selected_count += sum(1 for atom in comp.atoms if atom.selected)
+                if atom_selected_count > MAX_SELECTED_ATOMS:
                     break
-            if not atom_selected:
+            if atom_selected_count == 0:
                 msg = "Please select at least one atom in the workspace."
+            elif atom_selected_count > MAX_SELECTED_ATOMS:
+                msg = F"Please select fewer than {MAX_SELECTED_ATOMS} atoms in the workspace."
+            else:
+                valid_atom_selection = True
+            if not valid_atom_selection:
                 Logs.warning(msg)
                 self.send_notification(enums.NotificationTypes.error, msg)
                 return

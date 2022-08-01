@@ -1,6 +1,7 @@
 import nanome
 from plugin.ChemicalInteractions import ChemicalInteractions
 from nanome.util.enums import Integrations
+from plugin import __version__
 
 
 def main():
@@ -15,7 +16,7 @@ def main():
     tags = ['Interactions']
 
     integrations = [Integrations.interactions]
-    plugin = nanome.Plugin(plugin_name, description, tags, integrations=integrations, has_advanced=True)
+    plugin = nanome.Plugin(plugin_name, description, tags, integrations=integrations, has_advanced=True, version=__version__)
     plugin.set_plugin_class(ChemicalInteractions)
     plugin.run()
 
