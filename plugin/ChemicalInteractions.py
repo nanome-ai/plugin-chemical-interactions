@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import json
 import math
 import os
@@ -20,6 +21,9 @@ from .clean_pdb import clean_pdb
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
+DEFAULT_MAX_SELECTED_ATOMS = 1000
+MAX_SELECTED_ATOMS = int(os.environ.get('MAX_SELECTED_ATOMS', 0) or DEFAULT_MAX_SELECTED_ATOMS)
+
 
 class AtomNotFoundException(Exception):
     pass
@@ -33,6 +37,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.menu = ChemInteractionsMenu(self)
         self.settings_menu = SettingsMenu(self)
         self.show_distance_labels = False
+
+    def on_stop(self):
+        self.temp_dir.cleanup()
 
     @async_callback
     async def on_run(self):
@@ -175,13 +182,19 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 selected_atoms_only, distance_labels)
         if selected_atoms_only:
             # make sure at least one atom in the ligand complexes is selected.
-            atom_selected = False
+            atom_selected_count = 0
+            valid_atom_selection = False
             for comp in ligand_complexes:
-                if sum(1 for atom in comp.atoms if atom.selected) > 0:
-                    atom_selected = True
+                atom_selected_count += sum(1 for atom in comp.atoms if atom.selected)
+                if atom_selected_count > MAX_SELECTED_ATOMS:
                     break
-            if not atom_selected:
+            if atom_selected_count == 0:
                 msg = "Please select at least one atom in the workspace."
+            elif atom_selected_count > MAX_SELECTED_ATOMS:
+                msg = f"Please select fewer than {MAX_SELECTED_ATOMS} atoms in the workspace."
+            else:
+                valid_atom_selection = True
+            if not valid_atom_selection:
                 Logs.warning(msg)
                 self.send_notification(enums.NotificationTypes.error, msg)
                 return
@@ -449,6 +462,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if not set(interaction_types).intersection(set(form.data.keys())):
                 continue
 
+            # We only want to render interactions involving selected atoms.
+            # See arpeggio README for details
+            interacting_entities_to_render = ['INTER', 'INTRA_SELECTION', 'SELECTION_WATER']
+            interacting_entities = row['interacting_entities']
+            if interacting_entities not in interacting_entities_to_render:
+                continue
+
             atom1_path = f"{a1_data['auth_asym_id']}/{a1_data['auth_seq_id']}/{a1_data['auth_atom_id']}"
             atom2_path = f"{a2_data['auth_asym_id']}/{a2_data['auth_seq_id']}/{a2_data['auth_atom_id']}"
             atom_paths = [atom1_path, atom2_path]
@@ -588,44 +608,26 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :arg line: Line object. The line in question.
         :arg complexes: List of complexes in workspace that can contain atoms.
         """
-        line_in_frame = True
-        line_atoms = [anchor.target for anchor in line.anchors]
-
-        atoms_found = 0
+        line_atom_indices = [anchor.target for anchor in line.anchors]
+        atom_generators = []
         for comp in complexes:
             try:
-                current_mol = next(
-                    mol for i, mol in enumerate(comp.molecules)
-                    if i == comp.current_frame)
+                current_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
             except StopIteration:
                 # In case of empty complex, its safe to continue
-                mol_count = sum(1 for _ in comp.molecules)
-                if mol_count == 0:
+                if sum(1 for _ in comp.molecules) == 0:
                     continue
                 raise
+            atom_generators.append(current_mol.atoms)
+        current_atoms = itertools.chain(*atom_generators)
 
-            filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
-            for atom in filtered_atoms:
+        atoms_found = 0
+        for atom in current_atoms:
+            if atom.index in line_atom_indices:
                 atoms_found += 1
-                struct_index = None
-                atom_index = str(atom.index)
-
-                # Get the structure index from the line corresponding to the current atom,
-                if atom_index in line.structure_indices:
-                    struct_index = str(atom.index)
-                else:
-                    struct_index = next(key for key in line.structure_indices if atom_index in key)
-                line_in_frame = line.frames[struct_index] == comp.current_frame
-                if not line_in_frame:
-                    # As soon as we find an atom not in frame, we can break from loop.
-                    break
-            if not line_in_frame:
+            if atoms_found == 2:
                 break
-
-        # If either of the atoms is not found, then line is not in frame
-        if atoms_found != 2:
-            line_in_frame = False
-
+        line_in_frame = atoms_found == 2
         return line_in_frame
 
     async def clear_visible_lines(self, complexes):
