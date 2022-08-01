@@ -619,7 +619,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 raise
             atom_generators.append(current_mol.atoms)
         current_atoms = itertools.chain(*atom_generators)
-    
+
         atoms_found = 0
         for atom in current_atoms:
             if atom.index in line_atom_indices:

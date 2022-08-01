@@ -123,14 +123,14 @@ class CalculateInteractionsTestCase(unittest.TestCase):
     @patch('nanome._internal._network.PluginNetwork._instance')
     def test_selected_atoms(self, _):
         """Validate calculate_interactions call using selected atoms."""
-        target_complex = self.complex        
+        target_complex = self.complex
         # Select ligand residues
         chain_name = 'HC'
         ligand_chain = next(ch for ch in target_complex.chains if ch.name == chain_name)
         for atom in ligand_chain.atoms:
             atom.selected = True
         ligand_residues = [res for res in ligand_chain.residues]
-        
+
         selected_atoms_only = True
         distance_labels = False
         run_awaitable(
