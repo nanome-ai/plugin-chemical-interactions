@@ -129,7 +129,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         ligand_chain = next(ch for ch in target_complex.chains if ch.name == chain_name)
         for atom in ligand_chain.atoms:
             atom.selected = True
-        ligand_residues = [res for res in ligand_chain.residues]
+        ligand_residues = list(ligand_chain.residues)
 
         selected_atoms_only = True
         distance_labels = False
