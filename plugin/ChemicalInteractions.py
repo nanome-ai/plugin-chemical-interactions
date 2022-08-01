@@ -446,6 +446,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Every 3% seems to work well.
         data_len = len(contacts_data)
         loading_bar_increment = math.ceil(data_len * 0.03)
+
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
             if i % loading_bar_increment == 0:
