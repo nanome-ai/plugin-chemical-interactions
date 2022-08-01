@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import json
 import math
 import os
@@ -606,44 +607,26 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :arg line: Line object. The line in question.
         :arg complexes: List of complexes in workspace that can contain atoms.
         """
-        line_in_frame = True
-        line_atoms = [anchor.target for anchor in line.anchors]
-
-        atoms_found = 0
+        line_atom_indices = [anchor.target for anchor in line.anchors]
+        atom_generators = []
         for comp in complexes:
             try:
-                current_mol = next(
-                    mol for i, mol in enumerate(comp.molecules)
-                    if i == comp.current_frame)
+                current_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
             except StopIteration:
                 # In case of empty complex, its safe to continue
-                mol_count = sum(1 for _ in comp.molecules)
-                if mol_count == 0:
+                if sum(1 for _ in comp.molecules) == 0:
                     continue
                 raise
-
-            filtered_atoms = filter(lambda atom: atom.index in line_atoms, current_mol.atoms)
-            for atom in filtered_atoms:
+            atom_generators.append(current_mol.atoms)
+        current_atoms = itertools.chain(*atom_generators)
+    
+        atoms_found = 0
+        for atom in current_atoms:
+            if atom.index in line_atom_indices:
                 atoms_found += 1
-                struct_index = None
-                atom_index = str(atom.index)
-
-                # Get the structure index from the line corresponding to the current atom,
-                if atom_index in line.structure_indices:
-                    struct_index = str(atom.index)
-                else:
-                    struct_index = next(key for key in line.structure_indices if atom_index in key)
-                line_in_frame = line.frames[struct_index] == comp.current_frame
-                if not line_in_frame:
-                    # As soon as we find an atom not in frame, we can break from loop.
-                    break
-            if not line_in_frame:
+            if atoms_found == 2:
                 break
-
-        # If either of the atoms is not found, then line is not in frame
-        if atoms_found != 2:
-            line_in_frame = False
-
+        line_in_frame = atoms_found == 2
         return line_in_frame
 
     async def clear_visible_lines(self, complexes):

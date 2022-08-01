@@ -3,7 +3,6 @@ import itertools
 import json
 import os
 import unittest
-from unittest import mock
 from unittest.mock import patch
 from random import randint
 
@@ -36,6 +35,10 @@ class PluginFunctionTestCase(unittest.TestCase):
         self.plugin_instance = ChemicalInteractions()
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
+
+    def tearDown(self) -> None:
+        self.plugin_instance.on_stop()
+        return super().tearDown()
 
     def test_get_clean_pdb_file(self):
         # Make sure get_clean_pdb_file function returns valid pdb can be parsed into a Complex structure.
@@ -82,7 +85,7 @@ class PluginFunctionTestCase(unittest.TestCase):
         with open(f'{fixtures_dir}/1tyl_contacts_data.json') as f:
             contacts_data = json.loads(f.read())
         # Known value from 1tyl_contacts_data.json
-        expected_line_count = 86
+        expected_line_count = 26
         loop = asyncio.get_event_loop()
         line_manager = loop.run_until_complete(
             self.plugin_instance.parse_contacts_data(
