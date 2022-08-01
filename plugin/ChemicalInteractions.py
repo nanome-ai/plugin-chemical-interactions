@@ -442,7 +442,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Every 3% seems to work well.
         data_len = len(contacts_data)
         loading_bar_increment = math.ceil(data_len * 0.03)
-
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
             if i % loading_bar_increment == 0:
@@ -456,6 +455,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # If we dont have line settings for any of the interactions in the row, we can continue
             # Typically this filters out rows with only `proximal` interactions.
             if not set(interaction_types).intersection(set(form.data.keys())):
+                continue
+            
+            # We only want to render interactions involving selected atoms.
+            # See arpeggio README for details
+            interacting_entities_to_render = ['INTER', 'INTRA_SELECTION', 'SELECTION_WATER']
+            interacting_entities = row['interacting_entities']
+            if interacting_entities not in interacting_entities_to_render:
                 continue
 
             atom1_path = f"{a1_data['auth_asym_id']}/{a1_data['auth_seq_id']}/{a1_data['auth_atom_id']}"
