@@ -12,3 +12,4 @@ docker/redeploy.sh
 htmlcov
 .coverage
 workspace.code-workspace
+.vscode
