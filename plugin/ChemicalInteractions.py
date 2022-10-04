@@ -184,8 +184,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # make sure at least one atom in the ligand complexes is selected.
             atom_selected_count = 0
             valid_atom_selection = False
+            counted_complexes = set()
             for comp in ligand_complexes:
+                if comp.index in counted_complexes:
+                    continue
                 atom_selected_count += sum(1 for atom in comp.atoms if atom.selected)
+                counted_complexes.add(comp.index)
                 if atom_selected_count > MAX_SELECTED_ATOMS:
                     break
             if atom_selected_count == 0:
