@@ -396,11 +396,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         atoms = []
         for atompath in atom_paths:
+            atom = None
             for comp in complexes:
                 atom = self.get_atom_from_path(comp, atompath)
                 if atom:
                     break
-            atoms.append(atom)
+            if atom:
+                atoms.append(atom)
         return atoms
 
     def parse_atoms_from_atompaths(self, atom_paths, complexes):
