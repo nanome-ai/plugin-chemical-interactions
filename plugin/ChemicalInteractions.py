@@ -184,8 +184,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # make sure at least one atom in the ligand complexes is selected.
             atom_selected_count = 0
             valid_atom_selection = False
+            counted_complexes = set()
             for comp in ligand_complexes:
+                if comp.index in counted_complexes:
+                    continue
                 atom_selected_count += sum(1 for atom in comp.atoms if atom.selected)
+                counted_complexes.add(comp.index)
                 if atom_selected_count > MAX_SELECTED_ATOMS:
                     break
             if atom_selected_count == 0:
@@ -676,6 +680,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
         if shallow_complexes:
             deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
+            # Not sure how, but theres errors where a NoneType ends up in deep_complexes
+            # This is a quick fix for that.
+            deep_complexes = [comp for comp in deep_complexes if comp]
             for i, comp in enumerate(deep_complexes):
                 if complexes[i].index == comp.index:
                     complexes[i] = comp
