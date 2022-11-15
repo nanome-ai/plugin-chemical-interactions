@@ -203,7 +203,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 self.send_notification(enums.NotificationTypes.error, msg)
                 return
 
-        complexes = [target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]]
+        complexes = set([target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]])
 
         # If the ligands are not part of selected complex, merge into one complex.
         if len(complexes) > 1:
@@ -263,6 +263,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def get_clean_pdb_file(self, complex):
         """Clean complex to prep for arpeggio."""
+        Logs.debug("Cleaning complex for arpeggio")
         complex_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False, dir=self.temp_dir.name)
         complex.io.to_pdb(complex_file.name, PDBOPTIONS)
         cleaned_filepath = clean_pdb(complex_file.name)
@@ -283,7 +284,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @staticmethod
     def clean_chain_name(original_name):
         chain_name = str(original_name)
-        if chain_name.startswith('H'):
+        if chain_name.startswith('H') and len(chain_name) > 1:
             chain_name = chain_name[1:]
         return chain_name
 
@@ -455,6 +456,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
+            Logs.debug(f"{i} / {data_len} contacts processed")
             if i % loading_bar_increment == 0:
                 self.menu.update_loading_bar(i, contact_data_len)
 

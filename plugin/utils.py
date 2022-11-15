@@ -12,7 +12,6 @@ def merge_complexes(complexes, align_reference):
     combined_ligands = structure.Complex()
     mol = structure.Molecule()
     combined_ligands.add_molecule(mol)
-    mol = list(combined_ligands.molecules)[combined_ligands.current_frame]
     for comp in complexes:
         ComplexUtils.align_to(comp, align_reference)
         ligand_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
