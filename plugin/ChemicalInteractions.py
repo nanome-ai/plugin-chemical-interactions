@@ -145,7 +145,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # If the ligands are not part of selected complex, merge into one complex.
         if len(complexes) > 1:
-            full_complex = merge_complexes(complexes, align_reference=target_complex)
+            full_complex = merge_complexes(complexes, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
         else:
             full_complex = target_complex
 
@@ -179,8 +179,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message(msg)
         Shape.upload_multiple(all_new_lines)
 
-        self.line_manager.update(new_line_manager)
+        # Make sure complexes are locked
+        # for comp in complexes:
+        #     comp.locked = True
+        # self.update_structures_shallow(complexes)
 
+        self.line_manager.update(new_line_manager)
         if distance_labels:
             await self.render_distance_labels(complexes)
 
