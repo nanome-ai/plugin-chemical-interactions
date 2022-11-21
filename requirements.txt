@@ -2,3 +2,4 @@ biopython==1.78
 nanome==0.38.8
 WTForms==2.3.3
 requests==2.23.0
+scipy==1.7.3

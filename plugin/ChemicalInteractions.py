@@ -181,6 +181,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Make sure complexes are locked
         for comp in complexes:
+            ComplexUtils.reset_transform(comp)
             comp.locked = True
         self.update_structures_shallow(complexes)
 
