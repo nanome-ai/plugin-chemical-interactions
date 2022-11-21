@@ -26,27 +26,19 @@ def extract_residues_from_complex(comp, residue_list, comp_name=None):
     return new_comp
 
 
-def merge_complexes(complexes, align_reference, selected_atoms_only=False):
+def merge_complexes(complexes, align_reference):
     """Merge a list of Complexes into one Complex.
-
     complexes: list of complexes to merge
     align_reference: Complex to align other complexes to.
     target: Complex to merge into. If None, a new Complex is created.
     """
-    merged_complex = structure.Complex()
+    combined_ligands = structure.Complex()
     mol = structure.Molecule()
-    merged_complex.add_molecule(mol)
+    combined_ligands.add_molecule(mol)
+    mol = list(combined_ligands.molecules)[combined_ligands.current_frame]
     for comp in complexes:
         ComplexUtils.align_to(comp, align_reference)
-        existing_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
-        if selected_atoms_only and comp.index != align_reference.index:
-            # Extract selected copy selected residues
-            selected_residues = [res for res in comp.residues if any(a.selected for a in res.atoms)]
-            extracted_comp = extract_residues_from_complex(comp, selected_residues)
-            for ch in extracted_comp.chains:
-                mol.add_chain(ch)
-        else:
-            for chain in existing_mol.chains:
-                mol.add_chain(chain)
-        ComplexUtils.reset_transform(comp)
-    return merged_complex
+        ligand_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
+        for chain in ligand_mol.chains:
+            mol.add_chain(chain)
+    return combined_ligands

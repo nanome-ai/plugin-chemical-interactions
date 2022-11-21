@@ -145,7 +145,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # If the ligands are not part of selected complex, merge into one complex.
         if len(complexes) > 1:
-            full_complex = merge_complexes(complexes, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
+            full_complex = merge_complexes(complexes, align_reference=target_complex)
         else:
             full_complex = target_complex
 
