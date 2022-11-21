@@ -1,7 +1,5 @@
-from itertools import chain
 from nanome.api import structure
 from nanome.util import ComplexUtils
-from scipy.spatial import KDTree
 
 
 __all__ = ['extract_residues', 'merge_complexes']
@@ -28,26 +26,6 @@ def extract_residues_from_complex(comp, residue_list, comp_name=None):
     return new_comp
 
 
-def calculate_binding_site_atoms(target_reference: structure.Complex, ligand_atoms: list, site_size=5):
-    """Use KDTree to find target atoms within site_size radius of ligand atoms."""
-    mol = next(
-        mol for i, mol in enumerate(target_reference.molecules)
-        if i == target_reference.current_frame)
-    ligand_positions = [atom.position.unpack() for atom in ligand_atoms]
-    target_atoms = chain(*[ch.atoms for ch in mol.chains if not ch.name.startswith("H")])
-    target_tree = KDTree([atom.position.unpack() for atom in target_atoms])
-    target_point_indices = target_tree.query_ball_point(ligand_positions, site_size)
-    near_point_set = set()
-    for point_indices in target_point_indices:
-        for point_index in point_indices:
-            near_point_set.add(tuple(target_tree.data[point_index]))
-    binding_site_atoms = []
-
-    for targ_atom in mol.atoms:
-        if targ_atom.position.unpack() in near_point_set:
-            binding_site_atoms.append(targ_atom)
-    return binding_site_atoms
-
 def merge_complexes(complexes, align_reference, selected_atoms_only=False):
     """Merge a list of Complexes into one Complex.
 
@@ -62,7 +40,7 @@ def merge_complexes(complexes, align_reference, selected_atoms_only=False):
         ComplexUtils.align_to(comp, align_reference)
         existing_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
         if selected_atoms_only and comp.index != align_reference.index:
-            # Extract selected  copy selected residues
+            # Extract selected copy selected residues
             selected_residues = [res for res in comp.residues if any(a.selected for a in res.atoms)]
             extracted_comp = extract_residues_from_complex(comp, selected_residues)
             for ch in extracted_comp.chains:
@@ -70,4 +48,5 @@ def merge_complexes(complexes, align_reference, selected_atoms_only=False):
         else:
             for chain in existing_mol.chains:
                 mol.add_chain(chain)
+        ComplexUtils.reset_transform(comp)
     return merged_complex
