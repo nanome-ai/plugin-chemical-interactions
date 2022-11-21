@@ -414,7 +414,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # We only want to render interactions involving selected atoms.
             # See arpeggio README for details
-            interacting_entities_to_render = ['INTER', 'SELECTION_WATER']
+            interacting_entities_to_render = ['INTER', 'INTRA_SELECTION', 'SELECTION_WATER']
             interacting_entities = row['interacting_entities']
             if interacting_entities not in interacting_entities_to_render:
                 continue
