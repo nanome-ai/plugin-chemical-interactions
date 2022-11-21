@@ -15,7 +15,7 @@ from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, Co
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
-from .utils import merge_complexes
+from .utils import merge_complexes, get_neighboring_atoms
 from .clean_pdb import clean_pdb
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -149,6 +149,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         else:
             full_complex = target_complex
 
+        # If selected atoms only, only include residues located near selected atoms
+        if selected_atoms_only:
+            Logs.debug(f"Residue Count: {len(list(full_complex.residues))}")
+            mol = next(full_complex.molecules)
+            selected_atoms = [atom for atom in mol.atoms if atom.selected]
+            selected_residues = set([atom.residue for atom in selected_atoms])
+            neighbor_atoms = get_neighboring_atoms(full_complex, selected_atoms)
+            neighbor_residues = list(set([atom.residue for atom in neighbor_atoms]))
+            for res in mol.residues:
+                if res not in neighbor_residues and res not in selected_residues:
+                    res.chain.remove_residue(res)
+            Logs.debug(f"New Residue Count: {len(list(full_complex.residues))}")
         # Clean complex and return as tempfile
         cleaned_filepath = self.get_clean_pdb_file(full_complex)
         size_in_kb = os.path.getsize(cleaned_filepath) / 1000
