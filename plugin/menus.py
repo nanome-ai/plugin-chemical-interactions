@@ -227,8 +227,8 @@ class ChemInteractionsMenu():
     @async_callback
     async def submit_form(self, btn):
         """Collect data from menu, and pass to the Plugin to run get_interactions."""
-        # Disable calculate button until we are done processing
         Logs.message("Submit button pressed")
+        # Disable calculate button until we are done processing
         btn.unusable = True
         btn.text.value.set_all('Calculating...')
         self.plugin.update_content(btn)
