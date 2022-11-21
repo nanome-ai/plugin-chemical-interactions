@@ -4,6 +4,7 @@ __pycache__
 *.cachebust
 *.egg-info
 *.log
+*.log.*
 *.env*
 *.pyc
 tmp
