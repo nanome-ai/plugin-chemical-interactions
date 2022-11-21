@@ -10,7 +10,7 @@ import uuid
 import nanome
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
-from nanome.util import async_callback, Color, enums, Logs, Process, Vector3
+from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, ComplexUtils
 
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
@@ -180,9 +180,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Shape.upload_multiple(all_new_lines)
 
         # Make sure complexes are locked
-        # for comp in complexes:
-        #     comp.locked = True
-        # self.update_structures_shallow(complexes)
+        for comp in complexes:
+            ComplexUtils.reset_transform(comp)
+            comp.locked = True
+        self.update_structures_shallow(complexes)
 
         self.line_manager.update(new_line_manager)
         if distance_labels:
@@ -414,7 +415,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # We only want to render interactions involving selected atoms.
             # See arpeggio README for details
-            interacting_entities_to_render = ['INTER', 'INTRA_SELECTION', 'SELECTION_WATER']
+            interacting_entities_to_render = ['INTER', 'SELECTION_WATER']
             interacting_entities = row['interacting_entities']
             if interacting_entities not in interacting_entities_to_render:
                 continue
