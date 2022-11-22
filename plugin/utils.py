@@ -47,6 +47,7 @@ def get_neighboring_atoms(target_reference: structure.Complex, selected_atoms: l
             neighbor_atoms.append(targ_atom)
     return neighbor_atoms
 
+
 def merge_complexes(complexes, align_reference, selected_atoms_only=False):
     """Merge a list of Complexes into one Complex.
 

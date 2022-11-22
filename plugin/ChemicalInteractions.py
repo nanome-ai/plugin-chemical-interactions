@@ -709,7 +709,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             with open(output_filepath, 'r') as f:
                 output_data = json.load(f)
             return output_data
-    
+
     def setup_previous_run(
         self, target_complex: Complex, ligand_residues: list, ligand_complexes: list, line_settings: dict,
             selected_atoms_only=False, distance_labels=False):
