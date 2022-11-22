@@ -32,6 +32,7 @@ from collections import OrderedDict
 from Bio.PDB import PDBParser
 from Bio.PDB.Polypeptide import PPBuilder
 
+from nanome.util import Logs
 # CONSTANTS
 PDB_LINE_TEMPLATE = '{record: <6}{serial: >5} {atom_name: ^4}{altloc: ^1}{resname: ^3} {chain_id: ^1}{resnum: >4}{icode: ^1}   {x: >8.3f}{y: >8.3f}{z: >8.3f}{occ: >6.2f}{tfac: >6.2f}          {element: >2}{charge: >2}'
 
@@ -126,8 +127,11 @@ def clean_pdb(pdb_path, remove_waters=False, keep_hydrogens=True, informative_fi
     with open(output_filepath, 'w') as fo:
         atom_serial = 1
 
+        i = 1
+        res_count = len(list(model.get_residues()))
         for residue in model.get_residues():
-
+            Logs.debug(f'Residue {i} / {res_count}: {residue}')
+            i += 1
             # REMOVE WATERS IF FLAG SET
             if remove_waters:
                 if residue.get_full_id()[3][0] == 'W':
