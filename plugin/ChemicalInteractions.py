@@ -8,7 +8,7 @@ import time
 import uuid
 
 import nanome
-from nanome.api.structure import Complex, Residue
+from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
 from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, ComplexUtils
 
