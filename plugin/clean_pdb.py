@@ -21,6 +21,7 @@
 # IMPORTS
 import argparse
 import logging
+import math
 import operator
 import os
 import sys
@@ -37,7 +38,7 @@ from nanome.util import Logs
 PDB_LINE_TEMPLATE = '{record: <6}{serial: >5} {atom_name: ^4}{altloc: ^1}{resname: ^3} {chain_id: ^1}{resnum: >4}{icode: ^1}   {x: >8.3f}{y: >8.3f}{z: >8.3f}{occ: >6.2f}{tfac: >6.2f}          {element: >2}{charge: >2}'
 
 
-def clean_pdb(pdb_path, remove_waters=False, keep_hydrogens=True, informative_filenames=False):
+def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogens=True, informative_filenames=False):
     pdb_noext, pdb_ext = os.path.splitext(pdb_path)
     pdb_ext = pdb_ext.replace('.', '')
 
@@ -127,10 +128,13 @@ def clean_pdb(pdb_path, remove_waters=False, keep_hydrogens=True, informative_fi
     with open(output_filepath, 'w') as fo:
         atom_serial = 1
 
-        i = 1
         res_count = len(list(model.get_residues()))
+        loading_bar_increment = math.ceil(res_count * 0.03)
+        i = 1
         for residue in model.get_residues():
             Logs.debug(f'Residue {i} / {res_count}: {residue}')
+            if i % loading_bar_increment == 0 and plugin_instance:
+                plugin_instance.menu.update_loading_bar(i, res_count)
             i += 1
             # REMOVE WATERS IF FLAG SET
             if remove_waters:
@@ -202,6 +206,8 @@ def clean_pdb(pdb_path, remove_waters=False, keep_hydrogens=True, informative_fi
                     except Exception:
                         traceback.print_exc(file=sys.stdout)
                         exit(9)
+        if plugin_instance:
+            plugin_instance.menu.update_loading_bar(0, res_count)
 
     # WRITE OUT COORDINATES FOR CHAIN BREAKS FOUND WITH THE PDB FILE
     with open('.'.join((pdb_noext, pdb_ext, 'breaks')), 'w') as fo, \

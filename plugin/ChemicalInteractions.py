@@ -162,6 +162,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     res.chain.remove_residue(res)
             Logs.debug(f"New Residue Count: {len(list(full_complex.residues))}")
         # Clean complex and return as tempfile
+        self.menu.set_update_text("Prepping...")
         cleaned_filepath = self.get_clean_pdb_file(full_complex)
         size_in_kb = os.path.getsize(cleaned_filepath) / 1000
         Logs.message(f'Complex File Size (KB): {size_in_kb}')
@@ -176,6 +177,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             data['selection'] = selection
 
         # make the request to get interactions
+        self.menu.set_update_text("Calculating...")
         contacts_data = await self.run_arpeggio_process(data, cleaned_filepath)
 
         Logs.debug("Interaction data retrieved!")
@@ -221,7 +223,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.debug("Cleaning complex for arpeggio")
         complex_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False, dir=self.temp_dir.name)
         complex.io.to_pdb(complex_file.name, PDBOPTIONS)
-        cleaned_filepath = clean_pdb(complex_file.name)
+
+        cleaned_filepath = clean_pdb(complex_file.name, self)
         if os.path.getsize(cleaned_filepath) / 1000 == 0:
             message = 'Complex file is empty, unable to clean =(.'
             Logs.error(message)
@@ -420,7 +423,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         contact_data_len = len(contacts_data)
         new_line_manager = LineManager()
-        self.menu.set_update_text("Updating Workspace")
+        self.menu.set_update_text("Updating Workspace...")
 
         # We update the menu bar to keep the user notified on progress.
         # Every 3% seems to work well.

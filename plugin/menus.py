@@ -231,7 +231,7 @@ class ChemInteractionsMenu():
         # Disable calculate button until we are done processing
         Logs.message("Submit button pressed")
         btn.unusable = True
-        btn.text.value.set_all('Calculating...')
+        btn.text.value.set_all('Loading...')
         self.plugin.update_content(btn)
 
         selected_complexes = [
