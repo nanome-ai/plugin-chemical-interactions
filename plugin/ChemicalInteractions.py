@@ -283,8 +283,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             comp_selections = cls.get_selected_atom_paths(target_complex)
             selections = selections.union(comp_selections)
             for rez in ligand_residues:
-                rez_selections = cls.get_selected_atom_paths(rez)
-                selections = selections.union(rez_selections)
+                if all((a.selected for a in rez.atoms)):
+                    # Add residue path to selection
+                    rez_selection = cls.get_residue_path(rez)
+                    selections.add(rez_selection)
+                else:
+                    # Add selected atom paths to selection
+                    rez_selections = cls.get_selected_atom_paths(rez)
+                    selections = selections.union(rez_selections)
         else:
             # Add all residues from ligand residues to the selection list.
             # Unless the selected complex is also the ligand, in which case don't add anything.
@@ -344,7 +350,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = atoms[0]
         return atom
 
-    def parse_ring_atoms(self, atom_path, complexes):
+    @classmethod
+    def parse_ring_atoms(cls, atom_path, complexes):
         """Parse aromatic ring path into a list of Atoms.
 
         e.g 'C/100/C1,C2,C3,C4,C5,C6' --> C/100/C1, C/100/C2, C/100/C3, etc
@@ -358,14 +365,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for atompath in atom_paths:
             atom = None
             for comp in complexes:
-                atom = self.get_atom_from_path(comp, atompath)
+                atom = cls.get_atom_from_path(comp, atompath)
                 if atom:
                     break
             if atom:
                 atoms.append(atom)
         return atoms
 
-    def parse_atoms_from_atompaths(self, atom_paths, complexes):
+    @classmethod
+    def parse_atoms_from_atompaths(cls, atom_paths, complexes):
         """Return a list of atoms from the complexes based on the atom_paths.
 
         :rtype: List of Atoms
@@ -375,12 +383,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom = None
             if ',' in atompath:
                 # Parse aromatic ring, and add list of atoms to struct_list
-                ring_atoms = self.parse_ring_atoms(atompath, complexes)
+                ring_atoms = cls.parse_ring_atoms(atompath, complexes)
                 struct = InteractionStructure(ring_atoms)
             else:
                 # Parse single atom
                 for comp in complexes:
-                    atom = self.get_atom_from_path(comp, atompath)
+                    atom = cls.get_atom_from_path(comp, atompath)
                     if atom:
                         break
                 if not atom:
@@ -510,7 +518,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         return new_lines
 
-    def draw_interaction_line(self, struct1, struct2, line_settings):
+    @staticmethod
+    def draw_interaction_line(struct1, struct2, line_settings):
         """Draw line connecting two structs.
 
         :arg struct1: struct
@@ -569,7 +578,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.label_manager.clear()
             await self.render_distance_labels(complexes)
 
-    def line_in_frame(self, line, complexes):
+    @staticmethod
+    def line_in_frame(line, complexes):
         """Return boolean stating whether both atoms connected by line are in frame.
 
         :arg line: Line object. The line in question.
