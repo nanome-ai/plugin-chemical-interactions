@@ -243,27 +243,31 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             chain_name = chain_name[1:]
         return chain_name
 
-    def get_residue_path(self, residue):
+    @classmethod
+    def get_residue_path(cls, residue):
         chain_name = residue.chain.name
-        chain_name = self.clean_chain_name(chain_name)
+        chain_name = cls.clean_chain_name(chain_name)
         path = f'/{chain_name}/{residue.serial}/'
         return path
 
-    def get_atom_path(self, atom):
-        chain_name = self.clean_chain_name(atom.chain.name)
+    @classmethod
+    def get_atom_path(cls, atom):
+        chain_name = cls.clean_chain_name(atom.chain.name)
         path = f'/{chain_name}/{atom.residue.serial}/{atom.name}'
         return path
 
-    def get_selected_atom_paths(self, struc):
+    @classmethod
+    def get_selected_atom_paths(cls, struc):
         """Return a set of atom paths for the selected atoms in a structure (Complex/Residue)."""
         selected_atoms = filter(lambda atom: atom.selected, struc.atoms)
         selections = set()
         for a in selected_atoms:
-            atompath = self.get_atom_path(a)
+            atompath = cls.get_atom_path(a)
             selections.add(atompath)
         return selections
 
-    def get_interaction_selections(self, target_complex, ligand_residues, selected_atoms_only):
+    @classmethod
+    def get_interaction_selections(cls, target_complex, ligand_residues, selected_atoms_only):
         """Generate valid list of selections to send to interactions service.
 
         target_complex: Nanome Complex object
@@ -276,16 +280,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         selections = set()
         if selected_atoms_only:
             # Get all selected atoms from both the selected complex and ligand complex
-            comp_selections = self.get_selected_atom_paths(target_complex)
+            comp_selections = cls.get_selected_atom_paths(target_complex)
             selections = selections.union(comp_selections)
             for rez in ligand_residues:
-                rez_selections = self.get_selected_atom_paths(rez)
+                rez_selections = cls.get_selected_atom_paths(rez)
                 selections = selections.union(rez_selections)
         else:
             # Add all residues from ligand residues to the selection list.
             # Unless the selected complex is also the ligand, in which case don't add anything.
             for rez in ligand_residues:
-                rez_selections = self.get_residue_path(rez)
+                rez_selections = cls.get_residue_path(rez)
                 selections.add(rez_selections)
         selection_str = ','.join(selections)
         return selection_str
@@ -555,8 +559,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             line.color = color
             self.line_manager.update_line(line)
 
-        Logs.debug(f'in frame: {in_frame_count}')
-        Logs.debug(f'out of frame: {out_of_frame_count}')
+        # Logs.debug(f'in frame: {in_frame_count}')
+        # Logs.debug(f'out of frame: {out_of_frame_count}')
         if stream:
             stream.update(new_colors)
 
