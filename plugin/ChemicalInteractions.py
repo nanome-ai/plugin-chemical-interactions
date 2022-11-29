@@ -6,8 +6,8 @@ import os
 import tempfile
 import time
 import uuid
-
 import nanome
+from concurrent.futures import ThreadPoolExecutor
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
 from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, ComplexUtils
@@ -118,28 +118,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.setup_previous_run(
                 target_complex, ligand_residues, ligand_complexes, line_settings,
                 selected_atoms_only, distance_labels)
-        if selected_atoms_only:
-            # make sure at least one atom in the ligand complexes is selected.
-            atom_selected_count = 0
-            valid_atom_selection = False
-            counted_complexes = set()
-            for comp in ligand_complexes:
-                if comp.index in counted_complexes:
-                    continue
-                atom_selected_count += sum(1 for atom in comp.atoms if atom.selected)
-                counted_complexes.add(comp.index)
-                if atom_selected_count > MAX_SELECTED_ATOMS:
-                    break
-            if atom_selected_count == 0:
-                msg = "Please select at least one atom in the workspace."
-            elif atom_selected_count > MAX_SELECTED_ATOMS:
-                msg = f"Please select fewer than {MAX_SELECTED_ATOMS} atoms in the workspace."
-            else:
-                valid_atom_selection = True
-            if not valid_atom_selection:
-                Logs.warning(msg)
-                self.send_notification(enums.NotificationTypes.error, msg)
-                return
 
         complexes = set([target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]])
 
@@ -185,9 +163,23 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             notification_message = "Arpeggio run failed. Please make sure source files are valid."
             self.send_notification(enums.NotificationTypes.error, notification_message)
             return
+        
+        def chunks(lst, n):
+            """Yield successive n-sized chunks from lst."""
+            for i in range(0, len(lst), n):
+                yield lst[i:i + n]
+        Logs.message(f'Contacts Count: {len(contacts_data)}')
 
-        new_line_manager = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
-
+        contacts_per_thread = 500
+        thread_count = max(len(contacts_data) // contacts_per_thread, 1)
+        futs = []
+        with ThreadPoolExecutor(max_workers=thread_count) as executor:
+            for chunk in chunks(contacts_data, contacts_per_thread):
+                fut = executor.submit(self.parse_contacts_data, chunk, complexes, line_settings, selected_atoms_only)
+                futs.append(fut)
+        new_line_manager = LineManager()
+        for fut in futs:
+            new_line_manager.update(fut.result())
         all_new_lines = new_line_manager.all_lines()
         msg = f'Adding {len(all_new_lines)} interactions'
         Logs.message(msg)
@@ -406,7 +398,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             struct_list.append(struct)
         return struct_list
 
-    async def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
+    def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
 
         contacts_data: Data returned by Chemical Interaction Service.
@@ -489,11 +481,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
-            structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
+            structpair_lines = self.create_new_lines(struct1, struct2, interaction_types, form.data)
             new_line_manager.add_lines(structpair_lines)
         return new_line_manager
 
-    async def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
+    def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
 
         struct1: InteractionStructure
