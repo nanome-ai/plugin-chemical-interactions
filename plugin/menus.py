@@ -407,6 +407,7 @@ class ChemInteractionsMenu():
     @async_callback
     async def toggle_visibility(self, btn):
         btn.selected = not btn.selected
+        Logs.message(f"{'Showing' if btn.selected else 'Hiding'} {btn.name} interactions")
         self.plugin.update_content(btn)
         await self.update_interaction_lines()
 
@@ -523,8 +524,10 @@ class ChemInteractionsMenu():
     @async_callback
     async def toggle_distance_labels(self, btn):
         if btn.selected:
+            Logs.message("Showing distance labels")
             await self.plugin.render_distance_labels(self.complexes)
         else:
+            Logs.message("Hiding distance labels")
             self.plugin.clear_distance_labels()
 
 
