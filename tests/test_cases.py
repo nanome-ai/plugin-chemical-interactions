@@ -76,7 +76,7 @@ class PluginFunctionTestCase(unittest.TestCase):
     def test_get_interaction_selections_residues(self):
         # Select all atoms in 10 residues
         residue_count = 10
-        residues = itertools.islice(self.complex.residues, residue_count)        
+        residues = itertools.islice(self.complex.residues, residue_count)
         for res in residues:
             for atom in res.atoms:
                 atom.selected = True
@@ -85,12 +85,12 @@ class PluginFunctionTestCase(unittest.TestCase):
         selection = self.plugin_instance.get_interaction_selections(self.complex, residue_list, selected_atoms_only)
         # Since all atoms in each residues are selected, we should get 10 residue paths
         self.assertEqual(len(selection.split(',')), residue_count)
-    
+
     def test_get_interaction_selections_atoms(self):
         # Select 10 atoms, but only one from each residue,
         # so that selection list has one entry for each atom.
         atom_count = 10
-        i = 0 
+        i = 0
         for res in self.complex.residues:
             atom = next(res.atoms)
             atom.selected = True
