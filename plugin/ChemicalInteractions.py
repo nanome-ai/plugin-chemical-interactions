@@ -8,7 +8,7 @@ import time
 import uuid
 
 import nanome
-from nanome.api.structure import Complex
+from nanome.api.structure import Complex, Residue
 from nanome.api.shapes import Label, Shape
 from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, ComplexUtils
 
@@ -257,13 +257,25 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return path
 
     @classmethod
-    def get_selected_atom_paths(cls, struc):
-        """Return a set of atom paths for the selected atoms in a structure (Complex/Residue)."""
-        selected_atoms = filter(lambda atom: atom.selected, struc.atoms)
+    def get_complex_selection_paths(cls, comp):
         selections = set()
-        for a in selected_atoms:
-            atompath = cls.get_atom_path(a)
-            selections.add(atompath)
+        for res in comp.residues:
+            res_selections = cls.get_residue_selection_paths(res)
+            if res_selections:
+                selections = selections.union(res_selections)
+        return selections
+
+    @classmethod
+    def get_residue_selection_paths(cls, residue):
+        """Return a set of atom paths for the selected atoms in a structure (Complex/Residue)."""
+        selections = set()
+        unselected_atoms = filter(lambda atom: not atom.selected, residue.atoms)
+        if sum(1 for _ in unselected_atoms) == 0:
+            selections.add(cls.get_residue_path(residue))
+        else:
+            selected_atoms = filter(lambda atom: atom.selected, residue.atoms)
+            for atom in selected_atoms:
+                selections.add.get_atom_path(atom)
         return selections
 
     @classmethod
@@ -280,17 +292,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         selections = set()
         if selected_atoms_only:
             # Get all selected atoms from both the selected complex and ligand complex
-            comp_selections = cls.get_selected_atom_paths(target_complex)
+            comp_selections = cls.get_complex_selection_paths(target_complex)
             selections = selections.union(comp_selections)
             for rez in ligand_residues:
-                if all((a.selected for a in rez.atoms)):
-                    # Add residue path to selection
-                    rez_selection = cls.get_residue_path(rez)
-                    selections.add(rez_selection)
-                else:
-                    # Add selected atom paths to selection
-                    rez_selections = cls.get_selected_atom_paths(rez)
-                    selections = selections.union(rez_selections)
+                rez_selections = cls.get_residue_selection_paths(rez)
+                selections = selections.union(rez_selections)
         else:
             # Add all residues from ligand residues to the selection list.
             # Unless the selected complex is also the ligand, in which case don't add anything.
