@@ -275,7 +275,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         else:
             selected_atoms = filter(lambda atom: atom.selected, residue.atoms)
             for atom in selected_atoms:
-                selections.add.get_atom_path(atom)
+                selections.add(cls.get_atom_path(atom))
         return selections
 
     @classmethod
