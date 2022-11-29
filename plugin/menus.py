@@ -407,9 +407,16 @@ class ChemInteractionsMenu():
     @async_callback
     async def toggle_visibility(self, btn):
         btn.selected = not btn.selected
-        Logs.message(f"{'Showing' if btn.selected else 'Hiding'} {btn.name} interactions")
         self.plugin.update_content(btn)
         await self.update_interaction_lines()
+        # Log the interaction being toggled
+        for item in self.ls_interactions.items:
+            item_btn = item.get_children()[0].get_content()
+            if item_btn._content_id == btn._content_id:
+                item_lbl = item.get_children()[1].get_content()
+                interaction_type = item_lbl.text_value
+                Logs.message(f"{'Showing' if btn.selected else 'Hiding'} {interaction_type} interactions")
+                break
 
     @async_callback
     async def update_interaction_lines(self):
