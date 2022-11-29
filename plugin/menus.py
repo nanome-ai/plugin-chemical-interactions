@@ -231,7 +231,7 @@ class ChemInteractionsMenu():
         # Disable calculate button until we are done processing
         Logs.message("Submit button pressed")
         btn.unusable = True
-        btn.text.value.set_all('Calculating...')
+        btn.text.value.set_all('Loading...')
         self.plugin.update_content(btn)
 
         selected_complexes = [
@@ -409,6 +409,14 @@ class ChemInteractionsMenu():
         btn.selected = not btn.selected
         self.plugin.update_content(btn)
         await self.update_interaction_lines()
+        # Log the interaction being toggled
+        for item in self.ls_interactions.items:
+            item_btn = item.get_children()[0].get_content()
+            if item_btn._content_id == btn._content_id:
+                item_lbl = item.get_children()[1].get_content()
+                interaction_type = item_lbl.text_value
+                Logs.message(f"{'Showing' if btn.selected else 'Hiding'} {interaction_type} interactions")
+                break
 
     @async_callback
     async def update_interaction_lines(self):

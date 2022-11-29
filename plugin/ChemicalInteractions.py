@@ -162,6 +162,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     res.chain.remove_residue(res)
             Logs.debug(f"New Residue Count: {len(list(full_complex.residues))}")
         # Clean complex and return as tempfile
+        self.menu.set_update_text("Prepping...")
         cleaned_filepath = self.get_clean_pdb_file(full_complex)
         size_in_kb = os.path.getsize(cleaned_filepath) / 1000
         Logs.message(f'Complex File Size (KB): {size_in_kb}')
@@ -176,6 +177,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             data['selection'] = selection
 
         # make the request to get interactions
+        self.menu.set_update_text("Calculating...")
         contacts_data = await self.run_arpeggio_process(data, cleaned_filepath)
 
         Logs.debug("Interaction data retrieved!")
@@ -221,7 +223,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.debug("Cleaning complex for arpeggio")
         complex_file = tempfile.NamedTemporaryFile(suffix='.pdb', delete=False, dir=self.temp_dir.name)
         complex.io.to_pdb(complex_file.name, PDBOPTIONS)
-        cleaned_filepath = clean_pdb(complex_file.name)
+
+        cleaned_filepath = clean_pdb(complex_file.name, self)
         if os.path.getsize(cleaned_filepath) / 1000 == 0:
             message = 'Complex file is empty, unable to clean =(.'
             Logs.error(message)
@@ -243,27 +246,43 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             chain_name = chain_name[1:]
         return chain_name
 
-    def get_residue_path(self, residue):
+    @classmethod
+    def get_residue_path(cls, residue):
         chain_name = residue.chain.name
-        chain_name = self.clean_chain_name(chain_name)
+        chain_name = cls.clean_chain_name(chain_name)
         path = f'/{chain_name}/{residue.serial}/'
         return path
 
-    def get_atom_path(self, atom):
-        chain_name = self.clean_chain_name(atom.chain.name)
+    @classmethod
+    def get_atom_path(cls, atom):
+        chain_name = cls.clean_chain_name(atom.chain.name)
         path = f'/{chain_name}/{atom.residue.serial}/{atom.name}'
         return path
 
-    def get_selected_atom_paths(self, struc):
-        """Return a set of atom paths for the selected atoms in a structure (Complex/Residue)."""
-        selected_atoms = filter(lambda atom: atom.selected, struc.atoms)
+    @classmethod
+    def get_complex_selection_paths(cls, comp):
         selections = set()
-        for a in selected_atoms:
-            atompath = self.get_atom_path(a)
-            selections.add(atompath)
+        for res in comp.residues:
+            res_selections = cls.get_residue_selection_paths(res)
+            if res_selections:
+                selections = selections.union(res_selections)
         return selections
 
-    def get_interaction_selections(self, target_complex, ligand_residues, selected_atoms_only):
+    @classmethod
+    def get_residue_selection_paths(cls, residue):
+        """Return a set of atom paths for the selected atoms in a structure (Complex/Residue)."""
+        selections = set()
+        unselected_atoms = filter(lambda atom: not atom.selected, residue.atoms)
+        if sum(1 for _ in unselected_atoms) == 0:
+            selections.add(cls.get_residue_path(residue))
+        else:
+            selected_atoms = filter(lambda atom: atom.selected, residue.atoms)
+            for atom in selected_atoms:
+                selections.add(cls.get_atom_path(atom))
+        return selections
+
+    @classmethod
+    def get_interaction_selections(cls, target_complex, ligand_residues, selected_atoms_only):
         """Generate valid list of selections to send to interactions service.
 
         target_complex: Nanome Complex object
@@ -276,16 +295,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         selections = set()
         if selected_atoms_only:
             # Get all selected atoms from both the selected complex and ligand complex
-            comp_selections = self.get_selected_atom_paths(target_complex)
+            comp_selections = cls.get_complex_selection_paths(target_complex)
             selections = selections.union(comp_selections)
             for rez in ligand_residues:
-                rez_selections = self.get_selected_atom_paths(rez)
+                rez_selections = cls.get_residue_selection_paths(rez)
                 selections = selections.union(rez_selections)
         else:
             # Add all residues from ligand residues to the selection list.
             # Unless the selected complex is also the ligand, in which case don't add anything.
             for rez in ligand_residues:
-                rez_selections = self.get_residue_path(rez)
+                rez_selections = cls.get_residue_path(rez)
                 selections.add(rez_selections)
         selection_str = ','.join(selections)
         return selection_str
@@ -340,7 +359,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom = atoms[0]
         return atom
 
-    def parse_ring_atoms(self, atom_path, complexes):
+    @classmethod
+    def parse_ring_atoms(cls, atom_path, complexes):
         """Parse aromatic ring path into a list of Atoms.
 
         e.g 'C/100/C1,C2,C3,C4,C5,C6' --> C/100/C1, C/100/C2, C/100/C3, etc
@@ -354,14 +374,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for atompath in atom_paths:
             atom = None
             for comp in complexes:
-                atom = self.get_atom_from_path(comp, atompath)
+                atom = cls.get_atom_from_path(comp, atompath)
                 if atom:
                     break
             if atom:
                 atoms.append(atom)
         return atoms
 
-    def parse_atoms_from_atompaths(self, atom_paths, complexes):
+    @classmethod
+    def parse_atoms_from_atompaths(cls, atom_paths, complexes):
         """Return a list of atoms from the complexes based on the atom_paths.
 
         :rtype: List of Atoms
@@ -371,12 +392,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom = None
             if ',' in atompath:
                 # Parse aromatic ring, and add list of atoms to struct_list
-                ring_atoms = self.parse_ring_atoms(atompath, complexes)
+                ring_atoms = cls.parse_ring_atoms(atompath, complexes)
                 struct = InteractionStructure(ring_atoms)
             else:
                 # Parse single atom
                 for comp in complexes:
-                    atom = self.get_atom_from_path(comp, atompath)
+                    atom = cls.get_atom_from_path(comp, atompath)
                     if atom:
                         break
                 if not atom:
@@ -402,7 +423,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         contact_data_len = len(contacts_data)
         new_line_manager = LineManager()
-        self.menu.set_update_text("Updating Workspace")
+        self.menu.set_update_text("Updating Workspace...")
 
         # We update the menu bar to keep the user notified on progress.
         # Every 3% seems to work well.
@@ -506,7 +527,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         return new_lines
 
-    def draw_interaction_line(self, struct1, struct2, line_settings):
+    @staticmethod
+    def draw_interaction_line(struct1, struct2, line_settings):
         """Draw line connecting two structs.
 
         :arg struct1: struct
@@ -555,8 +577,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             line.color = color
             self.line_manager.update_line(line)
 
-        Logs.debug(f'in frame: {in_frame_count}')
-        Logs.debug(f'out of frame: {out_of_frame_count}')
+        # Logs.debug(f'in frame: {in_frame_count}')
+        # Logs.debug(f'out of frame: {out_of_frame_count}')
         if stream:
             stream.update(new_colors)
 
@@ -565,7 +587,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.label_manager.clear()
             await self.render_distance_labels(complexes)
 
-    def line_in_frame(self, line, complexes):
+    @staticmethod
+    def line_in_frame(line, complexes):
         """Return boolean stating whether both atoms connected by line are in frame.
 
         :arg line: Line object. The line in question.

@@ -64,7 +64,7 @@ class PluginFunctionTestCase(unittest.TestCase):
         atom = next(self.complex.atoms)
         atom.selected = True
         atom_path = self.plugin_instance.get_atom_path(atom)
-        atom_paths = self.plugin_instance.get_selected_atom_paths(self.complex)
+        atom_paths = self.plugin_instance.get_complex_selection_paths(self.complex)
         self.assertEqual(len(atom_paths), 1)
         self.assertTrue(atom_path in atom_paths)
 
@@ -73,12 +73,32 @@ class PluginFunctionTestCase(unittest.TestCase):
         atom = self.plugin_instance.get_atom_from_path(self.complex, atom_path)
         self.assertTrue(isinstance(atom, Atom))
 
-    def test_get_interaction_selections(self):
+    def test_get_interaction_selections_residues(self):
+        # Select all atoms in 10 residues
+        residue_count = 10
+        residues = itertools.islice(self.complex.residues, residue_count)
+        for res in residues:
+            for atom in res.atoms:
+                atom.selected = True
+        selected_atoms_only = True
+        residue_list = [rez for rez in residues]
+        selection = self.plugin_instance.get_interaction_selections(self.complex, residue_list, selected_atoms_only)
+        # Since all atoms in each residues are selected, we should get 10 residue paths
+        self.assertEqual(len(selection.split(',')), residue_count)
+
+    def test_get_interaction_selections_atoms(self):
+        # Select 10 atoms, but only one from each residue,
+        # so that selection list has one entry for each atom.
         atom_count = 10
-        atoms = itertools.islice(self.complex.atoms, atom_count)
-        for atom in atoms:
+        i = 0
+        for res in self.complex.residues:
+            atom = next(res.atoms)
             atom.selected = True
-        selection = self.plugin_instance.get_interaction_selections(self.complex, [self.complex], True)
+            i += 1
+            if i >= atom_count:
+                break
+        selected_atoms_only = True
+        selection = self.plugin_instance.get_interaction_selections(self.complex, list(self.complex.residues), selected_atoms_only)
         self.assertEqual(len(selection.split(',')), atom_count)
 
     def test_parse_contacts_data(self):
