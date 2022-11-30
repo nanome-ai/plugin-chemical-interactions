@@ -558,14 +558,30 @@ class SettingsMenu:
         self.btn_selection_water.toggle_on_press = True
         self.btn_recalculate_on_update.register_pressed_callback(self.toggle_recalculate_on_update)
 
+        self.btn_inter.selected = True
+        self.btn_intra_selection.selected = True
+        self.plugin.update_content(self.btn_inter, self.btn_intra_selection)
+
     def render(self):
         self._menu.enabled = True
         self.plugin.update_menu(self._menu)
 
     def get_settings(self):
         recalculate_on_update = self.btn_recalculate_on_update.selected
+        show_inter = self.btn_inter.selected
+        show_intra_selection = self.btn_intra_selection.selected
+        show_selection_water = self.btn_selection_water.selected
+        interating_entities = []
+        if show_inter:
+            interating_entities.append('INTER')
+        if show_intra_selection:
+            interating_entities.append('INTRA_SELECTION')
+        if show_selection_water:
+            interating_entities.append('SELECTION_WATER')
+
         return {
-            'recalculate_on_update': recalculate_on_update
+            'recalculate_on_update': recalculate_on_update,
+            'interacting_entities': interating_entities
         }
 
     def toggle_recalculate_on_update(self, btn):

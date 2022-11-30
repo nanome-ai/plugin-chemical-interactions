@@ -402,6 +402,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.loading_bar_i = 0
         if not hasattr(self, 'total_contacts_count'):
             self.total_contacts_count = len(contacts_data)
+        if not hasattr(self, 'settings_menu'):
+            # Default settings
+            settings = {'interacting_entities': ['INTER', 'INTRA_SELECTION']}
+        else:
+            settings = self.settings_menu.get_settings()
+
         new_line_manager = LineManager()
         self.menu.set_update_text("Updating Workspace...")
         # Update loading bar every 5% of contacts completed
@@ -426,7 +432,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # We only want to render interactions involving selected atoms.
             # See arpeggio README for details
-            interacting_entities_to_render = ['INTER', 'INTRA_SELECTION', 'SELECTION_WATER']
+            interacting_entities_to_render = settings['interacting_entities']
             interacting_entities = row['interacting_entities']
             if interacting_entities not in interacting_entities_to_render:
                 continue
