@@ -393,7 +393,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         :rtype: LineManager object containing new lines to be uploaded to Nanome workspace.
         """
-        interacting_entities = interacting_entities or ['INTER']
+        interacting_entities = interacting_entities or ['INTER', 'INTRA_SELECTION', 'SELECTION_WATER']
         form = LineSettingsForm(data=line_settings)
         form.validate()
         if form.errors:
