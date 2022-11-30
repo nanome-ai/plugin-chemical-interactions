@@ -1,13 +1,25 @@
 name: Push to ECR Registry
 
 on:
-  push:
-    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: string
+        description: Tag to use for image. Defaults to $GITHUB_REF
+        required: False
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        description: Tag to use for image. Defaults to $GITHUB_REF
+        required: False
 jobs:
-  build:
-    name: Build Image
+  build-and-push:
     runs-on: ubuntu-latest
+    env:
+      INPUT_PATH: "."
     steps:
+    - uses: actions/checkout@v2.2.0
     - name: Get repo name
       id: repoName
       run: |
@@ -16,11 +28,20 @@ jobs:
         repo_name=${git_repository/#$prefix} 
         echo $repo_name
         echo "::set-output name=repo_name::$(echo $repo_name)"
+    - name: Set default tag
+      id: default_tag
+      run: |
+        default_tag="${GITHUB_REF#refs/*/}"
+        echo Default tag = $default_tag
+        echo "::set-output name=default_tag::$default_tag"
     - name: Get short SHA
-      id: sha
+      id: sha7
       run: echo "::set-output name=sha7::$(echo ${GITHUB_SHA} | cut -c1-7)"
-    - name: Check out code
-      uses: actions/checkout@v2
+    - name: Get tag
+      id: tag
+      run: |
+        input_tag=${{ inputs.tag }}
+        echo "::set-output name=tag::$input_tag"
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -30,7 +51,6 @@ jobs:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-
     - name: Build and Push to ECR public
       id: build-and-push
       uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
@@ -38,5 +58,5 @@ jobs:
         dockerfile: docker/Dockerfile
         context: .
         tags: |
-          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:latest
-          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:${{ steps.sha.outputs.sha7 }}
+          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:${{ steps.tag.outputs.tag }}
+          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:${{ steps.sha7.outputs.sha7 }}
