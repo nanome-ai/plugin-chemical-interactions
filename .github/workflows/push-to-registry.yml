@@ -27,7 +27,7 @@ jobs:
         git_repository="${{github.repository}}"
         repo_name=${git_repository/#$prefix} 
         echo $repo_name
-        echo "::set-output name=repo_name::$(echo $repo_name)"
+        echo "repo_name=$repo_name" >> $GITHUB_ENV
     - name: Set default tag
       id: default_tag
       run: |
@@ -41,7 +41,7 @@ jobs:
       id: tag
       run: |
         input_tag=${{ inputs.tag }}
-        echo "::set-output name=tag::$input_tag"
+        echo "tag==$input_tag" >> $GITHUB_OUTPUT
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
