@@ -133,7 +133,7 @@ def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogen
     futs = []
     with ThreadPoolExecutor(max_workers=thread_count) as executor:
         for i, residue in enumerate(residue_iter):
-            Logs.debug(f'Residue {i} / {res_count}: {residue}')
+            # Logs.debug(f'Residue {i} / {res_count}: {residue}')
             if i % loading_bar_increment == 0 and plugin_instance:
                 plugin_instance.menu.update_loading_bar(i, res_count)
             ending_atom_serial = starting_atom_serial + sum(1 for _ in residue.get_atoms())

@@ -165,8 +165,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for fut in futs:
             new_line_manager.update(fut.result())
         all_new_lines = new_line_manager.all_lines()
-        msg = f'Adding {len(all_new_lines)} interactions'
-        Logs.message(msg)
+        Logs.message(f'Adding {len(all_new_lines)} interactions')
         Shape.upload_multiple(all_new_lines)
 
         # Make sure complexes are locked
@@ -408,7 +407,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.total_contacts_count = len(contacts_data)
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
-            Logs.debug(f"{i} / {self.total_contacts_count} contacts processed")
+            # Logs.debug(f"{i} / {self.total_contacts_count} contacts processed")
             if i % loading_bar_increment == 0:
                 self.menu.update_loading_bar(i, self.total_contacts_count)
 
