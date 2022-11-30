@@ -157,6 +157,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         contacts_per_thread = 1000
         thread_count = max(len(contacts_data) // contacts_per_thread, 1)
         futs = []
+        self.total_contacts_count = len(contacts_data)
+        self.loading_bar_i = 0
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
             for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
                 fut = executor.submit(self.parse_contacts_data, chunk, complexes, line_settings, selected_atoms_only)
@@ -398,18 +400,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         new_line_manager = LineManager()
         self.menu.set_update_text("Updating Workspace...")
-
-        # We update the menu bar to keep the user notified on progress.
-        # Every 3% seems to work well.
-        data_len = len(contacts_data)
-        loading_bar_increment = math.ceil(data_len * 0.03)
-
-        self.total_contacts_count = len(contacts_data)
-        for i, row in enumerate(contacts_data):
-            # Each row represents all the interactions between two atoms.
-            # Logs.debug(f"{i} / {self.total_contacts_count} contacts processed")
-            if i % loading_bar_increment == 0:
-                self.menu.update_loading_bar(i, self.total_contacts_count)
+        # Update loading bar every 5% of contacts completed
+        update_percentages = list(range(100, 0, -5))
+        for row in contacts_data:
+            self.loading_bar_i += 1
+            current_percentage = math.ceil((self.loading_bar_i / self.total_contacts_count) * 100)
+            if update_percentages and current_percentage > update_percentages[-1]:
+                Logs.debug(f"{self.loading_bar_i} / {self.total_contacts_count} contacts processed")
+                self.menu.update_loading_bar(self.loading_bar_i, self.total_contacts_count)
+                update_percentages.pop()
 
             # Atom paths that current row is describing interactions between
             a1_data = row['bgn']
