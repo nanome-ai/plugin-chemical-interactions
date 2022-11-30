@@ -17,7 +17,7 @@ jobs:
       version_number: ${{steps.new_version_number.outputs.version_number}}
     steps:
       # Checkout repository, bump version with ./version.sh, and commit
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.NANOME_BOT_PAT }}
       - name: git setup
@@ -33,7 +33,7 @@ jobs:
         id: new_version_number
         run: |
           new_ver=$(cat setup.cfg | grep current_version | awk -F "=" '{print $2}' | xargs)
-          echo "::set-output name=version_number::$(echo $new_ver)"
+          echo "version_number=$new_ver" >> $GITHUB_OUTPUT
       - name: Push to GitHub
         run: |
           git push --follow-tags
