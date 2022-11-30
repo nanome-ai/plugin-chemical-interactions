@@ -41,7 +41,8 @@ jobs:
       id: tag
       run: |
         input_tag=${{ inputs.tag }}
-        echo "tag==$input_tag" >> $GITHUB_OUTPUT
+        echo $input_tag
+        echo "tag=$input_tag" >> $GITHUB_OUTPUT
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1-node16
       with:
