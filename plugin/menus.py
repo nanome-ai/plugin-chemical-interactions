@@ -3,6 +3,7 @@ from os import environ, path
 import nanome
 from nanome.api.structure import Complex
 from nanome.api.structure.substructure import Substructure
+from nanome.api import ui
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label
 from nanome.util import async_callback, Logs
 from nanome.util.enums import NotificationTypes
@@ -542,17 +543,24 @@ class SettingsMenu:
         self.plugin = plugin
         self._menu = nanome.ui.Menu.io.from_json(SETTINGS_MENU_PATH)
         self._menu.index = 200
+        self.btn_recalculate_on_update: ui.Button = self._menu.root.find_node('btn_recalculate_on_update').get_content()
+        self.btn_inter: ui.Button = self._menu.root.find_node('btn_inter').get_content()
+        self.btn_intra_selection: ui.Button = self._menu.root.find_node('btn_intra_selection').get_content()
+        self.btn_selection_water: ui.Button = self._menu.root.find_node('btn_selection_water').get_content()
+        
         self.btn_recalculate_on_update.switch.active = True
+        self.btn_inter.switch.active = True
+        self.btn_intra_selection.switch.active = True
+        self.btn_selection_water.switch.active = True
         # self.btn_recalculate_on_update.toggle_on_press = True
+        self.btn_inter.toggle_on_press = True
+        self.btn_intra_selection.toggle_on_press = True
+        self.btn_selection_water.toggle_on_press = True
         self.btn_recalculate_on_update.register_pressed_callback(self.toggle_recalculate_on_update)
 
     def render(self):
         self._menu.enabled = True
         self.plugin.update_menu(self._menu)
-
-    @property
-    def btn_recalculate_on_update(self):
-        return self._menu.root.find_node('btn_recalculate_on_update').get_content()
 
     def get_settings(self):
         recalculate_on_update = self.btn_recalculate_on_update.selected
