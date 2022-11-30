@@ -37,7 +37,7 @@ from nanome.util import Logs
 
 from .utils import chunks
 # CONSTANTS
-PDB_LINE_TEMPLATE = '{record: <6}{serial: >5} {atom_name: ^4}{altloc: ^1}{resname: ^3} {chain_id: ^1}{resnum: >4}{icode: ^1}   {x: >8.3f}{y: >8.3f}{z: >8.3f}{occ: >6.2f}{tfac: >6.2f}          {element: >2}{charge: >2}'    
+PDB_LINE_TEMPLATE = '{record: <6}{serial: >5} {atom_name: ^4}{altloc: ^1}{resname: ^3} {chain_id: ^1}{resnum: >4}{icode: ^1}   {x: >8.3f}{y: >8.3f}{z: >8.3f}{occ: >6.2f}{tfac: >6.2f}          {element: >2}{charge: >2}'
 
 
 def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogens=True, informative_filenames=False):
@@ -129,7 +129,7 @@ def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogen
     output_lines = []
 
     residue_iter = model.get_residues()
-    thread_count = max(res_count //  1000, 1)
+    thread_count = max(res_count // 1000, 1)
     futs = []
     with ThreadPoolExecutor(max_workers=thread_count) as executor:
         for i, residue in enumerate(residue_iter):
@@ -147,7 +147,7 @@ def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogen
         for output_line in output_lines:
             fo.write(output_line)
             fo.write("\n")
-    
+
     if plugin_instance:
         plugin_instance.menu.update_loading_bar(0, res_count)
     return output_filepath
@@ -217,6 +217,7 @@ def clean_residue(residue, polypeptide_residues, remove_waters, keep_hydrogens, 
         output_lines.append(output_line)
         atom_serial += 1
     return output_lines
+
 
 # MAIN
 if __name__ == '__main__':
