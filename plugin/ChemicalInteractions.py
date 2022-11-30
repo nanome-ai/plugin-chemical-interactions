@@ -425,8 +425,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Typically this filters out rows with only `proximal` interactions.
             if not set(interaction_types).intersection(set(form.data.keys())):
                 continue
-            
-            # If structure's relationship is not included, continue 
+
+            # If structure's relationship is not included, continue
             if row['interacting_entities'] not in interacting_entities:
                 continue
 
