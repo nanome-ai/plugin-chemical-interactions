@@ -27,7 +27,7 @@ jobs:
         git_repository="${{github.repository}}"
         repo_name=${git_repository/#$prefix} 
         echo $repo_name
-        echo "repo_name=$repo_name" >> $GITHUB_ENV
+        echo "repo_name=$repo_name" >> $GITHUB_OUTPUT
     - name: Set default tag
       id: default_tag
       run: |

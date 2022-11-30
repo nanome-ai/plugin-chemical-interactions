@@ -33,7 +33,7 @@ jobs:
         id: new_version_number
         run: |
           new_ver=$(cat setup.cfg | grep current_version | awk -F "=" '{print $2}' | xargs)
-          echo "version_number=$new_ver" >> $GITHUB_ENV
+          echo "version_number=$new_ver" >> $GITHUB_OUTPUT
       - name: Push to GitHub
         run: |
           git push --follow-tags
