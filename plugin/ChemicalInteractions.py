@@ -15,7 +15,7 @@ from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, Co
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
-from .utils import merge_complexes, get_neighboring_atoms
+from .utils import merge_complexes, get_neighboring_atoms, chunks
 from .clean_pdb import clean_pdb
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -163,11 +163,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             notification_message = "Arpeggio run failed. Please make sure source files are valid."
             self.send_notification(enums.NotificationTypes.error, notification_message)
             return
-        
-        def chunks(lst, n):
-            """Yield successive n-sized chunks from lst."""
-            for i in range(0, len(lst), n):
-                yield lst[i:i + n]
         Logs.message(f'Contacts Count: {len(contacts_data)}')
 
         contacts_per_thread = 500

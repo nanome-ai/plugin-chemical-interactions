@@ -4,7 +4,7 @@ from nanome.util import ComplexUtils
 from scipy.spatial import KDTree
 
 
-__all__ = ['extract_residues', 'merge_complexes']
+__all__ = ['chunks', 'extract_residues', 'merge_complexes']
 
 
 def extract_residues_from_complex(comp, residue_list, comp_name=None):
@@ -71,3 +71,9 @@ def merge_complexes(complexes, align_reference, selected_atoms_only=False):
             for chain in existing_mol.chains:
                 mol.add_chain(chain)
     return merged_complex
+
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
