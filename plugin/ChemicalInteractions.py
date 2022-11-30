@@ -153,7 +153,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             return
         Logs.message(f'Contacts Count: {len(contacts_data)}')
 
-        # thread_count = max(len(contacts_data) // contacts_per_thread, 1)
+        interacting_entities_to_render = settings['interacting_entities']
         contacts_per_thread = 1000
         thread_count = max(len(contacts_data) // contacts_per_thread, 1)
         futs = []
@@ -161,7 +161,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.loading_bar_i = 0
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
             for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
-                fut = executor.submit(self.parse_contacts_data, chunk, complexes, line_settings, selected_atoms_only)
+                fut = executor.submit(self.parse_contacts_data, chunk, complexes, line_settings, selected_atoms_only, interacting_entities_to_render)
                 futs.append(fut)
         new_line_manager = LineManager()
         for fut in futs:
@@ -383,7 +383,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             struct_list.append(struct)
         return struct_list
 
-    def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
+    def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False, interacting_entities=None):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
 
         contacts_data: Data returned by Chemical Interaction Service.
@@ -393,6 +393,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         :rtype: LineManager object containing new lines to be uploaded to Nanome workspace.
         """
+        interacting_entities = interacting_entities or ['INTER']
         form = LineSettingsForm(data=line_settings)
         form.validate()
         if form.errors:
@@ -402,11 +403,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.loading_bar_i = 0
         if not hasattr(self, 'total_contacts_count'):
             self.total_contacts_count = len(contacts_data)
-        if not hasattr(self, 'settings_menu'):
-            # Default settings
-            settings = {'interacting_entities': ['INTER']}
-        else:
-            settings = self.settings_menu.get_settings()
 
         new_line_manager = LineManager()
         self.menu.set_update_text("Updating Workspace...")
@@ -429,10 +425,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Typically this filters out rows with only `proximal` interactions.
             if not set(interaction_types).intersection(set(form.data.keys())):
                 continue
-
-            interacting_entities_to_render = settings['interacting_entities']
-            interacting_entities = row['interacting_entities']
-            if interacting_entities not in interacting_entities_to_render:
+            
+            # If structure's relationship is not included, continue 
+            if row['interacting_entities'] not in interacting_entities:
                 continue
 
             atom1_path = f"{a1_data['auth_asym_id']}/{a1_data['auth_seq_id']}/{a1_data['auth_atom_id']}"
