@@ -127,18 +127,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         else:
             full_complex = target_complex
 
-        # If selected atoms only, only include residues located near selected atoms
-        if selected_atoms_only:
-            Logs.debug(f"Residue Count: {len(list(full_complex.residues))}")
-            mol = next(full_complex.molecules)
-            selected_atoms = [atom for atom in mol.atoms if atom.selected]
-            selected_residues = set([atom.residue for atom in selected_atoms])
-            neighbor_atoms = get_neighboring_atoms(full_complex, selected_atoms)
-            neighbor_residues = list(set([atom.residue for atom in neighbor_atoms]))
-            for res in mol.residues:
-                if res not in neighbor_residues and res not in selected_residues:
-                    res.chain.remove_residue(res)
-            Logs.debug(f"New Residue Count: {len(list(full_complex.residues))}")
         # Clean complex and return as tempfile
         self.menu.set_update_text("Prepping...")
         cleaned_filepath = self.get_clean_pdb_file(full_complex)
@@ -166,10 +154,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message(f'Contacts Count: {len(contacts_data)}')
 
         contacts_per_thread = 500
-        thread_count = max(len(contacts_data) // contacts_per_thread, 1)
+        # thread_count = max(len(contacts_data) // contacts_per_thread, 1)
+        thread_count = 10
         futs = []
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
-            for chunk in chunks(contacts_data, contacts_per_thread):
+            for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
                 fut = executor.submit(self.parse_contacts_data, chunk, complexes, line_settings, selected_atoms_only)
                 futs.append(fut)
         new_line_manager = LineManager()
@@ -408,7 +397,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if form.errors:
             raise Exception(form.errors)
 
-        contact_data_len = len(contacts_data)
         new_line_manager = LineManager()
         self.menu.set_update_text("Updating Workspace...")
 
@@ -417,11 +405,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         data_len = len(contacts_data)
         loading_bar_increment = math.ceil(data_len * 0.03)
 
+        self.total_contacts_count = len(contacts_data)
         for i, row in enumerate(contacts_data):
             # Each row represents all the interactions between two atoms.
-            Logs.debug(f"{i} / {data_len} contacts processed")
+            Logs.debug(f"{i} / {self.total_contacts_count} contacts processed")
             if i % loading_bar_increment == 0:
-                self.menu.update_loading_bar(i, contact_data_len)
+                self.menu.update_loading_bar(i, self.total_contacts_count)
 
             # Atom paths that current row is describing interactions between
             a1_data = row['bgn']
@@ -435,7 +424,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # We only want to render interactions involving selected atoms.
             # See arpeggio README for details
-            interacting_entities_to_render = ['INTER', 'SELECTION_WATER']
+            interacting_entities_to_render = ['INTER', 'INTRA_SELECTION', 'SELECTION_WATER']
             interacting_entities = row['interacting_entities']
             if interacting_entities not in interacting_entities_to_render:
                 continue

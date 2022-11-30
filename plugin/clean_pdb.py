@@ -27,13 +27,15 @@ import os
 import sys
 import traceback
 from functools import reduce
-
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 
 from Bio.PDB import PDBParser
 from Bio.PDB.Polypeptide import PPBuilder
 
 from nanome.util import Logs
+
+from .utils import chunks
 # CONSTANTS
 PDB_LINE_TEMPLATE = '{record: <6}{serial: >5} {atom_name: ^4}{altloc: ^1}{resname: ^3} {chain_id: ^1}{resnum: >4}{icode: ^1}   {x: >8.3f}{y: >8.3f}{z: >8.3f}{occ: >6.2f}{tfac: >6.2f}          {element: >2}{charge: >2}'    
 
@@ -102,7 +104,6 @@ def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogen
 
         for polypeptide_chain_id in polypeptide_chain_id_set:
             chain_pieces[polypeptide_chain_id] = chain_pieces[polypeptide_chain_id] + 1
-
             # ADD FIRST AND LAST RESIDUE TO THE CHAIN BREAK RESIDUES (POLYPEPTIDE TERMINAL RESIDUES)
             chain_break_residues[polypeptide_chain_id] = chain_break_residues[polypeptide_chain_id] + [polypeptides[e][0], polypeptides[e][-1]]
             chain_polypeptides[polypeptide_chain_id] = chain_polypeptides[polypeptide_chain_id] + [polypeptides[e]]
@@ -112,13 +113,9 @@ def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogen
     for chain_id in chain_break_residues:
         chain_break_residues[chain_id] = chain_break_residues[chain_id][1:-1]
 
-    all_chain_break_residues = reduce(operator.add, chain_break_residues.values())
-
     # MAKE THE CHAIN SEQUENCES FROM THE CHAIN POLYPEPTIDE PIECES
     for chain_id in chain_polypeptides:
-
         pp_seqs = [str(x.get_sequence()) for x in chain_polypeptides[chain_id]]
-
         if pp_seqs:
             chain_sequences[chain_id] = reduce(operator.add, pp_seqs)
 
@@ -130,15 +127,22 @@ def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogen
     i = 1
     starting_atom_serial = 1
     output_lines = []
-    for residue in model.get_residues():
-        Logs.debug(f'Residue {i} / {res_count}: {residue}')
-        if i % loading_bar_increment == 0 and plugin_instance:
-            plugin_instance.menu.update_loading_bar(i, res_count)
-        ending_atom_serial = starting_atom_serial + sum(1 for _ in residue.get_atoms())
-        residue_pdb_lines = clean_residue(residue, polypeptide_residues, remove_waters, keep_hydrogens, starting_atom_serial)
+
+    residue_iter = model.get_residues()
+    thread_count = 5
+    futs = []
+    with ThreadPoolExecutor(max_workers=thread_count) as executor:
+        for i, residue in enumerate(residue_iter):
+            Logs.debug(f'Residue {i} / {res_count}: {residue}')
+            if i % loading_bar_increment == 0 and plugin_instance:
+                plugin_instance.menu.update_loading_bar(i, res_count)
+            ending_atom_serial = starting_atom_serial + sum(1 for _ in residue.get_atoms())
+            fut = executor.submit(clean_residue, residue, polypeptide_residues, remove_waters, keep_hydrogens, starting_atom_serial)
+            futs.append(fut)
+            starting_atom_serial = ending_atom_serial
+    for fut in futs:
+        residue_pdb_lines = fut.result()
         output_lines.extend(residue_pdb_lines)
-        starting_atom_serial = ending_atom_serial
-        i += 1
     with open(output_filepath, 'w') as fo:
         for output_line in output_lines:
             fo.write(output_line)
@@ -219,7 +223,6 @@ def clean_residue(residue, polypeptide_residues, remove_waters, keep_hydrogens, 
         # ALTLOCS ARE ALWAYS BLANK
         # CHARGES ARE ALWAYS BLANK(?)
         # OCCUPANCIES ARE ALWAYS 1.00
-        Logs.message(f"Atom serial {atom_serial}")
         output_line = PDB_LINE_TEMPLATE.format(
             record=record,
             serial=atom_serial,
