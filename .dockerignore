@@ -1,0 +1,7 @@
+*
+!plugin
+!tests
+!arpeggio_environ.yml
+!run.py
+!run_tests.py
+!requirements.txt
