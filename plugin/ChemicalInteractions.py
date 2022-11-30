@@ -430,8 +430,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if not set(interaction_types).intersection(set(form.data.keys())):
                 continue
 
-            # We only want to render interactions involving selected atoms.
-            # See arpeggio README for details
             interacting_entities_to_render = settings['interacting_entities']
             interacting_entities = row['interacting_entities']
             if interacting_entities not in interacting_entities_to_render:
