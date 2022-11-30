@@ -17,6 +17,18 @@ MENU_PATH = path.join(BASE_PATH, 'menu_json', 'menu.json')
 SETTINGS_MENU_PATH = path.join(BASE_PATH, 'menu_json', 'settings.json')
 
 
+class INTERACTING_ENTITIES_OPTIONS:
+    """Arpeggio options for types of interacting entities.
+    
+    INTER: Between an atom from the user's selection and a non-selected atom
+    INTRA: Between two atoms both in the user's selection
+    SELECTION_WATER: Between an atom in the user's selection and a water molecule
+    """
+    INTER='INTER'
+    INTRA_SELECTION='INTRA_SELECTION'
+    SELECTION_WATER='SELECTION_WATER'
+
+
 class ChemInteractionsMenu():
 
     def __init__(self, plugin):
@@ -574,11 +586,11 @@ class SettingsMenu:
         show_selection_water = self.btn_selection_water.selected
         interating_entities = []
         if show_inter:
-            interating_entities.append('INTER')
+            interating_entities.append(INTERACTING_ENTITIES_OPTIONS.INTER)
         if show_intra_selection:
-            interating_entities.append('INTRA_SELECTION')
+            interating_entities.append(INTERACTING_ENTITIES_OPTIONS.INTRA_SELECTION)
         if show_selection_water:
-            interating_entities.append('SELECTION_WATER')
+            interating_entities.append(INTERACTING_ENTITIES_OPTIONS.SELECTION_WATER)
 
         return {
             'recalculate_on_update': recalculate_on_update,
