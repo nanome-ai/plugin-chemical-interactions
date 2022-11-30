@@ -404,7 +404,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.total_contacts_count = len(contacts_data)
         if not hasattr(self, 'settings_menu'):
             # Default settings
-            settings = {'interacting_entities': ['INTER', 'INTRA_SELECTION']}
+            settings = {'interacting_entities': ['INTER']}
         else:
             settings = self.settings_menu.get_settings()
 

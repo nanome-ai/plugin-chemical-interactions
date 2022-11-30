@@ -558,9 +558,10 @@ class SettingsMenu:
         self.btn_selection_water.toggle_on_press = True
         self.btn_recalculate_on_update.register_pressed_callback(self.toggle_recalculate_on_update)
 
+        # Default selections
         self.btn_inter.selected = True
-        self.btn_intra_selection.selected = True
-        self.plugin.update_content(self.btn_inter, self.btn_intra_selection)
+        self.btn_intra_selection.selected = False
+        self.btn_selection_water.selected = False
 
     def render(self):
         self._menu.enabled = True
