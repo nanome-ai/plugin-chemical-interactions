@@ -397,7 +397,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         form.validate()
         if form.errors:
             raise Exception(form.errors)
-
+        # Set variables used to track loading bar progress across threads.
+        if not hasattr(self, 'loading_bar_i'):
+            self.loading_bar_i = 0
+        if not hasattr(self, 'total_contacts_count'):
+            self.total_contacts_count = len(contacts_data)
         new_line_manager = LineManager()
         self.menu.set_update_text("Updating Workspace...")
         # Update loading bar every 5% of contacts completed
