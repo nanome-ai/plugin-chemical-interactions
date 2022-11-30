@@ -125,80 +125,56 @@ def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogen
     # WRITE OUT CLEANED PDB
     # MANY OF THE ISSUES ARE SOLVED DURING THE WRITING OUT
     output_filepath = '.'.join((pdb_noext, output_label, pdb_ext))
+    res_count = len(list(model.get_residues()))
+    loading_bar_increment = math.ceil(res_count * 0.03)
+    i = 1
+    starting_atom_serial = 1
+    output_lines = []
+    for residue in model.get_residues():
+        Logs.debug(f'Residue {i} / {res_count}: {residue}')
+        if i % loading_bar_increment == 0 and plugin_instance:
+            plugin_instance.menu.update_loading_bar(i, res_count)
+        ending_atom_serial = starting_atom_serial + sum(1 for _ in residue.get_atoms())
+        residue_pdb_lines = clean_residue(residue, polypeptide_residues, remove_waters, keep_hydrogens, starting_atom_serial)
+        output_lines.extend(residue_pdb_lines)
+        starting_atom_serial = ending_atom_serial
+        i += 1
     with open(output_filepath, 'w') as fo:
-        res_count = len(list(model.get_residues()))
-        loading_bar_increment = math.ceil(res_count * 0.03)
-        i = 1
-        starting_atom_serial = 1
-        for residue in model.get_residues():
-            Logs.debug(f'Residue {i} / {res_count}: {residue}')
-            if i % loading_bar_increment == 0 and plugin_instance:
-                plugin_instance.menu.update_loading_bar(i, res_count)
-            ending_atom_serial = starting_atom_serial + sum(1 for _ in residue.get_atoms())
-            clean_residue(residue, fo, polypeptide_residues, remove_waters, keep_hydrogens, starting_atom_serial)
-            starting_atom_serial = ending_atom_serial
-            i += 1
-        if plugin_instance:
-            plugin_instance.menu.update_loading_bar(0, res_count)
+        for output_line in output_lines:
+            fo.write(output_line)
+            fo.write("\n")
+    
+    if plugin_instance:
+        plugin_instance.menu.update_loading_bar(0, res_count)
 
     # WRITE OUT COORDINATES FOR CHAIN BREAKS FOUND WITH THE PDB FILE
-    with open('.'.join((pdb_noext, pdb_ext, 'breaks')), 'w') as fo, \
-            open('.'.join((pdb_noext, pdb_ext, 'break_residues')), 'w') as fo2:
+    # with open('.'.join((pdb_noext, pdb_ext, 'breaks')), 'w') as fo, \
+    #         open('.'.join((pdb_noext, pdb_ext, 'break_residues')), 'w') as fo2:
 
-        for chain_break_residue in all_chain_break_residues:
+    #     for chain_break_residue in all_chain_break_residues:
 
-            fo2.write('{},{}{}`{}\n'.format(
-                chain_break_residue.get_parent().id,
-                chain_break_residue.get_id()[1],  # RESIDUE NUMBER
-                chain_break_residue.get_id()[2].strip(),  # INSERTION CODE
-                chain_break_residue.resname.strip()))
+    #         fo2.write('{},{}{}`{}\n'.format(
+    #             chain_break_residue.get_parent().id,
+    #             chain_break_residue.get_id()[1],  # RESIDUE NUMBER
+    #             chain_break_residue.get_id()[2].strip(),  # INSERTION CODE
+    #             chain_break_residue.resname.strip()))
 
-            if 'CA' in chain_break_residue.child_dict:
-                break_coord = list(chain_break_residue.child_dict['CA'].coord)
+    #         if 'CA' in chain_break_residue.child_dict:
+    #             break_coord = list(chain_break_residue.child_dict['CA'].coord)
 
-            elif 'N' in chain_break_residue.child_dict:
-                break_coord = list(chain_break_residue.child_dict['N'].coord)
+    #         elif 'N' in chain_break_residue.child_dict:
+    #             break_coord = list(chain_break_residue.child_dict['N'].coord)
 
-            elif 'C' in chain_break_residue.child_dict:
-                break_coord = list(chain_break_residue.child_dict['C'].coord)
+    #         elif 'C' in chain_break_residue.child_dict:
+    #             break_coord = list(chain_break_residue.child_dict['C'].coord)
 
-            else:
-                raise ValueError('Chain break residue {} had no mainchain atom to extract coordinates from.'.format(chain_break_residue))
-            fo.write('{}\n'.format(str(break_coord)))
+    #         else:
+    #             raise ValueError('Chain break residue {} had no mainchain atom to extract coordinates from.'.format(chain_break_residue))
+    #         fo.write('{}\n'.format(str(break_coord)))
     return output_filepath
 
 
-# MAIN
-if __name__ == '__main__':
-    # ARGUMENT PARSING
-    parser = argparse.ArgumentParser(description='''
-        #############
-        # CLEAN PDB #
-        #############
-
-        A program for cleaning PDB files.
-
-        Dependencies:
-        - Python > (v3.4)
-        - BioPython (>= v1.60)
-
-        ''', formatter_class=argparse.RawTextHelpFormatter)
-
-    parser.add_argument('pdb', type=str, help='Path to the PDB file to be cleaned.')
-    parser.add_argument('-rmw', '--remove-waters', action='store_true', help='Remove waters.')
-    parser.add_argument('-kh', '--keep-hydrogens', action='store_true', help='Keep hydrogens.')
-    parser.add_argument('-if', '--informative_filenames', action='store_true', help='Keep a record of the flags used for cleaning the output filename.')
-
-    args = parser.parse_args()
-
-    pdb_path = args.pdb
-    informative_filenames = args.informative_filenames
-    remove_waters = args.remove_waters
-    keep_hydrogens = args.keep_hydrogens
-    clean_pdb(pdb_path, remove_waters, keep_hydrogens, informative_filenames)
-
-
-def clean_residue(residue, fo, polypeptide_residues, remove_waters, keep_hydrogens, atom_serial):
+def clean_residue(residue, polypeptide_residues, remove_waters, keep_hydrogens, atom_serial):
     # REMOVE WATERS IF FLAG SET
     if remove_waters:
         if residue.get_full_id()[3][0] == 'W':
@@ -214,6 +190,7 @@ def clean_residue(residue, fo, polypeptide_residues, remove_waters, keep_hydroge
     if residue in polypeptide_residues:
         record = 'ATOM'
 
+    output_lines = []
     # LOOP THROUGH ATOMS TO OUTPUT
     for atom in residue.child_list:
         # DEAL WITH DISORDERED ATOMS
@@ -259,12 +236,35 @@ def clean_residue(residue, fo, polypeptide_residues, remove_waters, keep_hydroge
             tfac=atom.bfactor,
             element=atom.element,
             charge='')
-        fo.write('{}\n'.format(output_line))
+        output_lines.append(output_line)
         atom_serial += 1
-    # RAISE AN ERROR IF WE'VE NOW GOT TOO MANY ATOMS
-    if (atom_serial - 1) > 99999:
-        try:
-            raise ValueError('More than 99999 atoms in the PDB when renumbered!')
-        except Exception:
-            traceback.print_exc(file=sys.stdout)
-            exit(9)
+    return output_lines
+
+# MAIN
+if __name__ == '__main__':
+    # ARGUMENT PARSING
+    parser = argparse.ArgumentParser(description='''
+        #############
+        # CLEAN PDB #
+        #############
+
+        A program for cleaning PDB files.
+
+        Dependencies:
+        - Python > (v3.4)
+        - BioPython (>= v1.60)
+
+        ''', formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument('pdb', type=str, help='Path to the PDB file to be cleaned.')
+    parser.add_argument('-rmw', '--remove-waters', action='store_true', help='Remove waters.')
+    parser.add_argument('-kh', '--keep-hydrogens', action='store_true', help='Keep hydrogens.')
+    parser.add_argument('-if', '--informative_filenames', action='store_true', help='Keep a record of the flags used for cleaning the output filename.')
+
+    args = parser.parse_args()
+
+    pdb_path = args.pdb
+    informative_filenames = args.informative_filenames
+    remove_waters = args.remove_waters
+    keep_hydrogens = args.keep_hydrogens
+    clean_pdb(pdb_path, remove_waters, keep_hydrogens, informative_filenames)
