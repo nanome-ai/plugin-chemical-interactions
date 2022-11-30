@@ -6,8 +6,8 @@ import os
 import tempfile
 import time
 import uuid
-
 import nanome
+from concurrent.futures import ThreadPoolExecutor
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
 from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, ComplexUtils
@@ -15,7 +15,7 @@ from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, Co
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
-from .utils import merge_complexes, get_neighboring_atoms
+from .utils import merge_complexes, get_neighboring_atoms, chunks
 from .clean_pdb import clean_pdb
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -118,28 +118,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.setup_previous_run(
                 target_complex, ligand_residues, ligand_complexes, line_settings,
                 selected_atoms_only, distance_labels)
-        if selected_atoms_only:
-            # make sure at least one atom in the ligand complexes is selected.
-            atom_selected_count = 0
-            valid_atom_selection = False
-            counted_complexes = set()
-            for comp in ligand_complexes:
-                if comp.index in counted_complexes:
-                    continue
-                atom_selected_count += sum(1 for atom in comp.atoms if atom.selected)
-                counted_complexes.add(comp.index)
-                if atom_selected_count > MAX_SELECTED_ATOMS:
-                    break
-            if atom_selected_count == 0:
-                msg = "Please select at least one atom in the workspace."
-            elif atom_selected_count > MAX_SELECTED_ATOMS:
-                msg = f"Please select fewer than {MAX_SELECTED_ATOMS} atoms in the workspace."
-            else:
-                valid_atom_selection = True
-            if not valid_atom_selection:
-                Logs.warning(msg)
-                self.send_notification(enums.NotificationTypes.error, msg)
-                return
 
         complexes = set([target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]])
 
@@ -149,18 +127,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         else:
             full_complex = target_complex
 
-        # If selected atoms only, only include residues located near selected atoms
-        if selected_atoms_only:
-            Logs.debug(f"Residue Count: {len(list(full_complex.residues))}")
-            mol = next(full_complex.molecules)
-            selected_atoms = [atom for atom in mol.atoms if atom.selected]
-            selected_residues = set([atom.residue for atom in selected_atoms])
-            neighbor_atoms = get_neighboring_atoms(full_complex, selected_atoms)
-            neighbor_residues = list(set([atom.residue for atom in neighbor_atoms]))
-            for res in mol.residues:
-                if res not in neighbor_residues and res not in selected_residues:
-                    res.chain.remove_residue(res)
-            Logs.debug(f"New Residue Count: {len(list(full_complex.residues))}")
         # Clean complex and return as tempfile
         self.menu.set_update_text("Prepping...")
         cleaned_filepath = self.get_clean_pdb_file(full_complex)
@@ -185,12 +151,23 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             notification_message = "Arpeggio run failed. Please make sure source files are valid."
             self.send_notification(enums.NotificationTypes.error, notification_message)
             return
+        Logs.message(f'Contacts Count: {len(contacts_data)}')
 
-        new_line_manager = await self.parse_contacts_data(contacts_data, complexes, line_settings, selected_atoms_only)
-
+        # thread_count = max(len(contacts_data) // contacts_per_thread, 1)
+        contacts_per_thread = 1000
+        thread_count = max(len(contacts_data) // contacts_per_thread, 1)
+        futs = []
+        self.total_contacts_count = len(contacts_data)
+        self.loading_bar_i = 0
+        with ThreadPoolExecutor(max_workers=thread_count) as executor:
+            for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
+                fut = executor.submit(self.parse_contacts_data, chunk, complexes, line_settings, selected_atoms_only)
+                futs.append(fut)
+        new_line_manager = LineManager()
+        for fut in futs:
+            new_line_manager.update(fut.result())
         all_new_lines = new_line_manager.all_lines()
-        msg = f'Adding {len(all_new_lines)} interactions'
-        Logs.message(msg)
+        Logs.message(f'Adding {len(all_new_lines)} interactions')
         Shape.upload_multiple(all_new_lines)
 
         # Make sure complexes are locked
@@ -406,7 +383,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             struct_list.append(struct)
         return struct_list
 
-    async def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
+    def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
 
         contacts_data: Data returned by Chemical Interaction Service.
@@ -420,21 +397,22 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         form.validate()
         if form.errors:
             raise Exception(form.errors)
-
-        contact_data_len = len(contacts_data)
+        # Set variables used to track loading bar progress across threads.
+        if not hasattr(self, 'loading_bar_i'):
+            self.loading_bar_i = 0
+        if not hasattr(self, 'total_contacts_count'):
+            self.total_contacts_count = len(contacts_data)
         new_line_manager = LineManager()
         self.menu.set_update_text("Updating Workspace...")
-
-        # We update the menu bar to keep the user notified on progress.
-        # Every 3% seems to work well.
-        data_len = len(contacts_data)
-        loading_bar_increment = math.ceil(data_len * 0.03)
-
-        for i, row in enumerate(contacts_data):
-            # Each row represents all the interactions between two atoms.
-            Logs.debug(f"{i} / {data_len} contacts processed")
-            if i % loading_bar_increment == 0:
-                self.menu.update_loading_bar(i, contact_data_len)
+        # Update loading bar every 5% of contacts completed
+        update_percentages = list(range(100, 0, -5))
+        for row in contacts_data:
+            self.loading_bar_i += 1
+            current_percentage = math.ceil((self.loading_bar_i / self.total_contacts_count) * 100)
+            if update_percentages and current_percentage > update_percentages[-1]:
+                Logs.debug(f"{self.loading_bar_i} / {self.total_contacts_count} contacts processed")
+                self.menu.update_loading_bar(self.loading_bar_i, self.total_contacts_count)
+                update_percentages.pop()
 
             # Atom paths that current row is describing interactions between
             a1_data = row['bgn']
@@ -448,7 +426,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # We only want to render interactions involving selected atoms.
             # See arpeggio README for details
-            interacting_entities_to_render = ['INTER', 'SELECTION_WATER']
+            interacting_entities_to_render = ['INTER', 'INTRA_SELECTION', 'SELECTION_WATER']
             interacting_entities = row['interacting_entities']
             if interacting_entities not in interacting_entities_to_render:
                 continue
@@ -489,11 +467,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
-            structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
+            structpair_lines = self.create_new_lines(struct1, struct2, interaction_types, form.data)
             new_line_manager.add_lines(structpair_lines)
         return new_line_manager
 
-    async def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
+    def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
 
         struct1: InteractionStructure

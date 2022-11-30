@@ -106,11 +106,8 @@ class PluginFunctionTestCase(unittest.TestCase):
             contacts_data = json.loads(f.read())
         # Known value from 1tyl_contacts_data.json
         expected_line_count = 26
-        loop = asyncio.get_event_loop()
-        line_manager = loop.run_until_complete(
-            self.plugin_instance.parse_contacts_data(
-                contacts_data, [self.complex], default_line_settings
-            )
+        line_manager = self.plugin_instance.parse_contacts_data(
+            contacts_data, [self.complex], default_line_settings
         )
         self.assertEqual(len(line_manager.all_lines()), expected_line_count)
 
