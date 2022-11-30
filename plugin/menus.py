@@ -19,14 +19,14 @@ SETTINGS_MENU_PATH = path.join(BASE_PATH, 'menu_json', 'settings.json')
 
 class INTERACTING_ENTITIES_OPTIONS:
     """Arpeggio options for types of interacting entities.
-    
+
     INTER: Between an atom from the user's selection and a non-selected atom
     INTRA: Between two atoms both in the user's selection
     SELECTION_WATER: Between an atom in the user's selection and a water molecule
     """
-    INTER='INTER'
-    INTRA_SELECTION='INTRA_SELECTION'
-    SELECTION_WATER='SELECTION_WATER'
+    INTER = 'INTER'
+    INTRA_SELECTION = 'INTRA_SELECTION'
+    SELECTION_WATER = 'SELECTION_WATER'
 
 
 class ChemInteractionsMenu():
@@ -559,7 +559,7 @@ class SettingsMenu:
         self.btn_inter: ui.Button = self._menu.root.find_node('btn_inter').get_content()
         self.btn_intra_selection: ui.Button = self._menu.root.find_node('btn_intra_selection').get_content()
         self.btn_selection_water: ui.Button = self._menu.root.find_node('btn_selection_water').get_content()
-        
+
         self.btn_recalculate_on_update.switch.active = True
         self.btn_inter.switch.active = True
         self.btn_intra_selection.switch.active = True
