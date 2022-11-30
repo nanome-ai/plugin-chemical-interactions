@@ -3,6 +3,7 @@ from os import environ, path
 import nanome
 from nanome.api.structure import Complex
 from nanome.api.structure.substructure import Substructure
+from nanome.api import ui
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label
 from nanome.util import async_callback, Logs
 from nanome.util.enums import NotificationTypes
@@ -14,6 +15,18 @@ PDBOPTIONS.write_bonds = True
 BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
 MENU_PATH = path.join(BASE_PATH, 'menu_json', 'menu.json')
 SETTINGS_MENU_PATH = path.join(BASE_PATH, 'menu_json', 'settings.json')
+
+
+class INTERACTING_ENTITIES_OPTIONS:
+    """Arpeggio options for types of interacting entities.
+
+    INTER: Between an atom from the user's selection and a non-selected atom
+    INTRA: Between two atoms both in the user's selection
+    SELECTION_WATER: Between an atom in the user's selection and a water molecule
+    """
+    INTER = 'INTER'
+    INTRA_SELECTION = 'INTRA_SELECTION'
+    SELECTION_WATER = 'SELECTION_WATER'
 
 
 class ChemInteractionsMenu():
@@ -542,22 +555,46 @@ class SettingsMenu:
         self.plugin = plugin
         self._menu = nanome.ui.Menu.io.from_json(SETTINGS_MENU_PATH)
         self._menu.index = 200
+        self.btn_recalculate_on_update: ui.Button = self._menu.root.find_node('btn_recalculate_on_update').get_content()
+        self.btn_inter: ui.Button = self._menu.root.find_node('btn_inter').get_content()
+        self.btn_intra_selection: ui.Button = self._menu.root.find_node('btn_intra_selection').get_content()
+        self.btn_selection_water: ui.Button = self._menu.root.find_node('btn_selection_water').get_content()
+
         self.btn_recalculate_on_update.switch.active = True
+        self.btn_inter.switch.active = True
+        self.btn_intra_selection.switch.active = True
+        self.btn_selection_water.switch.active = True
         # self.btn_recalculate_on_update.toggle_on_press = True
+        self.btn_inter.toggle_on_press = True
+        self.btn_intra_selection.toggle_on_press = True
+        self.btn_selection_water.toggle_on_press = True
         self.btn_recalculate_on_update.register_pressed_callback(self.toggle_recalculate_on_update)
+
+        # Default selections
+        self.btn_inter.selected = True
+        self.btn_intra_selection.selected = False
+        self.btn_selection_water.selected = False
 
     def render(self):
         self._menu.enabled = True
         self.plugin.update_menu(self._menu)
 
-    @property
-    def btn_recalculate_on_update(self):
-        return self._menu.root.find_node('btn_recalculate_on_update').get_content()
-
     def get_settings(self):
         recalculate_on_update = self.btn_recalculate_on_update.selected
+        show_inter = self.btn_inter.selected
+        show_intra_selection = self.btn_intra_selection.selected
+        show_selection_water = self.btn_selection_water.selected
+        interating_entities = []
+        if show_inter:
+            interating_entities.append(INTERACTING_ENTITIES_OPTIONS.INTER)
+        if show_intra_selection:
+            interating_entities.append(INTERACTING_ENTITIES_OPTIONS.INTRA_SELECTION)
+        if show_selection_water:
+            interating_entities.append(INTERACTING_ENTITIES_OPTIONS.SELECTION_WATER)
+
         return {
-            'recalculate_on_update': recalculate_on_update
+            'recalculate_on_update': recalculate_on_update,
+            'interacting_entities': interating_entities
         }
 
     def toggle_recalculate_on_update(self, btn):
