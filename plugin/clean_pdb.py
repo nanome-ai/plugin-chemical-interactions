@@ -35,7 +35,7 @@ from Bio.PDB.Polypeptide import PPBuilder
 
 from nanome.util import Logs
 # CONSTANTS
-PDB_LINE_TEMPLATE = '{record: <6}{serial: >5} {atom_name: ^4}{altloc: ^1}{resname: ^3} {chain_id: ^1}{resnum: >4}{icode: ^1}   {x: >8.3f}{y: >8.3f}{z: >8.3f}{occ: >6.2f}{tfac: >6.2f}          {element: >2}{charge: >2}'
+PDB_LINE_TEMPLATE = '{record: <6}{serial: >5} {atom_name: ^4}{altloc: ^1}{resname: ^3} {chain_id: ^1}{resnum: >4}{icode: ^1}   {x: >8.3f}{y: >8.3f}{z: >8.3f}{occ: >6.2f}{tfac: >6.2f}          {element: >2}{charge: >2}'    
 
 
 def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogens=True, informative_filenames=False):
@@ -126,86 +126,18 @@ def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogen
     # MANY OF THE ISSUES ARE SOLVED DURING THE WRITING OUT
     output_filepath = '.'.join((pdb_noext, output_label, pdb_ext))
     with open(output_filepath, 'w') as fo:
-        atom_serial = 1
-
         res_count = len(list(model.get_residues()))
         loading_bar_increment = math.ceil(res_count * 0.03)
         i = 1
+        starting_atom_serial = 1
         for residue in model.get_residues():
             Logs.debug(f'Residue {i} / {res_count}: {residue}')
             if i % loading_bar_increment == 0 and plugin_instance:
                 plugin_instance.menu.update_loading_bar(i, res_count)
+            ending_atom_serial = starting_atom_serial + sum(1 for _ in residue.get_atoms())
+            clean_residue(residue, fo, polypeptide_residues, remove_waters, keep_hydrogens, starting_atom_serial)
+            starting_atom_serial = ending_atom_serial
             i += 1
-            # REMOVE WATERS IF FLAG SET
-            if remove_waters:
-                if residue.get_full_id()[3][0] == 'W':
-                    continue
-
-            record = 'ATOM'
-
-            # SET HETATM RECORD IF IT WAS ORIGINALLY A HETATM OR WATER
-            if residue.get_full_id()[3][0] == 'W' or residue.get_full_id()[3][0].startswith('H_'):
-                record = 'HETATM'
-
-            # SET ATOM RECORD IF THE RESIDUE IS IN A POLYPEPETIDE
-            if residue in polypeptide_residues:
-                record = 'ATOM'
-
-            # LOOP THROUGH ATOMS TO OUTPUT
-            for atom in residue.child_list:
-
-                # DEAL WITH DISORDERED ATOMS
-                if atom.is_disordered():
-                    atom = atom.disordered_get()
-
-                # REMOVE HYDROGENS
-                if not keep_hydrogens:
-                    if atom.element.strip() == 'H':
-                        continue
-
-                # CONVERT SELENOMETHIONINES TO METHIONINES
-                if residue in polypeptide_residues and (residue.resname == 'MSE' or residue.resname == 'MET'):
-
-                    residue.resname = 'MET'
-
-                    if atom.name == 'SE' and atom.element == 'SE':
-                        atom.name = 'SD'
-                        atom.element = 'S'
-
-                # FIX ATOM NAME BUG
-                if len(atom.name) == 3:
-                    atom.name = ' ' + atom.name
-
-                # PDB OUTPUT
-                # ATOM SERIALS ARE RENUMBERED FROM 1
-                # ALTLOCS ARE ALWAYS BLANK
-                # CHARGES ARE ALWAYS BLANK(?)
-                # OCCUPANCIES ARE ALWAYS 1.00
-                output_line = PDB_LINE_TEMPLATE.format(
-                    record=record,
-                    serial=atom_serial,
-                    atom_name=atom.name,
-                    altloc=' ',
-                    resname=residue.resname,
-                    chain_id=residue.get_parent().id,
-                    resnum=residue.get_id()[1],
-                    icode=residue.get_id()[2],
-                    x=float(atom.coord[0]),
-                    y=float(atom.coord[1]),
-                    z=float(atom.coord[2]),
-                    occ=1.00,
-                    tfac=atom.bfactor,
-                    element=atom.element,
-                    charge='')
-                fo.write('{}\n'.format(output_line))
-                atom_serial += 1
-                # RAISE AN ERROR IF WE'VE NOW GOT TOO MANY ATOMS
-                if (atom_serial - 1) > 99999:
-                    try:
-                        raise ValueError('More than 99999 atoms in the PDB when renumbered!')
-                    except Exception:
-                        traceback.print_exc(file=sys.stdout)
-                        exit(9)
         if plugin_instance:
             plugin_instance.menu.update_loading_bar(0, res_count)
 
@@ -264,3 +196,75 @@ if __name__ == '__main__':
     remove_waters = args.remove_waters
     keep_hydrogens = args.keep_hydrogens
     clean_pdb(pdb_path, remove_waters, keep_hydrogens, informative_filenames)
+
+
+def clean_residue(residue, fo, polypeptide_residues, remove_waters, keep_hydrogens, atom_serial):
+    # REMOVE WATERS IF FLAG SET
+    if remove_waters:
+        if residue.get_full_id()[3][0] == 'W':
+            return
+
+    record = 'ATOM'
+
+    # SET HETATM RECORD IF IT WAS ORIGINALLY A HETATM OR WATER
+    if residue.get_full_id()[3][0] == 'W' or residue.get_full_id()[3][0].startswith('H_'):
+        record = 'HETATM'
+
+    # SET ATOM RECORD IF THE RESIDUE IS IN A POLYPEPETIDE
+    if residue in polypeptide_residues:
+        record = 'ATOM'
+
+    # LOOP THROUGH ATOMS TO OUTPUT
+    for atom in residue.child_list:
+        # DEAL WITH DISORDERED ATOMS
+        if atom.is_disordered():
+            atom = atom.disordered_get()
+
+        # REMOVE HYDROGENS
+        if not keep_hydrogens:
+            if atom.element.strip() == 'H':
+                continue
+
+        # CONVERT SELENOMETHIONINES TO METHIONINES
+        if residue in polypeptide_residues and (residue.resname == 'MSE' or residue.resname == 'MET'):
+            residue.resname = 'MET'
+
+            if atom.name == 'SE' and atom.element == 'SE':
+                atom.name = 'SD'
+                atom.element = 'S'
+
+        # FIX ATOM NAME BUG
+        if len(atom.name) == 3:
+            atom.name = ' ' + atom.name
+
+        # PDB OUTPUT
+        # ATOM SERIALS ARE RENUMBERED FROM 1
+        # ALTLOCS ARE ALWAYS BLANK
+        # CHARGES ARE ALWAYS BLANK(?)
+        # OCCUPANCIES ARE ALWAYS 1.00
+        Logs.message(f"Atom serial {atom_serial}")
+        output_line = PDB_LINE_TEMPLATE.format(
+            record=record,
+            serial=atom_serial,
+            atom_name=atom.name,
+            altloc=' ',
+            resname=residue.resname,
+            chain_id=residue.get_parent().id,
+            resnum=residue.get_id()[1],
+            icode=residue.get_id()[2],
+            x=float(atom.coord[0]),
+            y=float(atom.coord[1]),
+            z=float(atom.coord[2]),
+            occ=1.00,
+            tfac=atom.bfactor,
+            element=atom.element,
+            charge='')
+        fo.write('{}\n'.format(output_line))
+        atom_serial += 1
+    # RAISE AN ERROR IF WE'VE NOW GOT TOO MANY ATOMS
+    if (atom_serial - 1) > 99999:
+        try:
+            raise ValueError('More than 99999 atoms in the PDB when renumbered!')
+        except Exception:
+            traceback.print_exc(file=sys.stdout)
+            exit(9)
