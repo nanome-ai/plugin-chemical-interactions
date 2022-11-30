@@ -121,15 +121,15 @@ def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogen
 
     # WRITE OUT CLEANED PDB
     # MANY OF THE ISSUES ARE SOLVED DURING THE WRITING OUT
+    res_count = sum(1 for _ in model.get_residues())
     output_filepath = '.'.join((pdb_noext, output_label, pdb_ext))
-    res_count = len(list(model.get_residues()))
     loading_bar_increment = math.ceil(res_count * 0.03)
-    i = 1
+
     starting_atom_serial = 1
     output_lines = []
 
     residue_iter = model.get_residues()
-    thread_count = 5
+    thread_count = max(res_count //  1000, 1)
     futs = []
     with ThreadPoolExecutor(max_workers=thread_count) as executor:
         for i, residue in enumerate(residue_iter):
@@ -150,31 +150,6 @@ def clean_pdb(pdb_path, plugin_instance=None, remove_waters=False, keep_hydrogen
     
     if plugin_instance:
         plugin_instance.menu.update_loading_bar(0, res_count)
-
-    # WRITE OUT COORDINATES FOR CHAIN BREAKS FOUND WITH THE PDB FILE
-    # with open('.'.join((pdb_noext, pdb_ext, 'breaks')), 'w') as fo, \
-    #         open('.'.join((pdb_noext, pdb_ext, 'break_residues')), 'w') as fo2:
-
-    #     for chain_break_residue in all_chain_break_residues:
-
-    #         fo2.write('{},{}{}`{}\n'.format(
-    #             chain_break_residue.get_parent().id,
-    #             chain_break_residue.get_id()[1],  # RESIDUE NUMBER
-    #             chain_break_residue.get_id()[2].strip(),  # INSERTION CODE
-    #             chain_break_residue.resname.strip()))
-
-    #         if 'CA' in chain_break_residue.child_dict:
-    #             break_coord = list(chain_break_residue.child_dict['CA'].coord)
-
-    #         elif 'N' in chain_break_residue.child_dict:
-    #             break_coord = list(chain_break_residue.child_dict['N'].coord)
-
-    #         elif 'C' in chain_break_residue.child_dict:
-    #             break_coord = list(chain_break_residue.child_dict['C'].coord)
-
-    #         else:
-    #             raise ValueError('Chain break residue {} had no mainchain atom to extract coordinates from.'.format(chain_break_residue))
-    #         fo.write('{}\n'.format(str(break_coord)))
     return output_filepath
 
 

@@ -153,9 +153,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             return
         Logs.message(f'Contacts Count: {len(contacts_data)}')
 
-        contacts_per_thread = 500
         # thread_count = max(len(contacts_data) // contacts_per_thread, 1)
-        thread_count = 10
+        contacts_per_thread = 1000
+        thread_count = max(len(contacts_data) // contacts_per_thread, 1)
         futs = []
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
             for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
