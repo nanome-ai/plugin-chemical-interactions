@@ -17,7 +17,7 @@ jobs:
       version_number: ${{steps.new_version_number.outputs.version_number}}
     steps:
       # Checkout repository, bump version with ./version.sh, and commit
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.NANOME_BOT_PAT }}
       - name: git setup
