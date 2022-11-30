@@ -1,6 +1,5 @@
 *
 !plugin
-!docker
 !tests
 !arpeggio_environ.yml
 !run.py
