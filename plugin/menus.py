@@ -6,7 +6,7 @@ from nanome.api.structure.substructure import Substructure
 from nanome.api import ui
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label
 from nanome.util import async_callback, Logs
-from nanome.util.enums import NotificationTypes
+from nanome.util import enums
 from .forms import LineSettingsForm, color_map, default_line_settings
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -254,7 +254,7 @@ class ChemInteractionsMenu():
         ]
 
         if not selected_complexes:
-            self.plugin.send_notification(NotificationTypes.error, 'Please Select a Complex.')
+            self.plugin.send_notification(enums.NotificationTypes.error, 'Please Select a Complex.')
             self.reset_calculate_btn()
             return
 
@@ -289,14 +289,14 @@ class ChemInteractionsMenu():
                         ligand_residues.append(rez)
         else:
             # If no ligand selected from dropdown, and not atom selection mode, raise error
-            self.plugin.send_notification(NotificationTypes.error, 'Please Select a Ligand.')
+            self.plugin.send_notification(enums.NotificationTypes.error, 'Please Select a Ligand.')
             self.reset_calculate_btn()
             return
 
         error_msg = ''
         if not selected_complexes:
             error_msg = 'Please Select a Complex'
-            self.plugin.send_notification(NotificationTypes.error, error_msg)
+            self.plugin.send_notification(enums.NotificationTypes.error, error_msg)
             return
 
         # Get up to date selected_complex
@@ -331,7 +331,7 @@ class ChemInteractionsMenu():
         except Exception:
             msg = 'Error occurred, please check logs'
             self.plugin.send_notification(
-                nanome.util.enums.NotificationTypes.error, msg)
+                enums.NotificationTypes.error, msg)
             self.reset_calculate_btn()
             raise
 
@@ -365,7 +365,7 @@ class ChemInteractionsMenu():
         self.ls_interactions.display_rows = 7
         for name, field in form._fields.items():
             ln = nanome.ui.LayoutNode()
-            ln.sizing_type = ln.SizingTypes.ratio.value
+            ln.sizing_type = enums.SizingTypes.ratio.value
             ln.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal.value
 
             list_item_ln = nanome.ui.LayoutNode()

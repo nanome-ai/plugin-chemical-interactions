@@ -387,8 +387,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
 
         contacts_data: Data returned by Chemical Interaction Service.
-        complex: main complex selected.
-        ligand_residues: List. complex containing the ligand. May contain same complex as complex arg
+        complexes: strucutre.Complex objects that can contain atoms in contacts_data.
+        line_settings: dict. Data to populate LineSettingsForm. 
         interaction_data. LineSettingsForm data describing color and visibility of interactions.
 
         :rtype: LineManager object containing new lines to be uploaded to Nanome workspace.
