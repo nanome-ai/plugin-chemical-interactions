@@ -48,18 +48,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.menu.render(complexes=complexes, default_values=True)
 
     @async_callback
-    async def on_complex_list_updated(self, complexes):
-        self.menu.render(complexes=complexes)
-
-    @async_callback
-    async def on_complex_added(self):
+    async def on_complex_list_changed(self):
         complexes = await self.request_complex_list()
         await self.menu.render(complexes=complexes, default_values=True)
-
-    @async_callback
-    async def on_complex_removed(self):
-        complexes = await self.request_complex_list()
-        await self.menu.render(complexes=complexes)
 
     def on_advanced_settings(self):
         self.settings_menu.render()
@@ -388,7 +379,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         contacts_data: Data returned by Chemical Interaction Service.
         complexes: strucutre.Complex objects that can contain atoms in contacts_data.
-        line_settings: dict. Data to populate LineSettingsForm. 
+        line_settings: dict. Data to populate LineSettingsForm.
         interaction_data. LineSettingsForm data describing color and visibility of interactions.
 
         :rtype: LineManager object containing new lines to be uploaded to Nanome workspace.
