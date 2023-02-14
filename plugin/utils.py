@@ -60,7 +60,15 @@ def merge_complexes(complexes, align_reference, selected_atoms_only=False):
     merged_complex.add_molecule(mol)
     for comp in complexes:
         ComplexUtils.align_to(comp, align_reference)
-        existing_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
+        # Only return current conformer
+        if len(list(comp.molecules)) > 1:
+            existing_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
+        else:
+            # Extract only the current conformer from the molecule
+            existing_mol = next(comp.molecules)
+            existing_mol.move_conformer(existing_mol.current_conformer, 0)
+            existing_mol.set_conformer_count(1)
+
         if selected_atoms_only and comp.index != align_reference.index:
             # Extract selected copy selected residues
             selected_residues = [res for res in comp.residues if any(a.selected for a in res.atoms)]
@@ -68,8 +76,8 @@ def merge_complexes(complexes, align_reference, selected_atoms_only=False):
             for ch in extracted_comp.chains:
                 mol.add_chain(ch)
         else:
-            for chain in existing_mol.chains:
-                mol.add_chain(chain)
+            for ch in existing_mol.chains:
+                mol.add_chain(ch)
     return merged_complex
 
 
