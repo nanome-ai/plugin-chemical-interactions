@@ -172,8 +172,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 comp.locked = True
             self.update_structures_shallow(complexes)
 
-
-
         self.line_manager.update(new_line_manager)
         if distance_labels:
             await self.render_distance_labels(complexes)
