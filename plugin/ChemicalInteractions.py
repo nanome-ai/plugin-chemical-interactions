@@ -162,10 +162,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Shape.upload_multiple(all_new_lines)
 
         # Make sure complexes are locked
-        for comp in complexes:
-            ComplexUtils.reset_transform(comp)
-            comp.locked = True
-        self.update_structures_shallow(complexes)
+        # Skip if user has recalculate on update turned on
+        # Causes cycles of continuous recalculation.
+        comps_to_lock = [cmp for cmp in complexes if not cmp.locked]
+        if any(comps_to_lock) and not settings['recalculate_on_update']:
+            for comp in comps_to_lock:
+                # Make sure we don't inadvertantly move the complex
+                ComplexUtils.reset_transform(comp)
+                comp.locked = True
+            self.update_structures_shallow(comps_to_lock)
 
         self.line_manager.update(new_line_manager)
         if distance_labels:
