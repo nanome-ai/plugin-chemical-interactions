@@ -15,7 +15,7 @@ from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, Co
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
-from .utils import merge_complexes, get_neighboring_atoms, chunks
+from .utils import merge_complexes, chunks
 from .clean_pdb import clean_pdb
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -571,7 +571,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom_generators = []
         for comp in complexes:
             try:
-                current_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
+                if len(list(comp.molecules)) > 1:
+                    current_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
+                else:
+                    current_mol = next(comp.molecules)
+                    current_mol.move_conformer(current_mol.current_conformer, 0)
+                    current_mol.set_conformer_count(1)
             except StopIteration:
                 # In case of empty complex, its safe to continue
                 if sum(1 for _ in comp.molecules) == 0:
@@ -589,7 +594,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         line_in_frame = atoms_found == 2
         return line_in_frame
 
-    async def clear_visible_lines(self, complexes):
+    async def clear_visible_lines(self, complexes, send_notification=True):
         """Clear all interaction lines that are currently visible."""
         lines_to_destroy = []
         labels_to_destroy = []
@@ -623,7 +628,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         message = f'Deleted {destroyed_line_count} interactions'
         Logs.message(message)
-        asyncio.create_task(self.send_async_notification(message))
+        if send_notification:
+            asyncio.create_task(self.send_async_notification(message))
 
     async def send_async_notification(self, message):
         """Send notification asynchronously."""
@@ -737,7 +743,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         selected_atoms_only = self.previous_run['selected_atoms_only']
         distance_labels = self.previous_run['distance_labels']
 
-        all_complexes = [target_complex] + ligand_complexes
+        # Clear visible lines
+        previous_comps = [target_complex] + ligand_complexes
+        previous_comps = [cmp for cmp in previous_comps if cmp.index != updated_comp.index]
+        all_complexes = [updated_comp] + previous_comps
+        await self.clear_visible_lines(all_complexes, send_notification=False)
+
         comp_indices_to_update = [
             comp.index for comp in all_complexes
             if comp.index != updated_comp.index

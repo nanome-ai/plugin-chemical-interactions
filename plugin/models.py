@@ -127,6 +127,10 @@ class InteractionLine(Line):
 class StructurePairManager:
     """Functions used by Managers to create keys to uniquely identify pairs of InteractionStructures."""
 
+    def __init__(self):
+        super().__init__()
+        self._data = defaultdict(list)
+
     @staticmethod
     def get_structpair_key(*struct_indices):
         """Return a string key for the given atom indices."""
@@ -144,10 +148,6 @@ class StructurePairManager:
 
 class LineManager(StructurePairManager):
     """Organizes Interaction lines by atom pairs."""
-
-    def __init__(self):
-        super().__init__()
-        self._data = defaultdict(list)
 
     def all_lines(self):
         """Return a flat list of all lines being stored."""
@@ -192,10 +192,6 @@ class LineManager(StructurePairManager):
 
 
 class LabelManager(StructurePairManager):
-
-    def __init__(self):
-        super().__init__()
-        self._data = defaultdict(None)
 
     def all_labels(self):
         """Return a flat list of all lines being stored."""
