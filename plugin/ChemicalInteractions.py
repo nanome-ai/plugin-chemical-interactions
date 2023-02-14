@@ -15,7 +15,7 @@ from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, Co
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
-from .utils import merge_complexes, get_neighboring_atoms, chunks
+from .utils import merge_complexes, chunks
 from .clean_pdb import clean_pdb
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
