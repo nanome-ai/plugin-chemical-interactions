@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
 from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, ComplexUtils
+from typing import List
 
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
@@ -590,8 +591,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             mol = next(
                 ml for i, ml in enumerate(comp.molecules)
                 if i == comp.current_frame)
-            current_conformer = mol.current_conformer
-            correct_conformer = line.conformers.get(comp.index) != current_conformer
+            correct_conformer = line.conformers.get(str(atom.index)) == mol.current_conformer
             if correct_conformer:
                 atoms_found += 1
 
@@ -732,14 +732,28 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         res_complexes = [res.complex for res in ligand_residues]
         all_complexes = [target_complex] + res_complexes
         for comp in all_complexes:
-            comp.register_complex_updated_callback(self.recalculate_interactions)
+            comp.register_complex_updated_callback(self.on_complex_updated)
 
     @async_callback
-    async def recalculate_interactions(self, updated_comp: Complex):
-        """Recalculate interactions from the previous run."""
-        if not hasattr(self, 'previous_run'):
-            return
+    async def on_complex_updated(self, updated_comp: Complex):
+        """Callback for when a complex is updated."""
+        # Get all updated complexes
+        complex_list = await self.request_complex_list()
+        comp_indices = [comp.index for comp in complex_list if comp.index != updated_comp.index]
+        updated_comps = await self.request_complexes(comp_indices)
+        updated_comp_list = [updated_comp] + updated_comps
 
+        # Redraw lines
+        interactions_data = self.menu.collect_interaction_data()
+        await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
+
+        # Recalculate interactions if that setting is enabled.
+        recalculate_enabled = self.settings_menu.get_settings()['recalculate_interactions']
+        if recalculate_enabled and hasattr(self, 'previous_run'):
+            await self.recalculate_interactions(updated_comp_list)
+
+    async def recalculate_interactions(self, updated_comps: List[Complex]):
+        """Recalculate interactions from the previous run."""
         Logs.message("Recalculating previous run with updated structures.")
         await self.send_async_notification('Recalculating interactions...')
         target_complex = self.previous_run['target_complex']
@@ -749,24 +763,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         selected_atoms_only = self.previous_run['selected_atoms_only']
         distance_labels = self.previous_run['distance_labels']
 
-        # Clear visible lines
-        previous_comps = [target_complex] + ligand_complexes
-        previous_comps = [cmp for cmp in previous_comps if cmp.index != updated_comp.index]
-        all_complexes = [updated_comp] + previous_comps
-        await self.clear_visible_lines(all_complexes, send_notification=False)
-
-        comp_indices_to_update = [
-            comp.index for comp in all_complexes
-            if comp.index != updated_comp.index
-        ]
-        if comp_indices_to_update:
-            updated_comps = await self.request_complexes(comp_indices_to_update)
-            updated_comps.append(updated_comp)
-        else:
-            updated_comps = [updated_comp]
-
         updated_target_comp = next(
-            cmp for cmp in updated_comps if cmp.index == target_complex.index)
+            cmp for cmp in updated_comps
+            if cmp.index == target_complex.index)
 
         lig_comp_indices = [cmp.index for cmp in ligand_complexes]
         updated_lig_comps = [
@@ -779,8 +778,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if res.index in [r.index for r in ligand_residues]
             ])
 
-        await self.menu.run_calculation(
+        await self.calculate_interactions(
             updated_target_comp, updated_residues, line_settings,
             selected_atoms_only=selected_atoms_only,
-            distance_labels=distance_labels
-        )
+            distance_labels=distance_labels)
