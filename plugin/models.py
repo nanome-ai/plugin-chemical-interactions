@@ -12,17 +12,18 @@ class InteractionStructure:
     Is either a single Atom, or a ring of atoms.
     """
 
-    # Records the frame of the complex that the Structure is a part of.
+    # Records the frame and conformer of the complex that the Structure is a part of.
     frame = None
+    conformer = None
 
-    def __init__(self, atom_or_atoms, frame=None):
+    def __init__(self, atom_or_atoms, frame=None, conformer=None):
         """Pass in either a single Atom object or a list of Atoms."""
         if isinstance(atom_or_atoms, Atom):
             self.atoms.append(atom_or_atoms)
         elif isinstance(atom_or_atoms, list):
             self.atoms.extend(atom_or_atoms)
-
         self.frame = frame
+        self.conformer = conformer
 
     @property
     def atoms(self):
@@ -38,7 +39,8 @@ class InteractionStructure:
     @property
     def index(self):
         """Unique index based on atoms in structure."""
-        return ','.join(str(a.index) for a in sorted(self.atoms, key=attrgetter('index')))
+        atom_indices = ','.join(str(a.index) for a in sorted(self.atoms, key=attrgetter('index')))
+        return f"{atom_indices}_{self.frame}_{self.conformer}"
 
     @property
     def centroid(self):
@@ -79,13 +81,8 @@ class InteractionLine(Line):
         # Set up frames, conformers, and positions dict.
         for struct in [struct1, struct2]:
             struct_position = struct.line_anchor.position
-            struct_complex = struct.atoms[0].complex
-            struct_mol = next(
-                mol for i, mol in enumerate(struct_complex.molecules)
-                if i == struct_complex.current_frame)
-
             self.frames[struct.index] = struct.frame
-            self.conformers[struct.index] = struct_mol.current_conformer
+            self.conformers[struct.index] = struct.conformer
             self.struct_positions[struct.index] = struct_position
 
     @property
@@ -145,17 +142,25 @@ class StructurePairManager:
         self._data = defaultdict(list)
 
     @staticmethod
-    def get_structpair_key(*struct_indices):
+    def get_structpair_key(struct1_key, struct2_key):
         """Return a string key for the given atom indices."""
-        atom_key = '-'.join(sorted([str(index) for index in struct_indices]))
-        return atom_key
+        structpair_key = '--'.join(sorted([struct1_key, struct2_key]))
+        return structpair_key
+
+    @staticmethod
+    def get_structpair_key_for_line(line):
+        """Return a string key for the given atom indices."""
+        struct1_key, struct2_key = line.structure_indices
+        structpair_key = '--'.join(sorted([struct1_key, struct2_key]))
+        return structpair_key
 
     def get_struct_pairs(self):
         """Return a list of structure pairs being tracked by manager."""
         struct_pairs = []
         for structpair_key in self._data:
-            atom1_index, atom2_index = structpair_key.split('-')
-            struct_pairs.append((atom1_index, atom2_index))
+            struct1_key, struct2_key = structpair_key.split('--')
+            # struct1_index, struct1_frame, struct1_conformer = struct1_key.split('_')
+            struct_pairs.append((struct1_key, struct2_key))
         return struct_pairs
 
 
@@ -176,17 +181,16 @@ class LineManager(StructurePairManager):
     def add_line(self, line):
         if not isinstance(line, InteractionLine):
             raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
-        structpair_key = self.get_structpair_key(*line.structure_indices)
+
+        structpair_key = self.get_structpair_key_for_line(line)
         self._data[structpair_key].append(line)
 
-    def get_lines_for_structure_pair(self, struct1, struct2):
+    def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str):
         """Given two InteractionStructures, return all interaction lines connecting them.
 
         :arg struct1: InteractionStructure, or index str
         :arg struct2: InteractionStructure, or index str
         """
-        struct1_index = struct1.index if isinstance(struct1, InteractionStructure) else struct1
-        struct2_index = struct2.index if isinstance(struct1, InteractionStructure) else struct2
         key = self.get_structpair_key(struct1_index, struct2_index)
         return self._data[key]
 

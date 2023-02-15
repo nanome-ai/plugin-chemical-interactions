@@ -367,7 +367,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if ',' in atompath:
                 # Parse aromatic ring, and add list of atoms to struct_list
                 ring_atoms = cls.parse_ring_atoms(atompath, complexes)
-                struct = InteractionStructure(ring_atoms)
+                # Get frame and conformer from first atom in ring
+                comp = ring_atoms[0].complex
+                current_frame = comp.current_frame
+                comp_mol = next(mol for i, mol in enumerate(comp.molecules) if i == current_frame)
+                current_conformer = comp_mol.current_conformer
+                struct = InteractionStructure(ring_atoms, frame=current_frame, conformer=current_conformer)
             else:
                 # Parse single atom
                 for comp in complexes:
@@ -376,7 +381,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         break
                 if not atom:
                     continue
-                struct = InteractionStructure(atom)
+                # Get frame and conformer from first atom in ring
+                comp = atom.complex
+                current_frame = comp.current_frame
+                comp_mol = next(mol for i, mol in enumerate(comp.molecules) if i == current_frame)
+                current_conformer = comp_mol.current_conformer
+                struct = InteractionStructure(atom, frame=current_frame, conformer=current_conformer)
             struct_list.append(struct)
         return struct_list
 
@@ -483,12 +493,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # See if we've already drawn this line
             line_exists = False
-            structpair_lines = self.line_manager.get_lines_for_structure_pair(struct1, struct2)
+            structpair_lines = self.line_manager.get_lines_for_structure_pair(struct1.index, struct2.index)
             for lin in structpair_lines:
                 if all([
                     lin.frames.get(struct1.index) == struct1.frame,
                     lin.frames.get(struct2.index) == struct2.frame,
-                        lin.interaction_type == interaction_type]):
+                    lin.conformer.get(struct1.index) == struct1.conformer,
+                    lin.conformer.get(struct2.index) == struct2.conformer,
+                    lin.interaction_type == interaction_type,
+                        ]):
                     line_exists = True
                     break
             if line_exists:
@@ -569,6 +582,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :arg complexes: List of complexes in workspace that can contain atoms.
         """
         line_atom_indices = [anchor.target for anchor in line.anchors]
+        struct1_key, struct2_key = line.structure_indices
         atom_generators = []
         for comp in complexes:
             try:
@@ -591,7 +605,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             mol = next(
                 ml for i, ml in enumerate(comp.molecules)
                 if i == comp.current_frame)
-            correct_conformer = line.conformers.get(str(atom.index)) == mol.current_conformer
+            # Check which struct key the atom is in
+            struct_key = struct1_key if str(atom.index) in struct1_key else struct2_key
+            correct_conformer = line.conformers.get(struct_key) == mol.current_conformer
             if correct_conformer:
                 atoms_found += 1
 
@@ -613,8 +629,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if complexes[i].index == comp.index:
                     complexes[i] = comp
 
-        for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
-            line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
+        for struct1_key, struct2_key in self.line_manager.get_struct_pairs():
+            line_list = self.line_manager.get_lines_for_structure_pair(struct1_key, struct2_key)
             line_count = len(line_list)
             line_removed = False
             for i in range(line_count - 1, -1, -1):
@@ -625,7 +641,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     line_removed = True
             # Remove any labels that have been created corresponding to this structpair
             if line_removed:
-                label = self.label_manager.remove_label_for_structpair(struct1_index, struct2_index)
+                label = self.label_manager.remove_label_for_structpair(struct1_key, struct2_key)
                 if label:
                     labels_to_destroy.append(label)
 
@@ -748,7 +764,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
 
         # Recalculate interactions if that setting is enabled.
-        recalculate_enabled = self.settings_menu.get_settings()['recalculate_interactions']
+        recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
         if recalculate_enabled and hasattr(self, 'previous_run'):
             await self.recalculate_interactions(updated_comp_list)
 
