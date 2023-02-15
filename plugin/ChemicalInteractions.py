@@ -571,12 +571,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom_generators = []
         for comp in complexes:
             try:
-                if len(list(comp.molecules)) > 1:
-                    current_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
-                else:
-                    current_mol = next(comp.molecules)
-                    current_mol.move_conformer(current_mol.current_conformer, 0)
-                    current_mol.set_conformer_count(1)
+                current_mol = next(
+                    mol for i, mol in enumerate(comp.molecules)
+                    if i == comp.current_frame)
             except StopIteration:
                 # In case of empty complex, its safe to continue
                 if sum(1 for _ in comp.molecules) == 0:
@@ -584,11 +581,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 raise
             atom_generators.append(current_mol.atoms)
         current_atoms = itertools.chain(*atom_generators)
-
         atoms_found = 0
         for atom in current_atoms:
-            if atom.index in line_atom_indices:
+            if atom.index not in line_atom_indices:
+                continue
+            # Make sure atom is in the correct conformer
+            comp = atom.complex
+            mol = next(
+                ml for i, ml in enumerate(comp.molecules)
+                if i == comp.current_frame)
+            current_conformer = mol.current_conformer
+            correct_conformer = line.conformers.get(comp.index) != current_conformer
+            if correct_conformer:
                 atoms_found += 1
+
             if atoms_found == 2:
                 break
         line_in_frame = atoms_found == 2

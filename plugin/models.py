@@ -76,10 +76,16 @@ class InteractionLine(Line):
         if kwargs.get('visible') is False:
             self.color.a = 0
 
-        # Set up frames and positions dict.
+        # Set up frames, conformers, and positions dict.
         for struct in [struct1, struct2]:
             struct_position = struct.line_anchor.position
+            struct_complex = struct.atoms[0].complex
+            struct_mol = next(
+                mol for i, mol in enumerate(struct_complex.molecules)
+                if i == struct_complex.current_frame)
+
             self.frames[struct.index] = struct.frame
+            self.conformers[struct.index] = struct_mol.current_conformer
             self.struct_positions[struct.index] = struct_position
 
     @property
@@ -99,6 +105,13 @@ class InteractionLine(Line):
         if not hasattr(self, '_frames'):
             self._frames = {}
         return self._frames
+
+    @property
+    def conformers(self):
+        """Dict where key is structure index and value is current conformer of the atom's molecule."""
+        if not hasattr(self, '_conformers'):
+            self._conformers = {}
+        return self._conformers
 
     @property
     def struct_positions(self):
