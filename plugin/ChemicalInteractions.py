@@ -118,10 +118,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             cmp.register_complex_updated_callback(self.on_complex_updated)
 
         # If the ligands are not part of selected complex, merge into one complex
-        # Copy list so that conformer modifications in merge_complexes aren't propogated.
-        comp_copies = [cmp._deep_copy() for cmp in complexes]
         if len(complexes) > 1:
-            full_complex = merge_complexes(comp_copies, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
+            full_complex = merge_complexes(complexes, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
         else:
             full_complex = target_complex
 
