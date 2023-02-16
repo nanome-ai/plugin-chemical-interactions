@@ -782,7 +782,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if res.index in [r.index for r in ligand_residues]
             ])
 
-        await self.calculate_interactions(
+        await self.menu.run_calculation(
             updated_target_comp, updated_residues, line_settings,
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
