@@ -113,9 +113,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         complexes = set([target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]])
 
-        # If the ligands are not part of selected complex, merge into one complex.
+        # If the ligands are not part of selected complex, merge into one complex
+        # Copy list so that conformer modifications in merge_copmlexes aren't propogated.
+        comp_copies = [cmp._deep_copy() for cmp in complexes]
+
         if len(complexes) > 1:
-            full_complex = merge_complexes(complexes, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
+            full_complex = merge_complexes(comp_copies, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
         else:
             full_complex = target_complex
 
@@ -464,15 +467,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             for struct in struct_list:
-                # Set `frame` attribute for InteractionStructure.
+                # Set `frame` and `conformer` attribute for InteractionStructure.
                 for comp in complexes:
                     atom_indices = [a.index for a in struct.atoms]
                     relevant_atoms = [a.index for a in comp.atoms if a.index in atom_indices]
                     if relevant_atoms:
                         struct.frame = comp.current_frame
-
+                        struct.conformer = list(comp.molecules)[comp.current_frame].current_conformer
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
+            Logs.debug(struct1.index, struct2.index)
             structpair_lines = self.create_new_lines(struct1, struct2, interaction_types, form.data)
             new_line_manager.add_lines(structpair_lines)
         return new_line_manager
@@ -498,10 +502,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if all([
                     lin.frames.get(struct1.index) == struct1.frame,
                     lin.frames.get(struct2.index) == struct2.frame,
-                    lin.conformer.get(struct1.index) == struct1.conformer,
-                    lin.conformer.get(struct2.index) == struct2.conformer,
-                    lin.interaction_type == interaction_type,
-                        ]):
+                    lin.conformers.get(struct1.index) == struct1.conformer,
+                    lin.conformers.get(struct2.index) == struct2.conformer,
+                        lin.interaction_type == interaction_type]):
                     line_exists = True
                     break
             if line_exists:
