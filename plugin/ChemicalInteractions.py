@@ -468,7 +468,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         struct.conformer = list(comp.molecules)[comp.current_frame].current_conformer
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
-            Logs.debug(struct1.index, struct2.index)
             structpair_lines = self.create_new_lines(struct1, struct2, interaction_types, form.data)
             new_line_manager.add_lines(structpair_lines)
         return new_line_manager
