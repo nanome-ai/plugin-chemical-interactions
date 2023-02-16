@@ -38,6 +38,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.menu = ChemInteractionsMenu(self)
         self.settings_menu = SettingsMenu(self)
         self.show_distance_labels = False
+        self.__complex_cache = {}
 
     def on_stop(self):
         self.temp_dir.cleanup()
@@ -112,6 +113,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 selected_atoms_only, distance_labels)
 
         complexes = set([target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]])
+        for cmp in complexes:
+            self.__complex_cache[cmp.index] = cmp
+            cmp.register_complex_updated_callback(self.on_complex_updated)
 
         # If the ligands are not part of selected complex, merge into one complex
         # Copy list so that conformer modifications in merge_copmlexes aren't propogated.
@@ -476,7 +480,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         struct.conformer = list(comp.molecules)[comp.current_frame].current_conformer
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
-            Logs.debug(struct1.index, struct2.index)
             structpair_lines = self.create_new_lines(struct1, struct2, interaction_types, form.data)
             new_line_manager.add_lines(structpair_lines)
         return new_line_manager
@@ -748,19 +751,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             'selected_atoms_only': selected_atoms_only,
             'distance_labels': distance_labels
         }
-        res_complexes = [res.complex for res in ligand_residues]
-        all_complexes = [target_complex] + res_complexes
-        for comp in all_complexes:
-            comp.register_complex_updated_callback(self.on_complex_updated)
 
     @async_callback
     async def on_complex_updated(self, updated_comp: Complex):
         """Callback for when a complex is updated."""
         # Get all updated complexes
-        complex_list = await self.request_complex_list()
-        comp_indices = [comp.index for comp in complex_list if comp.index != updated_comp.index]
-        updated_comps = await self.request_complexes(comp_indices)
-        updated_comp_list = [updated_comp] + updated_comps
+        cached_complexes = [cmp for cmp in self.__complex_cache.values() if cmp.index != updated_comp.index]
+        updated_comp_list = [updated_comp] + cached_complexes
 
         # Redraw lines
         interactions_data = self.menu.collect_interaction_data()
