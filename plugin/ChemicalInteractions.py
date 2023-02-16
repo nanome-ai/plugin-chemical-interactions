@@ -118,9 +118,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             cmp.register_complex_updated_callback(self.on_complex_updated)
 
         # If the ligands are not part of selected complex, merge into one complex
-        # Copy list so that conformer modifications in merge_copmlexes aren't propogated.
+        # Copy list so that conformer modifications in merge_complexes aren't propogated.
         comp_copies = [cmp._deep_copy() for cmp in complexes]
-
         if len(complexes) > 1:
             full_complex = merge_complexes(comp_copies, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
         else:
@@ -375,11 +374,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 # Parse aromatic ring, and add list of atoms to struct_list
                 ring_atoms = cls.parse_ring_atoms(atompath, complexes)
                 # Get frame and conformer from first atom in ring
-                comp = ring_atoms[0].complex
-                current_frame = comp.current_frame
-                comp_mol = next(mol for i, mol in enumerate(comp.molecules) if i == current_frame)
-                current_conformer = comp_mol.current_conformer
-                struct = InteractionStructure(ring_atoms, frame=current_frame, conformer=current_conformer)
+                struct = InteractionStructure(ring_atoms)
             else:
                 # Parse single atom
                 for comp in complexes:
@@ -388,12 +383,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         break
                 if not atom:
                     continue
-                # Get frame and conformer from first atom in ring
-                comp = atom.complex
-                current_frame = comp.current_frame
-                comp_mol = next(mol for i, mol in enumerate(comp.molecules) if i == current_frame)
-                current_conformer = comp_mol.current_conformer
-                struct = InteractionStructure(atom, frame=current_frame, conformer=current_conformer)
+                struct = InteractionStructure(atom)
             struct_list.append(struct)
         return struct_list
 
@@ -480,6 +470,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         struct.conformer = list(comp.molecules)[comp.current_frame].current_conformer
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
+            Logs.debug(struct1.index, struct2.index)
             structpair_lines = self.create_new_lines(struct1, struct2, interaction_types, form.data)
             new_line_manager.add_lines(structpair_lines)
         return new_line_manager
