@@ -55,22 +55,19 @@ def merge_complexes(complexes, align_reference, selected_atoms_only=False):
     align_reference: Complex to align other complexes to.
     target: Complex to merge into. If None, a new Complex is created.
     """
-    # Copy list so that conformer modifications aren't propogated.
-    comp_copies = [cmp._deep_copy() for cmp in complexes]
-    # Fix indices
-    for original, cpy in zip(complexes, comp_copies):
-        cpy.index = original.index
-
     merged_complex = structure.Complex()
     mol = structure.Molecule()
     merged_complex.add_molecule(mol)
-    for comp in comp_copies:
+    for comp in complexes:
         ComplexUtils.align_to(comp, align_reference)
         # Only return current conformer
-        existing_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
-        # Extract only the current conformer from the molecule
-        existing_mol.move_conformer(existing_mol.current_conformer, 0)
-        existing_mol.set_conformer_count(1)
+        if len(list(comp.molecules)) > 1:
+            existing_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
+        else:
+            # Extract only the current conformer from the molecule
+            existing_mol = next(comp.molecules)
+            existing_mol.move_conformer(existing_mol.current_conformer, 0)
+            existing_mol.set_conformer_count(1)
 
         if selected_atoms_only and comp.index != align_reference.index:
             # Extract selected copy selected residues

@@ -11,7 +11,6 @@ from concurrent.futures import ThreadPoolExecutor
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
 from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, ComplexUtils
-from typing import List
 
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
@@ -38,7 +37,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.menu = ChemInteractionsMenu(self)
         self.settings_menu = SettingsMenu(self)
         self.show_distance_labels = False
-        self.__complex_cache = {}
 
     def on_stop(self):
         self.temp_dir.cleanup()
@@ -113,11 +111,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 selected_atoms_only, distance_labels)
 
         complexes = set([target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]])
-        for cmp in complexes:
-            self.__complex_cache[cmp.index] = cmp
-            cmp.register_complex_updated_callback(self.on_complex_updated)
 
-        # If the ligands are not part of selected complex, merge into one complex
+        # If the ligands are not part of selected complex, merge into one complex.
         if len(complexes) > 1:
             full_complex = merge_complexes(complexes, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
         else:
@@ -371,7 +366,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if ',' in atompath:
                 # Parse aromatic ring, and add list of atoms to struct_list
                 ring_atoms = cls.parse_ring_atoms(atompath, complexes)
-                # Get frame and conformer from first atom in ring
                 struct = InteractionStructure(ring_atoms)
             else:
                 # Parse single atom
@@ -459,13 +453,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             for struct in struct_list:
-                # Set `frame` and `conformer` attribute for InteractionStructure.
+                # Set `frame` attribute for InteractionStructure.
                 for comp in complexes:
                     atom_indices = [a.index for a in struct.atoms]
                     relevant_atoms = [a.index for a in comp.atoms if a.index in atom_indices]
                     if relevant_atoms:
                         struct.frame = comp.current_frame
-                        struct.conformer = list(comp.molecules)[comp.current_frame].current_conformer
+
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
             structpair_lines = self.create_new_lines(struct1, struct2, interaction_types, form.data)
@@ -488,13 +482,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # See if we've already drawn this line
             line_exists = False
-            structpair_lines = self.line_manager.get_lines_for_structure_pair(struct1.index, struct2.index)
+            structpair_lines = self.line_manager.get_lines_for_structure_pair(struct1, struct2)
             for lin in structpair_lines:
                 if all([
                     lin.frames.get(struct1.index) == struct1.frame,
                     lin.frames.get(struct2.index) == struct2.frame,
-                    lin.conformers.get(struct1.index) == struct1.conformer,
-                    lin.conformers.get(struct2.index) == struct2.conformer,
                         lin.interaction_type == interaction_type]):
                     line_exists = True
                     break
@@ -576,13 +568,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :arg complexes: List of complexes in workspace that can contain atoms.
         """
         line_atom_indices = [anchor.target for anchor in line.anchors]
-        struct1_key, struct2_key = line.structure_indices
         atom_generators = []
         for comp in complexes:
             try:
-                current_mol = next(
-                    mol for i, mol in enumerate(comp.molecules)
-                    if i == comp.current_frame)
+                if len(list(comp.molecules)) > 1:
+                    current_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
+                else:
+                    current_mol = next(comp.molecules)
+                    current_mol.move_conformer(current_mol.current_conformer, 0)
+                    current_mol.set_conformer_count(1)
             except StopIteration:
                 # In case of empty complex, its safe to continue
                 if sum(1 for _ in comp.molecules) == 0:
@@ -590,21 +584,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 raise
             atom_generators.append(current_mol.atoms)
         current_atoms = itertools.chain(*atom_generators)
+
         atoms_found = 0
         for atom in current_atoms:
-            if atom.index not in line_atom_indices:
-                continue
-            # Make sure atom is in the correct conformer
-            comp = atom.complex
-            mol = next(
-                ml for i, ml in enumerate(comp.molecules)
-                if i == comp.current_frame)
-            # Check which struct key the atom is in
-            struct_key = struct1_key if str(atom.index) in struct1_key else struct2_key
-            correct_conformer = line.conformers.get(struct_key) == mol.current_conformer
-            if correct_conformer:
+            if atom.index in line_atom_indices:
                 atoms_found += 1
-
             if atoms_found == 2:
                 break
         line_in_frame = atoms_found == 2
@@ -623,8 +607,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 if complexes[i].index == comp.index:
                     complexes[i] = comp
 
-        for struct1_key, struct2_key in self.line_manager.get_struct_pairs():
-            line_list = self.line_manager.get_lines_for_structure_pair(struct1_key, struct2_key)
+        for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
+            line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
             line_count = len(line_list)
             line_removed = False
             for i in range(line_count - 1, -1, -1):
@@ -635,7 +619,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     line_removed = True
             # Remove any labels that have been created corresponding to this structpair
             if line_removed:
-                label = self.label_manager.remove_label_for_structpair(struct1_key, struct2_key)
+                label = self.label_manager.remove_label_for_structpair(struct1_index, struct2_index)
                 if label:
                     labels_to_destroy.append(label)
 
@@ -739,25 +723,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             'selected_atoms_only': selected_atoms_only,
             'distance_labels': distance_labels
         }
+        res_complexes = [res.complex for res in ligand_residues]
+        all_complexes = [target_complex] + res_complexes
+        for comp in all_complexes:
+            comp.register_complex_updated_callback(self.recalculate_interactions)
 
     @async_callback
-    async def on_complex_updated(self, updated_comp: Complex):
-        """Callback for when a complex is updated."""
-        # Get all updated complexes
-        cached_complexes = [cmp for cmp in self.__complex_cache.values() if cmp.index != updated_comp.index]
-        updated_comp_list = [updated_comp] + cached_complexes
-
-        # Redraw lines
-        interactions_data = self.menu.collect_interaction_data()
-        await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
-
-        # Recalculate interactions if that setting is enabled.
-        recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
-        if recalculate_enabled and hasattr(self, 'previous_run'):
-            await self.recalculate_interactions(updated_comp_list)
-
-    async def recalculate_interactions(self, updated_comps: List[Complex]):
+    async def recalculate_interactions(self, updated_comp: Complex):
         """Recalculate interactions from the previous run."""
+        if not hasattr(self, 'previous_run'):
+            return
+
         Logs.message("Recalculating previous run with updated structures.")
         await self.send_async_notification('Recalculating interactions...')
         target_complex = self.previous_run['target_complex']
@@ -767,9 +743,24 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         selected_atoms_only = self.previous_run['selected_atoms_only']
         distance_labels = self.previous_run['distance_labels']
 
+        # Clear visible lines
+        previous_comps = [target_complex] + ligand_complexes
+        previous_comps = [cmp for cmp in previous_comps if cmp.index != updated_comp.index]
+        all_complexes = [updated_comp] + previous_comps
+        await self.clear_visible_lines(all_complexes, send_notification=False)
+
+        comp_indices_to_update = [
+            comp.index for comp in all_complexes
+            if comp.index != updated_comp.index
+        ]
+        if comp_indices_to_update:
+            updated_comps = await self.request_complexes(comp_indices_to_update)
+            updated_comps.append(updated_comp)
+        else:
+            updated_comps = [updated_comp]
+
         updated_target_comp = next(
-            cmp for cmp in updated_comps
-            if cmp.index == target_complex.index)
+            cmp for cmp in updated_comps if cmp.index == target_complex.index)
 
         lig_comp_indices = [cmp.index for cmp in ligand_complexes]
         updated_lig_comps = [
@@ -785,4 +776,5 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         await self.menu.run_calculation(
             updated_target_comp, updated_residues, line_settings,
             selected_atoms_only=selected_atoms_only,
-            distance_labels=distance_labels)
+            distance_labels=distance_labels
+        )
