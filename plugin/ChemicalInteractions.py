@@ -7,6 +7,7 @@ import tempfile
 import time
 import uuid
 import nanome
+import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
@@ -568,9 +569,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.label_manager.clear()
             await self.render_distance_labels(complexes)
 
-    @staticmethod
-    def line_in_frame(line, complexes):
-        """Return boolean stating whether both atoms connected by line are in frame.
+    @classmethod
+    def line_in_frame(cls, line, complexes):
+        """Return boolean stating whether both structures connected by line are in frame.
 
         :arg line: Line object. The line in question.
         :arg complexes: List of complexes in workspace that can contain atoms.
@@ -602,13 +603,32 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Check which struct key the atom is in
             struct_key = struct1_key if str(atom.index) in struct1_key else struct2_key
             correct_conformer = line.conformers.get(struct_key) == mol.current_conformer
-            if correct_conformer:
+            if not correct_conformer:
+                continue
+            hash_matches = cls.check_struct_key(struct_key, atom)
+            if hash_matches:
                 atoms_found += 1
 
             if atoms_found == 2:
                 break
         line_in_frame = atoms_found == 2
         return line_in_frame
+
+    @classmethod
+    def check_struct_key(cls, struct_key, atom):
+        _, _, _, key_hash = struct_key.split('_')
+        # parse key_hash
+        atom_pos_strs = key_hash.split('--')
+        has_matches = False
+        for atom_pos_str in atom_pos_strs:
+            atom_pos_index, x, y, z = atom_pos_str.split('-')
+            if atom_pos_index != str(atom.index):
+                continue
+            pos = Vector3(float(x), float(y), float(z))
+            if np.allclose(atom.position.unpack(), pos.unpack()):
+                has_matches = True
+                break
+        return has_matches
 
     async def clear_visible_lines(self, complexes, send_notification=True):
         """Clear all interaction lines that are currently visible."""
