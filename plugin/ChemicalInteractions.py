@@ -599,7 +599,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             hash_matches = cls.check_struct_key(struct_key, atom)
             if hash_matches:
                 atoms_found += 1
-
             if atoms_found == 2:
                 break
         line_in_frame = atoms_found == 2
