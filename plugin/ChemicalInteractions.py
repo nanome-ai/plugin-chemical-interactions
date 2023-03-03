@@ -595,20 +595,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for atom in current_atoms:
             if atom.index not in line_atom_indices:
                 continue
-            # Make sure atom is in the correct conformer
-            comp = atom.complex
-            mol = next(
-                ml for i, ml in enumerate(comp.molecules)
-                if i == comp.current_frame)
-            # Check which struct key the atom is in
             struct_key = struct1_key if str(atom.index) in struct1_key else struct2_key
-            correct_conformer = line.conformers.get(struct_key) == mol.current_conformer
-            if not correct_conformer:
-                continue
             hash_matches = cls.check_struct_key(struct_key, atom)
             if hash_matches:
                 atoms_found += 1
-
             if atoms_found == 2:
                 break
         line_in_frame = atoms_found == 2
@@ -616,13 +606,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @classmethod
     def check_struct_key(cls, struct_key, atom):
-        _, _, _, key_hash = struct_key.split('_')
+        # key_hash = struct_key.split('_')
         # parse key_hash
-        atom_pos_strs = key_hash.split('--')
+        atom_pos_strs = struct_key.split(',')
         has_matches = False
         for atom_pos_str in atom_pos_strs:
-            atom_pos_index, x, y, z = atom_pos_str.split('/')
-            if atom_pos_index != str(atom.index):
+            try:
+                atom_index, x, y, z = atom_pos_str.split('/')
+            except ValueError:
+                breakpoint()
+            if atom_index != str(atom.index):
                 continue
             pos = Vector3(float(x), float(y), float(z))
             if np.allclose(atom.position.unpack(), pos.unpack()):

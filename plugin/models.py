@@ -39,8 +39,7 @@ class InteractionStructure:
     @property
     def index(self):
         """Unique index based on atoms in structure."""
-        atom_indices = ','.join(str(a.index) for a in sorted(self.atoms, key=attrgetter('index')))
-        return f"{atom_indices}_{self.frame}_{self.conformer}_{self.struct_hash}"
+        return self.struct_hash
 
     @property
     def struct_hash(self):
@@ -49,7 +48,7 @@ class InteractionStructure:
         for a in sorted(self.atoms, key=attrgetter('index')):
             atom_str = f"{a.index}/{a.position.x}/{a.position.y}/{a.position.z}"
             atom_pos_strs.append(atom_str)
-        struct_hash = '--'.join(atom_pos_strs)
+        struct_hash = ','.join(atom_pos_strs)
         return struct_hash
 
     @property
