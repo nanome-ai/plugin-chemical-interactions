@@ -621,7 +621,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom_pos_strs = key_hash.split('--')
         has_matches = False
         for atom_pos_str in atom_pos_strs:
-            atom_pos_index, x, y, z = atom_pos_str.split('-')
+            atom_pos_index, x, y, z = atom_pos_str.split('/')
             if atom_pos_index != str(atom.index):
                 continue
             pos = Vector3(float(x), float(y), float(z))

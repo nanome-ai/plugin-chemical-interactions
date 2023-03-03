@@ -47,7 +47,7 @@ class InteractionStructure:
         """hash first atom and position."""
         atom_pos_strs = []
         for a in sorted(self.atoms, key=attrgetter('index')):
-            atom_str = f"{a.index}-{a.position.x}-{a.position.y}-{a.position.z}"
+            atom_str = f"{a.index}/{a.position.x}/{a.position.y}/{a.position.z}"
             atom_pos_strs.append(atom_str)
         struct_hash = '--'.join(atom_pos_strs)
         return struct_hash
@@ -154,21 +154,21 @@ class StructurePairManager:
     @staticmethod
     def get_structpair_key(struct1_key, struct2_key):
         """Return a string key for the given atom indices."""
-        structpair_key = '--'.join(sorted([struct1_key, struct2_key]))
+        structpair_key = '|'.join(sorted([struct1_key, struct2_key]))
         return structpair_key
 
     @staticmethod
     def get_structpair_key_for_line(line):
         """Return a string key for the given atom indices."""
         struct1_key, struct2_key = line.structure_indices
-        structpair_key = '--'.join(sorted([struct1_key, struct2_key]))
+        structpair_key = '|'.join(sorted([struct1_key, struct2_key]))
         return structpair_key
 
     def get_struct_pairs(self):
         """Return a list of structure pairs being tracked by manager."""
         struct_pairs = []
         for structpair_key in self._data:
-            struct1_key, struct2_key = structpair_key.split('--')
+            struct1_key, struct2_key = structpair_key.split('|')
             # struct1_index, struct1_frame, struct1_conformer = struct1_key.split('_')
             struct_pairs.append((struct1_key, struct2_key))
         return struct_pairs
