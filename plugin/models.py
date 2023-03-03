@@ -38,18 +38,17 @@ class InteractionStructure:
 
     @property
     def index(self):
-        """Unique index based on atoms in structure."""
-        return self.struct_hash
-
-    @property
-    def struct_hash(self):
-        """hash first atom and position."""
+        """Unique index based on atoms in structure and their positions.
+        examples
+        single atom structure -> '5432591673/-7.344/7.814/8.34'
+        ring structures are multiple of above, separated by commas
+        """
         atom_pos_strs = []
         for a in sorted(self.atoms, key=attrgetter('index')):
             atom_str = f"{a.index}/{a.position.x}/{a.position.y}/{a.position.z}"
             atom_pos_strs.append(atom_str)
-        struct_hash = ','.join(atom_pos_strs)
-        return struct_hash
+        index = ','.join(atom_pos_strs)
+        return index
 
     @property
     def centroid(self):
