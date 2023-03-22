@@ -21,8 +21,8 @@ from .clean_pdb import clean_pdb
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
-DEFAULT_MAX_SELECTED_ATOMS = 1000
-MAX_SELECTED_ATOMS = int(os.environ.get('MAX_SELECTED_ATOMS', 0) or DEFAULT_MAX_SELECTED_ATOMS)
+# By default Arpeggio times out after 10 minutes (600 seconds)
+ARPEGGIO_TIMEOUT = int(os.environ.get('ARPEGGIO_TIMEOUT', 0) or 600)
 
 
 class AtomNotFoundException(Exception):
@@ -696,7 +696,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             output_dir = f'{temp_dir}/{temp_uuid}'
             args.extend(['-o', output_dir])
 
-            p = Process(exe_path, args, True, label="arpeggio")
+            p = Process(exe_path, args, True, label="arpeggio", timeout=ARPEGGIO_TIMEOUT)
             p.on_error = Logs.warning
             p.on_output = Logs.message
             exit_code = await p.start()
