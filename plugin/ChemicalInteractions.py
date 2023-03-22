@@ -696,7 +696,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             output_dir = f'{temp_dir}/{temp_uuid}'
             args.extend(['-o', output_dir])
 
-            p = Process(exe_path, args, True, label="arpeggio")
+            p = Process(exe_path, args, True, label="arpeggio", timeout=600)
             p.on_error = Logs.warning
             p.on_output = Logs.message
             exit_code = await p.start()
