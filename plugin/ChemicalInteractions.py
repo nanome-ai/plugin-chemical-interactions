@@ -21,8 +21,8 @@ from .clean_pdb import clean_pdb
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
-DEFAULT_ARPEGGIO_TIMEOUT = 600  # 10 minutes
-ARPEGGIO_TIMEOUT = int(os.environ.get('ARPEGGIO_TIMEOUT', 0) or DEFAULT_ARPEGGIO_TIMEOUT)
+# By default Arpeggio times out after 10 minutes (600 seconds)
+ARPEGGIO_TIMEOUT = int(os.environ.get('ARPEGGIO_TIMEOUT', 0) or 600)
 
 
 class AtomNotFoundException(Exception):
