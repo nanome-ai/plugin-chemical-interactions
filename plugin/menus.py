@@ -572,8 +572,8 @@ class SettingsMenu:
 
         # Default selections
         self.btn_inter.selected = True
-        self.btn_intra_selection.selected = True
-        self.btn_selection_water.selected = True
+        self.btn_intra_selection.selected = False
+        self.btn_selection_water.selected = False
 
     def render(self):
         self._menu.enabled = True
