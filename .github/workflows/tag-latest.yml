@@ -8,7 +8,7 @@ env:
 
 jobs:
   tag-repo:
-    if: "!contains(github.event.commits[0].message, 'Bump Version:')"
+    # if: "!contains(github.event.commits[0].message, 'Bump Version:')"
     runs-on: ubuntu-latest
     outputs:
       TAG_NAME: ${{ env.TAG_NAME }}
