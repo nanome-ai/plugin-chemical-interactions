@@ -63,6 +63,9 @@ class ChemInteractionsMenu():
         self.btn_toggle_interactions = self._menu.root.find_node('Toggle Display').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
 
+        self.btn_save_interactions: ui.Button = self._menu.root.find_node('ln_btn_save_interactions').get_content()
+        self.btn_save_interactions.register_pressed_callback(self.save_interactions)
+
     @async_callback
     async def render(self, complexes=None, default_values=False):
         complexes = complexes or []
@@ -547,6 +550,10 @@ class ChemInteractionsMenu():
             await self.plugin.render_distance_labels(self.complexes)
         else:
             self.plugin.clear_distance_labels()
+
+    @async_callback
+    async def save_interactions(self, btn):
+        self.plugin.line_manager.persist_lines()
 
 
 class SettingsMenu:

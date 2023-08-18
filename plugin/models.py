@@ -3,7 +3,10 @@ from operator import attrgetter
 
 from nanome.api.shapes import Label, Line, Shape
 from nanome.api.structure import Atom
+from nanome.util.enums import InteractionKind
 from nanome.util import Vector3
+from nanome.api.interactions import Interaction
+
 
 
 class InteractionStructure:
@@ -215,6 +218,15 @@ class LineManager(StructurePairManager):
         """"Merge another LineManager into self."""
         self._data.update(line_manager._data)
 
+    def persist_lines(self):
+        """Persist lines in workspace."""
+        persistent_lines = []
+        for line in self.all_lines():
+            atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
+            new_interaction = Interaction(InteractionKind.HydrogenBond, [atom1_index], [atom2_index])
+            persistent_lines.append(new_interaction)
+        Interaction.upload_multiple(persistent_lines)
+        
 
 class LabelManager(StructurePairManager):
 
