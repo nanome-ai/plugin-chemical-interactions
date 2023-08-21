@@ -218,7 +218,7 @@ class LineManager(StructurePairManager):
         """"Merge another LineManager into self."""
         self._data.update(line_manager._data)
 
-    async def persist_lines(self):
+    async def persist_lines(self, interaction_data):
         """Persist lines in workspace."""
         current_lines = await Interaction.get()
         Interaction.destroy_multiple(current_lines)
@@ -247,10 +247,11 @@ class LineManager(StructurePairManager):
         }
         for line in self.all_lines():
             atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
-            interaction_type = InteractionKind[interaction_type_map[line.interaction_type]]
-            # interaction_type = InteractionKind['HydrogenBond']
-            new_interaction = Interaction(interaction_type, [atom1_index], [atom2_index])
-            persistent_lines.append(new_interaction)
+            interaction_visible = interaction_data[line.interaction_type]['visible']
+            if interaction_visible:
+                interaction_kind = InteractionKind[interaction_type_map[line.interaction_type]]
+                new_interaction = Interaction(interaction_kind, [atom1_index], [atom2_index])
+                persistent_lines.append(new_interaction)
         await Interaction.upload_multiple(persistent_lines)
         Line.destroy_multiple(self.all_lines())
         
