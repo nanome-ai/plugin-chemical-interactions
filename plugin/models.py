@@ -218,14 +218,41 @@ class LineManager(StructurePairManager):
         """"Merge another LineManager into self."""
         self._data.update(line_manager._data)
 
-    def persist_lines(self):
+    async def persist_lines(self):
         """Persist lines in workspace."""
+        current_lines = await Interaction.get()
+        Interaction.destroy_multiple(current_lines)
         persistent_lines = []
+        interaction_type_map = {
+            'covalent': 'Covalent',
+            'hbond': 'HydrogenBond',
+            'ionic': 'Ionic',
+            'xbond': 'XBond',
+            'metal_complex': 'MetalComplex',
+            'aromatic': 'Aromatic',
+            'hydrophobic': 'Hydrophobic',
+            'vdw': 'VanDerWall',
+            'vdw_clash': 'VanDerWallClash',
+            'weak_hbond': 'WeakHBond',
+            'polar': 'Polar',
+            'weak_polar': 'WeakPolar',
+            'clash': 'Clash',
+            'carbonyl': 'Carbonyl',
+            'CARBONPI': 'CarbonPi',
+            'CATIONPI': 'CationPi',
+            'DONORPI': 'DonorPi',
+            'HALOGENPI': 'HalogenPi',
+            'METSULPHURPI': 'MetsulphurPi',
+            'proximal': 'Proximal',
+        }
         for line in self.all_lines():
             atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
-            new_interaction = Interaction(InteractionKind.HydrogenBond, [atom1_index], [atom2_index])
+            interaction_type = InteractionKind[interaction_type_map[line.interaction_type]]
+            # interaction_type = InteractionKind['HydrogenBond']
+            new_interaction = Interaction(interaction_type, [atom1_index], [atom2_index])
             persistent_lines.append(new_interaction)
-        Interaction.upload_multiple(persistent_lines)
+        await Interaction.upload_multiple(persistent_lines)
+        Line.destroy_multiple(self.all_lines())
         
 
 class LabelManager(StructurePairManager):

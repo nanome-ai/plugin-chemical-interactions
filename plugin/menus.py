@@ -553,7 +553,7 @@ class ChemInteractionsMenu():
 
     @async_callback
     async def save_interactions(self, btn):
-        self.plugin.line_manager.persist_lines()
+        await self.plugin.line_manager.persist_lines()
 
 
 class SettingsMenu:
