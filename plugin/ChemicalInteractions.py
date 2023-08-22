@@ -9,8 +9,10 @@ import uuid
 import nanome
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
+from nanome._internal.serializer_fields import TypeSerializer
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
+from nanome.api.interactions import Interaction
 from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, ComplexUtils
 from typing import List
 
@@ -655,6 +657,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         destroyed_line_count = len(lines_to_destroy)
         Shape.destroy_multiple([*lines_to_destroy, *labels_to_destroy])
 
+        if self.supports_persistent_interactions():
+            persistent_lines = await Interaction.get()
+            destroyed_line_count += len(persistent_lines)
+            Interaction.destroy_multiple(persistent_lines)
+
         message = f'Deleted {destroyed_line_count} interactions'
         Logs.message(message)
         if send_notification:
@@ -799,3 +806,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             updated_target_comp, updated_residues, line_settings,
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
+
+    @staticmethod
+    def supports_persistent_interactions():
+        # Currently this always return True
+        # TODO: "GetInteractions" should return 0 if not supported, else 1
+        version_table = TypeSerializer.get_version_table()
+        return 'GetInteractions' in version_table

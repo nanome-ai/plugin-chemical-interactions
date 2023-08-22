@@ -33,7 +33,6 @@ class ChemInteractionsMenu():
 
     def __init__(self, plugin):
         self.plugin = plugin
-        self.interactions_url = environ.get('INTERACTIONS_URL')
         self._menu = nanome.ui.Menu.io.from_json(MENU_PATH)
 
         self.ln_complexes = self._menu.root.find_node('Complex Dropdown')
@@ -63,7 +62,11 @@ class ChemInteractionsMenu():
         self.btn_toggle_interactions = self._menu.root.find_node('Toggle Display').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
 
-        self.btn_save_interactions: ui.Button = self._menu.root.find_node('ln_btn_save_interactions').get_content()
+        self.ln_btn_save_interactions = self._menu.root.find_node('ln_btn_save_interactions')
+
+        persistent_lines_support = self.plugin.supports_persistent_interactions()
+        self.ln_btn_save_interactions.enabled = persistent_lines_support
+        self.btn_save_interactions: ui.Button = self.ln_btn_save_interactions.get_content()
         self.btn_save_interactions.register_pressed_callback(self.save_interactions)
 
     @async_callback
