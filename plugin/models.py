@@ -1,12 +1,11 @@
 from collections import defaultdict
 from operator import attrgetter
 
+from .utils import interaction_type_map
 from nanome.api.shapes import Label, Line, Shape
 from nanome.api.structure import Atom
-from nanome.util.enums import InteractionKind
 from nanome.util import Vector3
 from nanome.api.interactions import Interaction
-
 
 
 class InteractionStructure:
@@ -223,38 +222,16 @@ class LineManager(StructurePairManager):
         current_lines = await Interaction.get()
         Interaction.destroy_multiple(current_lines)
         persistent_lines = []
-        interaction_type_map = {
-            'covalent': 'Covalent',
-            'hbond': 'HydrogenBond',
-            'ionic': 'Ionic',
-            'xbond': 'XBond',
-            'metal_complex': 'MetalComplex',
-            'aromatic': 'Aromatic',
-            'hydrophobic': 'Hydrophobic',
-            'vdw': 'VanDerWall',
-            'vdw_clash': 'VanDerWallClash',
-            'weak_hbond': 'WeakHBond',
-            'polar': 'Polar',
-            'weak_polar': 'WeakPolar',
-            'clash': 'Clash',
-            'carbonyl': 'Carbonyl',
-            'CARBONPI': 'CarbonPi',
-            'CATIONPI': 'CationPi',
-            'DONORPI': 'DonorPi',
-            'HALOGENPI': 'HalogenPi',
-            'METSULPHURPI': 'MetsulphurPi',
-            'proximal': 'Proximal',
-        }
         for line in self.all_lines():
             atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
             interaction_visible = interaction_data[line.interaction_type]['visible']
             if interaction_visible:
-                interaction_kind = InteractionKind[interaction_type_map[line.interaction_type]]
+                interaction_kind = interaction_type_map[line.interaction_type]
                 new_interaction = Interaction(interaction_kind, [atom1_index], [atom2_index])
                 persistent_lines.append(new_interaction)
         await Interaction.upload_multiple(persistent_lines)
         Line.destroy_multiple(self.all_lines())
-        
+
 
 class LabelManager(StructurePairManager):
 

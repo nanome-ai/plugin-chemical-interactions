@@ -1,4 +1,5 @@
 biopython==1.78
+# git+https://github.com/nanome-ai/nanome-lib@interaction-api-v3
 git+https://github.com/nanome-ai/nanome-lib@interaction-api
 WTForms==2.3.3
 requests==2.23.0

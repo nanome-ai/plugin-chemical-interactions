@@ -19,7 +19,7 @@ from typing import List
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
-from .utils import merge_complexes, chunks
+from .utils import merge_complexes, chunks, interaction_type_map
 from .clean_pdb import clean_pdb
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
@@ -570,6 +570,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Refresh label manager
             self.label_manager.clear()
             await self.render_distance_labels(complexes)
+
+        # Update persistent lines.
+        if self.supports_persistent_interactions():
+            lines_to_update = []
+            interactions = await Interaction.get()
+            for interaction in interactions:
+                interaction_key = next(key for key, value in interaction_type_map.items() if value == interaction.kind)
+                is_visible = interactions_data[interaction_key]['visible']
+                interaction.visible = is_visible
+                lines_to_update.append(interaction)
+            if lines_to_update:
+                Interaction.upload_multiple(lines_to_update)
 
     @classmethod
     def line_in_frame(cls, line, complexes):

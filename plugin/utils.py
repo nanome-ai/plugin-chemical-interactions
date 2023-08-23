@@ -1,6 +1,7 @@
 from itertools import chain
 from nanome.api import structure
 from nanome.util import ComplexUtils
+from nanome.util.enums import InteractionKind
 from scipy.spatial import KDTree
 
 
@@ -88,3 +89,28 @@ def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
+
+
+# Maps the interaction type format from Arpeggio, to the InteractionKind enum.
+interaction_type_map = {
+    'covalent': InteractionKind.Covalent,
+    'hbond': InteractionKind.HydrogenBond,
+    'ionic': InteractionKind.Ionic,
+    'xbond': InteractionKind.XBond,
+    'metal_complex': InteractionKind.MetalComplex,
+    'aromatic': InteractionKind.Aromatic,
+    'hydrophobic': InteractionKind.Hydrophobic,
+    'vdw': InteractionKind.VanDerWall,
+    'vdw_clash': InteractionKind.VanDerWallClash,
+    'weak_hbond': InteractionKind.WeakHBond,
+    'polar': InteractionKind.Polar,
+    'weak_polar': InteractionKind.WeakPolar,
+    'clash': InteractionKind.Clash,
+    'carbonyl': InteractionKind.Carbonyl,
+    'CARBONPI': InteractionKind.CarbonPi,
+    'CATIONPI': InteractionKind.CationPi,
+    'DONORPI': InteractionKind.DonorPi,
+    'HALOGENPI': InteractionKind.HalogenPi,
+    'METSULPHURPI': InteractionKind.MetsulphurPi,
+    'proximal': InteractionKind.Proximal,
+}
