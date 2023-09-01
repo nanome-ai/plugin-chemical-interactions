@@ -22,6 +22,7 @@ from .models import InteractionLine, LineManager, LabelManager, InteractionStruc
 from .utils import merge_complexes, chunks, interaction_type_map
 from .clean_pdb import clean_pdb
 
+
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
@@ -153,21 +154,22 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Logs.message(f'Contacts Count: {len(contacts_data)}')
 
         interacting_entities_to_render = settings['interacting_entities']
-        contacts_per_thread = 1000
-        thread_count = max(len(contacts_data) // contacts_per_thread, 1)
-        futs = []
+        # contacts_per_thread = 1000
+        # thread_count = max(len(contacts_data) // contacts_per_thread, 1)
+        # futs = []
         self.total_contacts_count = len(contacts_data)
         self.loading_bar_i = 0
-        with ThreadPoolExecutor(max_workers=thread_count) as executor:
-            for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
-                fut = executor.submit(self.parse_contacts_data, chunk, complexes, line_settings, selected_atoms_only, interacting_entities_to_render)
-                futs.append(fut)
-        new_line_manager = LineManager()
-        for fut in futs:
-            new_line_manager.update(fut.result())
-        all_new_lines = new_line_manager.all_lines()
-        Logs.message(f'Adding {len(all_new_lines)} interactions')
-        Shape.upload_multiple(all_new_lines)
+
+        new_lines = await self.parse_contacts_data(
+            contacts_data, complexes, line_settings, selected_atoms_only, interacting_entities_to_render)
+        Logs.message(f'Added {len(new_lines)} interactions')
+        # with ThreadPoolExecutor(max_workers=thread_count) as executor:
+        #     for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
+        #         fut = executor.submit(self.parse_contacts_data, chunk, complexes, line_settings, selected_atoms_only, interacting_entities_to_render)
+        #         futs.append(fut)
+        # new_line_manager = LineManager()
+        # for fut in futs:
+        #     new_line_manager.update(fut.result())
 
         # Make sure complexes are locked
         # Skip if user has recalculate on update turned on
@@ -180,7 +182,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 comp.locked = True
             self.update_structures_shallow(comps_to_lock)
 
-        self.line_manager.update(new_line_manager)
+        # self.line_manager.update(new_line_manager)
         if distance_labels:
             await self.render_distance_labels(complexes)
 
@@ -388,7 +390,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             struct_list.append(struct)
         return struct_list
 
-    def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False, interacting_entities=None):
+    async def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False, interacting_entities=None):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
 
         contacts_data: Data returned by Chemical Interaction Service.
@@ -409,7 +411,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if not hasattr(self, 'total_contacts_count'):
             self.total_contacts_count = len(contacts_data)
 
-        new_line_manager = LineManager()
+        # new_line_manager = LineManager()
+        new_lines = []
         self.menu.set_update_text("Updating Workspace...")
         # Update loading bar every 5% of contacts completed
         update_percentages = list(range(100, 0, -5))
@@ -471,11 +474,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         struct.conformer = list(comp.molecules)[comp.current_frame].current_conformer
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
-            structpair_lines = self.create_new_lines(struct1, struct2, interaction_types, form.data)
-            new_line_manager.add_lines(structpair_lines)
-        return new_line_manager
+            structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
+            new_lines += structpair_lines
+        await Interaction.upload_multiple(new_lines)
 
-    def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
+    async def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
 
         struct1: InteractionStructure
@@ -491,7 +494,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             # See if we've already drawn this line
             line_exists = False
-            structpair_lines = self.line_manager.get_lines_for_structure_pair(struct1.index, struct2.index)
+            try:
+                structpair_lines = await self.line_manager.get_lines_for_structure_pair(struct1.index, struct2.index)
+            except AttributeError:
+                continue
             for lin in structpair_lines:
                 if all([
                     lin.frames.get(struct1.index) == struct1.frame,
@@ -506,26 +512,28 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             form_data['interaction_type'] = interaction_type
             # Draw line and add data about interaction type and frames.
-            line = self.draw_interaction_line(struct1, struct2, form_data)
+            line = self.draw_interaction_line(struct1.index, struct2.index, form_data)
             new_lines.append(line)
 
         return new_lines
 
     @staticmethod
-    def draw_interaction_line(struct1, struct2, line_settings):
+    def draw_interaction_line(struct1_index_and_pos, struct2_index_and_pos, line_settings):
         """Draw line connecting two structs.
 
         :arg struct1: struct
         :arg struct2: struct
         :arg line_settings: Dict describing shape and color of line based on interaction_type
         """
-        line = InteractionLine(struct1, struct2, **line_settings)
-
-        for struct, anchor in zip([struct1, struct2], line.anchors):
-            anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
-            anchor.target = struct.line_anchor.index
-            # This nudges the line anchor to the center of the structure
-            anchor.local_offset = struct.calculate_local_offset()
+        struct1_index = int(struct1_index_and_pos.split('/')[0])
+        struct2_index = int(struct2_index_and_pos.split('/')[0])
+        interaction_kind = interaction_type_map[line_settings['interaction_type']]
+        line = Interaction(interaction_kind, [struct1_index], [struct2_index])
+        # for struct, anchor in zip([struct1, struct2], line.anchors):
+        #     anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
+        #     anchor.target = struct.line_anchor.index
+        #     # This nudges the line anchor to the center of the structure
+        #     anchor.local_offset = struct.calculate_local_offset()
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):

@@ -160,7 +160,8 @@ class StructurePairManager:
     @staticmethod
     def get_structpair_key_for_line(line):
         """Return a string key for the given atom indices."""
-        struct1_key, struct2_key = line.structure_indices
+        struct1_key = ','.join(line.atom1_idx_arr)
+        struct2_key = ','.join(line.atom2_idx_arr)
         structpair_key = '|'.join(sorted([struct1_key, struct2_key]))
         return structpair_key
 
@@ -177,32 +178,32 @@ class StructurePairManager:
 class LineManager(StructurePairManager):
     """Organizes Interaction lines by atom pairs."""
 
-    def all_lines(self):
+    async def all_lines(self):
         """Return a flat list of all lines being stored."""
-        all_lines = []
-        for structpair_key, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
-            all_lines.extend(line_list)
-        return all_lines
+        interactions = await Interaction.get()
+        return interactions
 
     def add_lines(self, line_list):
         for line in line_list:
             self.add_line(line)
 
     def add_line(self, line):
-        if not isinstance(line, InteractionLine):
-            raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
+        if not isinstance(line, Interaction):
+            raise TypeError(f'add_line() expected Interaction, received {type(line)}')
 
         structpair_key = self.get_structpair_key_for_line(line)
         self._data[structpair_key].append(line)
 
-    def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str):
+    async def get_lines_for_structure_pair(self, struct1: str, struct2: str):
         """Given two InteractionStructures, return all interaction lines connecting them.
 
         :arg struct1: InteractionStructure, or index str
         :arg struct2: InteractionStructure, or index str
         """
-        key = self.get_structpair_key(struct1_index, struct2_index)
-        return self._data[key]
+        struct1_index = int(struct1.split('/')[0])
+        struct2_index = int(struct2.split('/')[0])
+        interactions = await Interaction.get(atom_idx=[struct1_index, struct2_index])
+        return interactions
 
     def update_line(self, line):
         """Replace line stored in manager with updated version passed as arg."""
