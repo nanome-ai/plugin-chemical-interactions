@@ -477,6 +477,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             structpair_lines = await self.create_new_lines(struct1, struct2, interaction_types, form.data)
             new_lines += structpair_lines
         await Interaction.upload_multiple(new_lines)
+        return new_lines
 
     async def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
         """Parse rows of data from .contacts file into Line objects.
@@ -538,58 +539,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
         complexes = complexes or []
-        stream_type = nanome.api.streams.Stream.Type.shape_color.value
-
-        all_lines = self.line_manager.all_lines()
-        line_indices = [line.index for line in all_lines]
-        stream, _ = await self.create_writing_stream(line_indices, stream_type)
-        if not stream:
-            return
-
-        new_colors = []
-        in_frame_count = 0
-        out_of_frame_count = 0
-
-        for line in all_lines:
-            # Make sure that both atoms connected by line are in frame.
-            line_in_frame = self.line_in_frame(line, complexes)
-            if line_in_frame:
-                in_frame_count += 1
-            else:
-                out_of_frame_count += 1
-
-            # Parse forms, and add line data to stream
-            line_type = line.interaction_type
-            form_data = interactions_data[line_type]
-            hide_interaction = not form_data['visible'] or not line_in_frame
-            color = Color(*form_data['color'])
-
-            color.a = 0 if hide_interaction else 255
-            new_colors.extend(color.rgba)
-            line.color = color
-            self.line_manager.update_line(line)
-
-        # Logs.debug(f'in frame: {in_frame_count}')
-        # Logs.debug(f'out of frame: {out_of_frame_count}')
-        if stream:
-            stream.update(new_colors)
-
-        if self.show_distance_labels:
-            # Refresh label manager
-            self.label_manager.clear()
-            await self.render_distance_labels(complexes)
-
-        # Update persistent lines.
-        if self.supports_persistent_interactions():
-            lines_to_update = []
-            interactions = await Interaction.get()
-            for interaction in interactions:
-                interaction_key = next(key for key, value in interaction_type_map.items() if value == interaction.kind)
-                is_visible = interactions_data[interaction_key]['visible']
-                interaction.visible = is_visible
-                lines_to_update.append(interaction)
-            if lines_to_update:
-                Interaction.upload_multiple(lines_to_update)
+        interactions = await Interaction.get()
+        lines_to_update = []
+        for line in interactions:
+            interaction_type = next(key for key, val in interaction_type_map.items() if val == line.kind)
+            interaction_visible = interactions_data[interaction_type]['visible']
+            if line.visible != interaction_visible:
+                line.visible = interaction_visible
+                lines_to_update.append(line)
+        Logs.debug(f'Updating {len(lines_to_update)} lines')
+        Interaction.upload_multiple(lines_to_update)
 
     @classmethod
     def line_in_frame(cls, line, complexes):
@@ -633,10 +592,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         atom_pos_strs = struct_key.split(',')
         has_matches = False
         for atom_pos_str in atom_pos_strs:
-            try:
-                atom_index, x, y, z = atom_pos_str.split('/')
-            except ValueError:
-                breakpoint()
+            atom_index, x, y, z = atom_pos_str.split('/')
             if atom_index != str(atom.index):
                 continue
             pos = Vector3(float(x), float(y), float(z))
