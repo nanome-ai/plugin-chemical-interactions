@@ -65,9 +65,6 @@ class ChemInteractionsMenu():
         self.ln_btn_save_interactions = self._menu.root.find_node('ln_btn_save_interactions')
 
         persistent_lines_support = self.plugin.supports_persistent_interactions()
-        self.ln_btn_save_interactions.enabled = persistent_lines_support
-        self.btn_save_interactions: ui.Button = self.ln_btn_save_interactions.get_content()
-        self.btn_save_interactions.register_pressed_callback(self.save_interactions)
 
     @async_callback
     async def render(self, complexes=None, default_values=False):
@@ -553,11 +550,6 @@ class ChemInteractionsMenu():
             await self.plugin.render_distance_labels(self.complexes)
         else:
             self.plugin.clear_distance_labels()
-
-    @async_callback
-    async def save_interactions(self, btn):
-        interaction_data = self.collect_interaction_data()
-        await self.plugin.line_manager.persist_lines(interaction_data)
 
 
 class SettingsMenu:
