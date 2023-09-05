@@ -562,7 +562,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
-        complexes = complexes or []
         interactions = await Interaction.get()
         lines_to_update = []
         for line in interactions:
@@ -573,6 +572,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 lines_to_update.append(line)
         Logs.debug(f'Updating {len(lines_to_update)} lines')
         Interaction.upload_multiple(lines_to_update)
+        if self.show_distance_labels:
+            # Refresh label manager
+            self.label_manager.clear()
+            await self.render_distance_labels(complexes)
+
 
     @classmethod
     def line_in_frame(cls, line: Interaction, complexes):
