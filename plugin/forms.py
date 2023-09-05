@@ -1,8 +1,8 @@
-from .models import InteractionLine
 from nanome.util import Color
 from wtforms import BooleanField, Field, FloatField, Form, FormField
 from wtforms.fields.core import StringField
 
+from .models import Interaction
 
 color_map = {
     "red": (255, 0, 0),
@@ -45,16 +45,6 @@ class LineForm(Form):
     dash_length = FloatField(default=0.2)
     dash_distance = FloatField(default=0.25)
     interaction_type = StringField()
-
-    def create(self):
-        line = InteractionLine()
-        for attr, value in self.data.items():
-            if hasattr(line, attr):
-                setattr(line, attr, value)
-
-        if not self.data['visible']:
-            line.color.a = 0
-        return line
 
 
 # If you want to change the default line settings, update here

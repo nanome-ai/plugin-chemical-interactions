@@ -8,18 +8,18 @@ import time
 import uuid
 import nanome
 import numpy as np
-from concurrent.futures import ThreadPoolExecutor
+# from concurrent.futures import ThreadPoolExecutor
 from nanome._internal.serializer_fields import TypeSerializer
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape
 from nanome.api.interactions import Interaction
-from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, ComplexUtils
+from nanome.util import async_callback, enums, Logs, Process, Vector3, ComplexUtils
 from typing import List
 
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import LineManager, LabelManager, InteractionStructure
-from .utils import merge_complexes, chunks, interaction_type_map
+from .utils import merge_complexes, interaction_type_map  # , chunks
 from .clean_pdb import clean_pdb
 
 
@@ -529,23 +529,28 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return new_lines
 
     @staticmethod
-    def draw_interaction_line(struct1_index_and_pos, struct2_index_and_pos, line_settings):
+    def draw_interaction_line(struct1_indices_str, struct2_indices_str, line_settings):
         """Draw line connecting two structs.
 
         :arg struct1: struct
         :arg struct2: struct
         :arg line_settings: Dict describing shape and color of line based on interaction_type
         """
-        struct1_index = int(struct1_index_and_pos.split('/')[0])
-        struct2_index = int(struct2_index_and_pos.split('/')[0])
+        struct1_indices = []
+        struct2_indices = []
+        for struct1_index in struct1_indices_str.split(','):
+            struct1_indices.append(int(struct1_index))
+        for struct2_index in struct2_indices_str.split(','):
+            struct2_indices.append(int(struct2_index))
+
         interaction_kind = interaction_type_map[line_settings['interaction_type']]
         # TODO: Don't hardcode this
         atom1_conformation = 0
         atom2_conformation = 0
         line = Interaction(
             interaction_kind,
-            [struct1_index],
-            [struct2_index],
+            struct1_indices,
+            struct2_indices,
             atom1_conf=atom1_conformation,
             atom2_conf=atom2_conformation
         )

@@ -4,7 +4,6 @@ from operator import attrgetter
 from .utils import interaction_type_map
 from nanome.api.shapes import Label, Line, Shape
 from nanome.api.structure import Atom
-from nanome.util import Vector3
 from nanome.api.interactions import Interaction
 
 
@@ -34,114 +33,17 @@ class InteractionStructure:
         return self._atoms
 
     @property
-    def line_anchor(self):
-        """Arbitrary atom in structure, but consistent."""
-        return next(iter(sorted(self.atoms, key=attrgetter('index'))))
-
-    @property
     def index(self):
         """Unique index based on atoms in structure and their positions.
         examples
-        single atom structure -> '5432591673/-7.344/7.814/8.34'
-        ring structures are multiple of above, separated by commas
+        single atom structure -> '5432591673'
+        ring structures -> '5432591673,75462591674,943234535'
         """
-        atom_pos_strs = []
+        atom_strs = []
         for a in sorted(self.atoms, key=attrgetter('index')):
-            atom_str = f"{a.index}/{a.position.x}/{a.position.y}/{a.position.z}"
-            atom_pos_strs.append(atom_str)
-        index = ','.join(atom_pos_strs)
+            atom_strs.append(str(a.index))
+        index = ','.join(atom_strs)
         return index
-
-    @property
-    def centroid(self):
-        """Calculate center of the structure."""
-        coords = [a.position.unpack() for a in self.atoms]
-        sum_x = sum([vec[0] for vec in coords])
-        sum_y = sum([vec[1] for vec in coords])
-        sum_z = sum([vec[2] for vec in coords])
-        len_coord = len(coords)
-        centroid = Vector3(sum_x / len_coord, sum_y / len_coord, sum_z / len_coord)
-        return centroid
-
-    def calculate_local_offset(self):
-        """Calculate offset to move line anchor to center of ring."""
-        ring_center = self.centroid
-        anchor_position = self.line_anchor.position
-        offset_vector = Vector3(
-            ring_center.x - anchor_position.x,
-            ring_center.y - anchor_position.y,
-            ring_center.z - anchor_position.z
-        )
-        return offset_vector
-
-
-class InteractionLine(Line):
-    """A Line with additional properties needed for representing interactions."""
-
-    def __init__(self, struct1, struct2, **kwargs):
-        super().__init__()
-
-        for kwarg, value in kwargs.items():
-            if hasattr(self, kwarg):
-                setattr(self, kwarg, value)
-
-        if kwargs.get('visible') is False:
-            self.color.a = 0
-
-        # Set up frames, conformers, and positions dict.
-        for struct in [struct1, struct2]:
-            struct_position = struct.line_anchor.position
-            self.frames[struct.index] = struct.frame
-            self.conformers[struct.index] = struct.conformer
-            self.struct_positions[struct.index] = struct_position
-
-    @property
-    def interaction_type(self):
-        """The type of interaction this line is representing. See forms.InteractionsForm for valid values."""
-        if not hasattr(self, '_interaction_type'):
-            self._interaction_type = ''
-        return self._interaction_type
-
-    @interaction_type.setter
-    def interaction_type(self, value):
-        self._interaction_type = value
-
-    @property
-    def frames(self):
-        """Dict where key is structure index and value is current frame of the atom's complex."""
-        if not hasattr(self, '_frames'):
-            self._frames = {}
-        return self._frames
-
-    @property
-    def conformers(self):
-        """Dict where key is structure index and value is current conformer of the atom's molecule."""
-        if not hasattr(self, '_conformers'):
-            self._conformers = {}
-        return self._conformers
-
-    @property
-    def struct_positions(self):
-        """Dict where key is structure index and value is last known (x, y, z) coordinates of Structure."""
-        if not hasattr(self, '_struct_positions'):
-            self._struct_positions = {}
-        return self._struct_positions
-
-    @property
-    def length(self):
-        """Determine length of line using the distance between the structures."""
-        positions = []
-        for anchor in self.anchors:
-            struct_key = next(struc_key for struc_key in self.structure_indices if str(anchor.target) in struc_key)
-            position = self.struct_positions[struct_key] + anchor.local_offset
-            positions.append(position)
-        distance = Vector3.distance(*positions)
-        return distance
-
-    @property
-    def structure_indices(self):
-        """Return a list of struture indices."""
-        return self.frames.keys()
 
 
 class StructurePairManager:
@@ -194,15 +96,17 @@ class LineManager(StructurePairManager):
         structpair_key = self.get_structpair_key_for_line(line)
         self._data[structpair_key].append(line)
 
-    async def get_lines_for_structure_pair(self, struct1: str, struct2: str):
+    async def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str):
         """Given two InteractionStructures, return all interaction lines connecting them.
 
         :arg struct1: InteractionStructure, or index str
         :arg struct2: InteractionStructure, or index str
         """
-        struct1_index = int(struct1.split('/')[0])
-        struct2_index = int(struct2.split('/')[0])
-        interactions = await Interaction.get(atom_idx=[struct1_index, struct2_index])
+        struct1_indices_str = struct1_index.split(',')
+        struct2_indices_str = struct2_index.split(',')
+        struct1_indices = [int(idx) for idx in struct1_indices_str]
+        struct2_indices = [int(idx) for idx in struct2_indices_str]
+        interactions = await Interaction.get(atom_idx=[*struct1_indices, *struct2_indices])
         return interactions
 
     def update_line(self, line):

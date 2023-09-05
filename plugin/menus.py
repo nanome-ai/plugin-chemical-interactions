@@ -1,4 +1,4 @@
-from os import environ, path
+from os import path
 
 import nanome
 from nanome.api.structure import Complex
@@ -63,8 +63,6 @@ class ChemInteractionsMenu():
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
 
         self.ln_btn_save_interactions = self._menu.root.find_node('ln_btn_save_interactions')
-
-        persistent_lines_support = self.plugin.supports_persistent_interactions()
 
     @async_callback
     async def render(self, complexes=None, default_values=False):
