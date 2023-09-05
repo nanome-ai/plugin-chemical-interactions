@@ -665,15 +665,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 label = Label()
                 interaction_distance = calculate_interaction_length(line, complexes)
                 label.text = str(round(interaction_distance, 2))
-                label.font_size = 0.08
+                label.font_size = 0.06
                 anchor1 = Anchor()
                 anchor2 = Anchor()
                 anchor1.target = struct1_index
                 anchor2.target = struct2_index
+                anchor1.anchor_type = enums.ShapeAnchorType.Atom
+                anchor2.anchor_type = enums.ShapeAnchorType.Atom
+                viewer_offset = Vector3(0, 0, -.01)
+                anchor1.viewer_offset = viewer_offset
+                anchor2.viewer_offset = viewer_offset
                 label.anchors = [anchor1, anchor2]
-                for anchor in label.anchors:
-                    anchor1.anchor_type == enums.ShapeAnchorType.Atom
-                    anchor.viewer_offset = Vector3(0, 0, -.01)
                 self.label_manager.add_label(label, struct1_index, struct2_index)
 
         label_count = len(self.label_manager.all_labels())
