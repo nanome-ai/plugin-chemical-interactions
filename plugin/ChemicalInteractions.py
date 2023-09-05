@@ -615,13 +615,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def clear_lines_in_frame(self, complexes, send_notification=True):
         """Clear all interaction lines in the current set of frames and conformers."""
-        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
-        if shallow_complexes:
-            deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
-            deep_complexes = [comp for comp in deep_complexes if comp]
-            for i, comp in enumerate(deep_complexes):
-                if complexes[i].index == comp.index:
-                    complexes[i] = comp
+        await self._ensure_deep_complexes(complexes)
         all_lines = await Interaction.get()
 
         lines_to_delete = []
@@ -646,17 +640,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.send_notification(notifcation_type, message)
 
     async def render_distance_labels(self, complexes):
-        # Make sure we have deep complexes.
-        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
-        if shallow_complexes:
-            deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
-            # Not sure how, but theres errors where a NoneType ends up in deep_complexes
-            # This is a quick fix for that.
-            deep_complexes = [comp for comp in deep_complexes if comp]
-            for i, comp in enumerate(deep_complexes):
-                if complexes[i].index == comp.index:
-                    complexes[i] = comp
-
+        await self._ensure_deep_complexes(complexes)
         self.show_distance_labels = True
         all_lines = await Interaction.get()
         for line in all_lines:
@@ -794,3 +778,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # TODO: "GetInteractions" should return 0 if not supported, else 1
         version_table = TypeSerializer.get_version_table()
         return version_table.get('GetInteractions', -1) > 0
+
+    async def _ensure_deep_complexes(self, complexes):
+        """If we don't have deep complexes, retrieve them."""
+        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
+        if shallow_complexes:
+            deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
+            deep_complexes = [comp for comp in deep_complexes if comp]
+            for i, comp in enumerate(deep_complexes):
+                if complexes[i].index == comp.index:
+                    complexes[i] = comp
