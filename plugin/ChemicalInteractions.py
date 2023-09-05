@@ -18,7 +18,7 @@ from typing import List
 
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
-from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
+from .models import LineManager, LabelManager, InteractionStructure
 from .utils import merge_complexes, chunks, interaction_type_map
 from .clean_pdb import clean_pdb
 
@@ -198,7 +198,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         asyncio.create_task(log_elapsed_time(start_time))
 
-        notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
+        notification_txt = f"Finished Calculating Interactions! {len(new_lines)} lines added"
         asyncio.create_task(self.send_async_notification(notification_txt))
 
     def get_clean_pdb_file(self, complex):
@@ -499,13 +499,23 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 structpair_lines = await self.line_manager.get_lines_for_structure_pair(struct1.index, struct2.index)
             except AttributeError:
                 continue
+
+            struct1_atom_index = int(struct1.index.split('/')[0])
+            # struct2_atom_index = int(struct2.index.split('/')[0])
             for lin in structpair_lines:
+                struct1_is_atom1 = struct1_atom_index in lin.atom1_idx_arr
+                interaction_kind = interaction_type_map[interaction_type]
+                # struct2_is_atom1 = struct2_atom_index in lin.atom1_index
+                if struct1_is_atom1:
+                    struct1_conformer_in_frame = struct1.conformer == lin.atom1_conformation
+                    struct2_conformer_in_frame = struct2.conformer == lin.atom2_conformation
+                else:
+                    struct1_conformer_in_frame = struct1.conformer == lin.atom2_conformation
+                    struct2_conformer_in_frame = struct2.conformer == lin.atom1_conformation
                 if all([
-                    lin.frames.get(struct1.index) == struct1.frame,
-                    lin.frames.get(struct2.index) == struct2.frame,
-                    lin.conformers.get(struct1.index) == struct1.conformer,
-                    lin.conformers.get(struct2.index) == struct2.conformer,
-                        lin.interaction_type == interaction_type]):
+                    struct1_conformer_in_frame,
+                    struct2_conformer_in_frame,
+                        lin.kind == interaction_kind]):
                     line_exists = True
                     break
             if line_exists:
@@ -529,7 +539,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         struct1_index = int(struct1_index_and_pos.split('/')[0])
         struct2_index = int(struct2_index_and_pos.split('/')[0])
         interaction_kind = interaction_type_map[line_settings['interaction_type']]
-        line = Interaction(interaction_kind, [struct1_index], [struct2_index])
+        # TODO: Don't hardcode this
+        atom1_conformation = 0
+        atom2_conformation = 0
+        line = Interaction(
+            interaction_kind,
+            [struct1_index],
+            [struct2_index],
+            atom1_conf=atom1_conformation,
+            atom2_conf=atom2_conformation
+        )
         # for struct, anchor in zip([struct1, struct2], line.anchors):
         #     anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
         #     anchor.target = struct.line_anchor.index
@@ -603,41 +622,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def clear_visible_lines(self, complexes, send_notification=True):
         """Clear all interaction lines that are currently visible."""
-        lines_to_destroy = []
+        all_lines = await Interaction.get()
+        visible_lines = [line for line in all_lines if line.visible]
+        if visible_lines:
+            Interaction.destroy_multiple(visible_lines)
+        # Remove any labels that have been created corresponding to this structpair
+        # if line_removed:
+        #     label = self.label_manager.remove_label_for_structpair(struct1_key, struct2_key)
+        #     if label:
+        #         labels_to_destroy.append(label)
         labels_to_destroy = []
+        if labels_to_destroy:
+            Shape.destroy_multiple(labels_to_destroy)
 
-        # Make sure we have deep complexes.
-        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
-        if shallow_complexes:
-            deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
-            for i, comp in enumerate(deep_complexes):
-                if complexes[i].index == comp.index:
-                    complexes[i] = comp
-
-        for struct1_key, struct2_key in self.line_manager.get_struct_pairs():
-            line_list = self.line_manager.get_lines_for_structure_pair(struct1_key, struct2_key)
-            line_count = len(line_list)
-            line_removed = False
-            for i in range(line_count - 1, -1, -1):
-                line = line_list[i]
-                if self.line_in_frame(line, complexes):
-                    lines_to_destroy.append(line)
-                    line_list.remove(line)
-                    line_removed = True
-            # Remove any labels that have been created corresponding to this structpair
-            if line_removed:
-                label = self.label_manager.remove_label_for_structpair(struct1_key, struct2_key)
-                if label:
-                    labels_to_destroy.append(label)
-
-        destroyed_line_count = len(lines_to_destroy)
-        Shape.destroy_multiple([*lines_to_destroy, *labels_to_destroy])
-
-        if self.supports_persistent_interactions():
-            persistent_lines = await Interaction.get()
-            destroyed_line_count += len(persistent_lines)
-            Interaction.destroy_multiple(persistent_lines)
-
+        destroyed_line_count = len(visible_lines)
         message = f'Deleted {destroyed_line_count} interactions'
         Logs.message(message)
         if send_notification:

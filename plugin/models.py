@@ -223,7 +223,8 @@ class LineManager(StructurePairManager):
         current_lines = await Interaction.get()
         Interaction.destroy_multiple(current_lines)
         persistent_lines = []
-        for line in self.all_lines():
+        all_lines = await self.all_lines()
+        for line in all_lines:
             atom1_index, atom2_index = [anchor.target for anchor in line.anchors]
             interaction_visible = interaction_data[line.interaction_type]['visible']
             if interaction_visible:
@@ -231,7 +232,7 @@ class LineManager(StructurePairManager):
                 new_interaction = Interaction(interaction_kind, [atom1_index], [atom2_index])
                 persistent_lines.append(new_interaction)
         await Interaction.upload_multiple(persistent_lines)
-        Line.destroy_multiple(self.all_lines())
+        Line.destroy_multiple(await self.all_lines())
 
 
 class LabelManager(StructurePairManager):
