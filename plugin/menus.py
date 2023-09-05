@@ -207,7 +207,7 @@ class ChemInteractionsMenu():
         self.plugin.update_content(btn)
 
         Logs.message('Clearing Frame Interactions')
-        await self.plugin.clear_visible_lines(self.complexes)
+        await self.plugin.clear_lines_in_frame(self.complexes)
         btn.unusable = False
         self.plugin.update_content(btn)
 

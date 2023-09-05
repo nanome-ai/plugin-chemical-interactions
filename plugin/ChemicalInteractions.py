@@ -523,13 +523,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             form_data['interaction_type'] = interaction_type
             # Draw line and add data about interaction type and frames.
-            line = self.draw_interaction_line(struct1.index, struct2.index, form_data)
+            line = self.draw_interaction_line(struct1, struct2, form_data)
             new_lines.append(line)
 
         return new_lines
 
     @staticmethod
-    def draw_interaction_line(struct1_indices_str, struct2_indices_str, line_settings):
+    def draw_interaction_line(struct1: InteractionStructure, struct2: InteractionStructure, line_settings):
         """Draw line connecting two structs.
 
         :arg struct1: struct
@@ -538,9 +538,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         struct1_indices = []
         struct2_indices = []
-        for struct1_index in struct1_indices_str.split(','):
+        for struct1_index in struct1.index.split(','):
             struct1_indices.append(int(struct1_index))
-        for struct2_index in struct2_indices_str.split(','):
+        for struct2_index in struct2.index.split(','):
             struct2_indices.append(int(struct2_index))
 
         interaction_kind = interaction_type_map[line_settings['interaction_type']]
@@ -554,11 +554,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             atom1_conf=atom1_conformation,
             atom2_conf=atom2_conformation
         )
-        # for struct, anchor in zip([struct1, struct2], line.anchors):
-        #     anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
-        #     anchor.target = struct.line_anchor.index
-        #     # This nudges the line anchor to the center of the structure
-        #     anchor.local_offset = struct.calculate_local_offset()
+        line.visible = line_settings['visible']
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
@@ -576,7 +572,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Refresh label manager
             self.label_manager.clear()
             await self.render_distance_labels(complexes)
-
 
     @classmethod
     def line_in_frame(cls, line: Interaction, complexes):
@@ -618,25 +613,28 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 break
         return has_matches
 
-    async def clear_visible_lines(self, complexes, send_notification=True):
-        """Clear all interaction lines that are currently visible."""
+    async def clear_lines_in_frame(self, complexes, send_notification=True):
+        """Clear all interaction lines in the current set of frames and conformers."""
+        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
+        if shallow_complexes:
+            deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
+            deep_complexes = [comp for comp in deep_complexes if comp]
+            for i, comp in enumerate(deep_complexes):
+                if complexes[i].index == comp.index:
+                    complexes[i] = comp
         all_lines = await Interaction.get()
-        visible_lines = [line for line in all_lines if line.visible]
-        if visible_lines:
-            Interaction.destroy_multiple(visible_lines)
 
-        # Remove any labels that have been created corresponding to this structpair
-        labels_to_destroy = []
-        for line in visible_lines:
-            struct1_index = line.atom1_idx_arr[0]
-            struct2_index = line.atom2_idx_arr[0]
-            old_label = self.label_manager.remove_label_for_structpair(struct1_index, struct2_index)
-            if old_label:
-                labels_to_destroy.append(old_label)
-        if labels_to_destroy:
-            Shape.destroy_multiple(labels_to_destroy)
+        lines_to_delete = []
+        for line in all_lines:
+            if self.line_in_frame(line, complexes):
+                lines_to_delete.append(line)
+            else:
+                pass
+        if lines_to_delete:
+            Interaction.destroy_multiple(lines_to_delete)
+        self.label_manager.clear()
 
-        destroyed_line_count = len(visible_lines)
+        destroyed_line_count = len(lines_to_delete)
         message = f'Deleted {destroyed_line_count} interactions'
         Logs.message(message)
         if send_notification:
@@ -795,4 +793,4 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Currently this always return True
         # TODO: "GetInteractions" should return 0 if not supported, else 1
         version_table = TypeSerializer.get_version_table()
-        return 'GetInteractions' in version_table
+        return version_table.get('GetInteractions', -1) > 0
