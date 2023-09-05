@@ -11,7 +11,7 @@ import numpy as np
 # from concurrent.futures import ThreadPoolExecutor
 from nanome._internal.serializer_fields import TypeSerializer
 from nanome.api.structure import Complex
-from nanome.api.shapes import Label, Shape
+from nanome.api.shapes import Label, Shape, Anchor
 from nanome.api.interactions import Interaction
 from nanome.util import async_callback, enums, Logs, Process, Vector3, ComplexUtils
 from typing import List
@@ -19,7 +19,7 @@ from typing import List
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import LineManager, LabelManager, InteractionStructure
-from .utils import merge_complexes, interaction_type_map  # , chunks
+from .utils import merge_complexes, interaction_type_map, calculate_interaction_length  # , chunks
 from .clean_pdb import clean_pdb
 
 
@@ -575,38 +575,27 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         Interaction.upload_multiple(lines_to_update)
 
     @classmethod
-    def line_in_frame(cls, line, complexes):
+    def line_in_frame(cls, line: Interaction, complexes):
         """Return boolean stating whether both structures connected by line are in frame.
 
         :arg line: Line object. The line in question.
         :arg complexes: List of complexes in workspace that can contain atoms.
         """
-        line_atom_indices = [anchor.target for anchor in line.anchors]
-        struct1_key, struct2_key = line.structure_indices
-        atom_generators = []
-        for comp in complexes:
-            try:
-                current_mol = next(
-                    mol for i, mol in enumerate(comp.molecules)
-                    if i == comp.current_frame)
-            except StopIteration:
-                # In case of empty complex, its safe to continue
-                if sum(1 for _ in comp.molecules) == 0:
-                    continue
-                raise
-            atom_generators.append(current_mol.atoms)
-        current_atoms = itertools.chain(*atom_generators)
-        atoms_found = 0
-        for atom in current_atoms:
-            if atom.index not in line_atom_indices:
-                continue
-            struct_key = struct1_key if str(atom.index) in struct1_key else struct2_key
-            hash_matches = cls.check_struct_key(struct_key, atom)
-            if hash_matches:
-                atoms_found += 1
-            if atoms_found == 2:
+        all_atoms = itertools.chain(*[comp.atoms for comp in complexes])
+        # Find the atoms from the comp by their id, and make sure  they're in the same conformer.
+        atom1_in_frame = None
+        atom2_in_frame = None
+        for atom in all_atoms:
+            if atom.index in line.atom1_idx_arr:
+                mol = atom.molecule
+                atom1_in_frame = mol.current_conformer == line.atom1_conformation
+            elif atom.index in line.atom2_idx_arr:
+                mol = atom.molecule
+                atom2_in_frame = mol.current_conformer == line.atom2_conformation
+            if atom1_in_frame is not None and atom2_in_frame is not None:
                 break
-        line_in_frame = atoms_found == 2
+
+        line_in_frame = atom1_in_frame and atom2_in_frame
         return line_in_frame
 
     @classmethod
@@ -631,12 +620,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         visible_lines = [line for line in all_lines if line.visible]
         if visible_lines:
             Interaction.destroy_multiple(visible_lines)
+
         # Remove any labels that have been created corresponding to this structpair
-        # if line_removed:
-        #     label = self.label_manager.remove_label_for_structpair(struct1_key, struct2_key)
-        #     if label:
-        #         labels_to_destroy.append(label)
         labels_to_destroy = []
+        for line in visible_lines:
+            struct1_index = line.atom1_idx_arr[0]
+            struct2_index = line.atom2_idx_arr[0]
+            old_label = self.label_manager.remove_label_for_structpair(struct1_index, struct2_index)
+            if old_label:
+                labels_to_destroy.append(old_label)
         if labels_to_destroy:
             Shape.destroy_multiple(labels_to_destroy)
 
@@ -664,22 +656,28 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     complexes[i] = comp
 
         self.show_distance_labels = True
-        for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
+        all_lines = await Interaction.get()
+        for line in all_lines:
             # If theres any visible lines between the two structs in structpair, add a label.
-            line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
-            for line in line_list:
-                if self.line_in_frame(line, complexes) and line.color.a > 0:
-                    label = Label()
-                    label.text = str(round(line.length, 2))
-                    label.font_size = 0.08
-                    label.anchors = line.anchors
-                    for anchor in label.anchors:
-                        anchor.viewer_offset = Vector3(0, 0, -.01)
-                    self.label_manager.add_label(label, struct1_index, struct2_index)
-                    break
+            struct1_index = line.atom1_idx_arr[0]
+            struct2_index = line.atom2_idx_arr[0]
+            if line.visible and self.line_in_frame(line, complexes):
+                label = Label()
+                interaction_distance = calculate_interaction_length(line, complexes)
+                label.text = str(round(interaction_distance, 2))
+                label.font_size = 0.08
+                anchor1 = Anchor()
+                anchor2 = Anchor()
+                anchor1.target = struct1_index
+                anchor2.target = struct2_index
+                label.anchors = [anchor1, anchor2]
+                for anchor in label.anchors:
+                    anchor1.anchor_type == enums.ShapeAnchorType.Atom
+                    anchor.viewer_offset = Vector3(0, 0, -.01)
+                self.label_manager.add_label(label, struct1_index, struct2_index)
 
         label_count = len(self.label_manager.all_labels())
-        Shape.upload_multiple(self.label_manager.all_labels())
+        await Shape.upload_multiple(self.label_manager.all_labels())
         Logs.message(f'Uploaded {label_count} distance labels')
 
     def clear_distance_labels(self):

@@ -1,11 +1,12 @@
 from itertools import chain
 from nanome.api import structure
-from nanome.util import ComplexUtils
+from nanome.api.interactions import Interaction
+from nanome.util import ComplexUtils, Vector3
 from nanome.util.enums import InteractionKind
 from scipy.spatial import KDTree
 
 
-__all__ = ['chunks', 'extract_residues', 'merge_complexes']
+__all__ = ['chunks', 'extract_residues_from_complex', 'merge_complexes']
 
 
 def extract_residues_from_complex(comp, residue_list, comp_name=None):
@@ -114,3 +115,30 @@ interaction_type_map = {
     'METSULPHURPI': InteractionKind.MetsulphurPi,
     'proximal': InteractionKind.Proximal,
 }
+
+
+def centroid(atoms):
+    """Calculate center of the group of atoms."""
+    coords = [a.position.unpack() for a in atoms]
+    sum_x = sum([vec[0] for vec in coords])
+    sum_y = sum([vec[1] for vec in coords])
+    sum_z = sum([vec[2] for vec in coords])
+    len_coord = len(coords)
+    centroid = Vector3(sum_x / len_coord, sum_y / len_coord, sum_z / len_coord)
+    return centroid
+
+
+def calculate_interaction_length(line: Interaction, complexes):
+    """Determine length of line using the distance between the structures."""
+    all_atoms = chain(*[comp.atoms for comp in complexes])
+    struct1_atoms = []
+    struct2_atoms = []
+    for atom in all_atoms:
+        if atom.index in line.atom1_idx_arr:
+            struct1_atoms.append(atom)
+        if atom.index in line.atom2_idx_arr:
+            struct2_atoms.append(atom)
+    struct1_centroid = centroid(struct1_atoms)
+    struct2_centroid = centroid(struct2_atoms)
+    distance = Vector3.distance(struct1_centroid, struct2_centroid)
+    return distance

@@ -56,7 +56,7 @@ class StructurePairManager:
     @staticmethod
     def get_structpair_key(struct1_key, struct2_key):
         """Return a string key for the given atom indices."""
-        structpair_key = '|'.join(sorted([struct1_key, struct2_key]))
+        structpair_key = '|'.join(sorted([str(struct1_key), str(struct2_key)]))
         return structpair_key
 
     @staticmethod

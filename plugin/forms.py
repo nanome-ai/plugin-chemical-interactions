@@ -2,7 +2,6 @@ from nanome.util import Color
 from wtforms import BooleanField, Field, FloatField, Form, FormField
 from wtforms.fields.core import StringField
 
-from .models import Interaction
 
 color_map = {
     "red": (255, 0, 0),
