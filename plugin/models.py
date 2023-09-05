@@ -96,7 +96,7 @@ class LineManager(StructurePairManager):
         structpair_key = self.get_structpair_key_for_line(line)
         self._data[structpair_key].append(line)
 
-    async def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str):
+    def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str, existing_lines):
         """Given two InteractionStructures, return all interaction lines connecting them.
 
         :arg struct1: InteractionStructure, or index str
@@ -106,8 +106,17 @@ class LineManager(StructurePairManager):
         struct2_indices_str = struct2_index.split(',')
         struct1_indices = [int(idx) for idx in struct1_indices_str]
         struct2_indices = [int(idx) for idx in struct2_indices_str]
-        interactions = await Interaction.get(atom_idx=[*struct1_indices, *struct2_indices])
-        return interactions
+        struct_pair_lines = []
+        for line in existing_lines:
+            struct1_in_atom1 = all([idx in struct1_indices for idx in line.atom1_idx_arr])
+            struct1_in_atom2 = all([idx in struct1_indices for idx in line.atom2_idx_arr])
+            struct2_in_atom1 = all([idx in struct2_indices for idx in line.atom1_idx_arr])
+            struct2_in_atom2 = all([idx in struct2_indices for idx in line.atom2_idx_arr])
+            line_match = (struct1_in_atom1 or struct1_in_atom2) and (struct2_in_atom1 or struct2_in_atom2)
+            if line_match:
+                struct_pair_lines.append(line)
+        # interactions = await Interaction.get(atom_idx=[*struct1_indices, *struct2_indices])
+        return struct_pair_lines
 
     def update_line(self, line):
         """Replace line stored in manager with updated version passed as arg."""
