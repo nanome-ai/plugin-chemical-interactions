@@ -33,9 +33,7 @@ from concurrent.futures import ThreadPoolExecutor
 from Bio.PDB import PDBParser
 from Bio.PDB.Polypeptide import PPBuilder
 
-from nanome.util import Logs
 
-from .utils import chunks
 # CONSTANTS
 PDB_LINE_TEMPLATE = '{record: <6}{serial: >5} {atom_name: ^4}{altloc: ^1}{resname: ^3} {chain_id: ^1}{resnum: >4}{icode: ^1}   {x: >8.3f}{y: >8.3f}{z: >8.3f}{occ: >6.2f}{tfac: >6.2f}          {element: >2}{charge: >2}'
 
