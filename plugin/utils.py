@@ -76,7 +76,7 @@ def merge_complexes(complexes, align_reference, selected_atoms_only=False):
 
         if selected_atoms_only and comp.index != align_reference.index:
             # Extract selected copy selected residues
-            selected_residues = [res for res in comp.residues if any(a.selected for a in res.atoms)]
+            selected_residues = [res for res in existing_mol.residues if any(a.selected for a in res.atoms)]
             extracted_comp = extract_residues_from_complex(comp, selected_residues)
             for ch in extracted_comp.chains:
                 mol.add_chain(ch)

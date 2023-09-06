@@ -160,9 +160,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.total_contacts_count = len(contacts_data)
         self.loading_bar_i = 0
 
-        # new_lines = await self.parse_contacts_data(
-        #     contacts_data, complexes, line_settings, selected_atoms_only, interacting_entities_to_render)
-        # Logs.message(f'Added {len(new_lines)} interactions')
         existing_interactions = await Interaction.get()
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
             for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
@@ -382,7 +379,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 # Parse aromatic ring, and add list of atoms to struct_list
                 ring_atoms = cls.parse_ring_atoms(atompath, complexes)
                 # Get frame and conformer from first atom in ring
-                struct = InteractionStructure(ring_atoms)
+                conformer = ring_atoms[0].molecule.current_conformer
+                frame = ring_atoms[0].molecule.complex.current_frame
+                struct = InteractionStructure(ring_atoms, frame=frame, conformer=conformer)
             else:
                 # Parse single atom
                 for comp in complexes:
@@ -391,7 +390,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         break
                 if not atom:
                     continue
-                struct = InteractionStructure(atom)
+                conformer = atom.molecule.current_conformer
+                frame = atom.molecule.complex.current_frame
+                struct = InteractionStructure(atom, frame=frame, conformer=conformer)
             struct_list.append(struct)
         return struct_list
 
@@ -552,9 +553,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             struct2_indices.append(int(struct2_index))
 
         interaction_kind = interaction_type_map[line_settings['interaction_type']]
-        # TODO: Don't hardcode this
-        atom1_conformation = 0
-        atom2_conformation = 0
+        atom1_conformation = struct1.conformer
+        atom2_conformation = struct2.conformer
         line = Interaction(
             interaction_kind,
             struct1_indices,
@@ -570,9 +570,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         lines_to_update = []
         for line in interactions:
             interaction_type = next(key for key, val in interaction_type_map.items() if val == line.kind)
-            interaction_visible = interactions_data[interaction_type]['visible']
-            if line.visible != interaction_visible:
-                line.visible = interaction_visible
+            interaction_type_visible = interactions_data[interaction_type]['visible']
+            if line.visible != interaction_type_visible:
+                line.visible = interaction_type_visible
                 lines_to_update.append(line)
         Logs.debug(f'Updating {len(lines_to_update)} lines')
         Interaction.upload_multiple(lines_to_update)
