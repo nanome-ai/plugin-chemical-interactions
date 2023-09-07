@@ -18,7 +18,8 @@ from typing import List
 
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
-from .models import LineManager, LabelManager, InteractionStructure
+from .models import InteractionStructure
+from .managers import InteractionLineManager, LabelManager, ShapesLineManager
 from .utils import merge_complexes, interaction_type_map, calculate_interaction_length, chunks
 from .clean_pdb import clean_pdb
 
@@ -65,12 +66,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def line_manager(self):
         """Maintain a dict of all interaction lines stored in memory."""
         if not hasattr(self, '_line_manager'):
-            self._line_manager = LineManager()
+            if self.supports_persistent_interactions():
+                self._line_manager = InteractionLineManager()
+            else:
+                Logs.warning('Persistent Interactions not supported. Falling back to Shapes Interaction Lines.')
+                self._line_manager = ShapesLineManager()
         return self._line_manager
-
-    @line_manager.setter
-    def line_manager(self, value):
-        self._line_manager = value
 
     @property
     def label_manager(self):
@@ -160,7 +161,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.total_contacts_count = len(contacts_data)
         self.loading_bar_i = 0
 
-        existing_interactions = await Interaction.get()
+        existing_interactions = await self.line_manager.all_lines()
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
             for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
                 fut = executor.submit(
@@ -171,7 +172,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         new_lines = []
         for fut in futs:
             new_lines += fut.result()
-        await Interaction.upload_multiple(new_lines)
+        self.line_manager.add_lines(new_lines)
+        self.line_manager.upload(new_lines)
 
         # Make sure complexes are locked
         # Skip if user has recalculate on update turned on
@@ -184,7 +186,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 comp.locked = True
             self.update_structures_shallow(comps_to_lock)
 
-        # self.line_manager.update(new_line_manager)
         if distance_labels:
             await self.render_distance_labels(complexes)
 
@@ -420,7 +421,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if not hasattr(self, 'total_contacts_count'):
             self.total_contacts_count = len(contacts_data)
 
-        # new_line_manager = LineManager()
         new_lines = []
         self.menu.set_update_text("Updating Workspace...")
         # Update loading bar every 5% of contacts completed
@@ -530,11 +530,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if line_exists:
                 continue
 
-            form_data['interaction_type'] = interaction_type
+            form_data['kind'] = interaction_type
             # Draw line and add data about interaction type and frames.
-            line = self.draw_interaction_line(struct1, struct2, form_data)
+            line = self.line_manager.draw_interaction_line(struct1, struct2, form_data)
             new_lines.append(line)
-
         return new_lines
 
     @staticmethod
@@ -565,23 +564,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         line.visible = line_settings['visible']
         return line
 
-    async def update_interaction_lines(self, interactions_data, complexes=None):
-        interactions = await Interaction.get()
-        lines_to_update = []
-        for line in interactions:
-            interaction_type = next(key for key, val in interaction_type_map.items() if val == line.kind)
-            interaction_type_visible = interactions_data[interaction_type]['visible']
-            if line.visible != interaction_type_visible:
-                line.visible = interaction_type_visible
-                lines_to_update.append(line)
-        Logs.debug(f'Updating {len(lines_to_update)} lines')
-        Interaction.upload_multiple(lines_to_update)
-        if self.show_distance_labels:
-            # Refresh label manager
-            self.label_manager.clear()
-            await self.render_distance_labels(complexes)
-
-    @classmethod
     def line_in_frame(cls, line: Interaction, complexes):
         """Return boolean stating whether both structures connected by line are in frame.
 
@@ -624,7 +606,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def clear_lines_in_frame(self, complexes, send_notification=True):
         """Clear all interaction lines in the current set of frames and conformers."""
         await self._ensure_deep_complexes(complexes)
-        all_lines = await Interaction.get()
+        all_lines = await self.line_manager.all_lines()
 
         lines_to_delete = []
         for line in all_lines:
@@ -650,7 +632,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def render_distance_labels(self, complexes):
         await self._ensure_deep_complexes(complexes)
         self.show_distance_labels = True
-        all_lines = await Interaction.get()
+        all_lines = await self.line_manager.all_lines()
         for line in all_lines:
             # If theres any visible lines between the two structs in structpair, add a label.
             struct1_index = line.atom1_idx_arr[0]
@@ -780,10 +762,18 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
 
+    async def update_interaction_lines(self, interactions_data, complexes=None):
+        await self.line_manager.update_interaction_lines(interactions_data, complexes=complexes)
+        if self.show_distance_labels:
+            # Refresh label manager
+            self.label_manager.clear()
+            await self.render_distance_labels(complexes)
+
     @staticmethod
     def supports_persistent_interactions():
         # Currently this always return True
         # TODO: "GetInteractions" should return 0 if not supported, else 1
+        return False
         version_table = TypeSerializer.get_version_table()
         return version_table.get('GetInteractions', -1) > 0
 

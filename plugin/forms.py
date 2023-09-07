@@ -43,7 +43,7 @@ class LineForm(Form):
     thickness = FloatField(default=0.1)
     dash_length = FloatField(default=0.2)
     dash_distance = FloatField(default=0.25)
-    interaction_type = StringField()
+    kind = StringField()
 
 
 # If you want to change the default line settings, update here
