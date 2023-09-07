@@ -564,6 +564,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         line.visible = line_settings['visible']
         return line
 
+    @classmethod
     def line_in_frame(cls, line: Interaction, complexes):
         """Return boolean stating whether both structures connected by line are in frame.
 
