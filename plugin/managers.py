@@ -242,13 +242,12 @@ class ShapesLineManager(StructurePairManager):
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None, plugin=None):
-
         complexes = complexes or []
         stream_type = enums.StreamType.shape_color.value
 
         all_lines = await self.all_lines()
         line_indices = [line.index for line in all_lines]
-        
+
         if not getattr(self, '_stream', False):
             Logs.debug("Recreating Stream.")
             self._stream, _ = await plugin.create_writing_stream(line_indices, stream_type)

@@ -134,9 +134,9 @@ def calculate_interaction_length(line: Interaction, complexes):
     struct1_atoms = []
     struct2_atoms = []
     for atom in all_atoms:
-        if atom.index in line.atom1_idx_arr:
+        if str(atom.index) in line.atom1_idx_arr:
             struct1_atoms.append(atom)
-        if atom.index in line.atom2_idx_arr:
+        if str(atom.index) in line.atom2_idx_arr:
             struct2_atoms.append(atom)
     struct1_centroid = centroid(struct1_atoms)
     struct2_centroid = centroid(struct2_atoms)

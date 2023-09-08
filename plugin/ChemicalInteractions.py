@@ -611,8 +611,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         all_lines = await self.line_manager.all_lines()
         for line in all_lines:
             # If theres any visible lines between the two structs in structpair, add a label.
-            struct1_index = line.atom1_idx_arr[0]
-            struct2_index = line.atom2_idx_arr[0]
+            struct1_index = int(line.atom1_idx_arr[0])
+            struct2_index = int(line.atom2_idx_arr[0])
             if line.visible and line_in_frame(line, complexes):
                 label = Label()
                 interaction_distance = calculate_interaction_length(line, complexes)
