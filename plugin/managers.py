@@ -192,6 +192,9 @@ class ShapesLineManager(StructurePairManager):
     def add_line(self, line):
         if not isinstance(line, InteractionShapesLine):
             raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
+
+        # Clear stream now that the line list is changing
+        self.destroy_stream()
         structpair_key = self.get_structpair_key_for_line(line)
         self._data[structpair_key].append(line)
 
@@ -239,15 +242,19 @@ class ShapesLineManager(StructurePairManager):
         return line
 
     async def update_interaction_lines(self, interactions_data, complexes=None, plugin=None):
+
         complexes = complexes or []
         stream_type = enums.StreamType.shape_color.value
 
         all_lines = await self.all_lines()
         line_indices = [line.index for line in all_lines]
-        stream, _ = await plugin.create_writing_stream(line_indices, stream_type)
-        if not stream:
-            return
-
+        
+        if not getattr(self, '_stream', False):
+            Logs.debug("Recreating Stream.")
+            self._stream, _ = await plugin.create_writing_stream(line_indices, stream_type)
+            if not self._stream:
+                Logs.error("Failed to Create stream.")
+                return
         new_colors = []
         in_frame_count = 0
         out_of_frame_count = 0
@@ -273,6 +280,11 @@ class ShapesLineManager(StructurePairManager):
 
         # Logs.debug(f'in frame: {in_frame_count}')
         # Logs.debug(f'out of frame: {out_of_frame_count}')
-        if stream:
-            stream.update(new_colors)
-        stream.destroy()
+        if self._stream:
+            self._stream.update(new_colors)
+
+    def destroy_stream(self):
+        if not getattr(self, 'stream', False):
+            self._stream.destroy()
+            del self._stream
+        return self._color_stream
