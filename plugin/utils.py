@@ -142,3 +142,28 @@ def calculate_interaction_length(line: Interaction, complexes):
     struct2_centroid = centroid(struct2_atoms)
     distance = Vector3.distance(struct1_centroid, struct2_centroid)
     return distance
+
+
+def line_in_frame(line: Interaction, complexes):
+    """Return boolean stating whether both structures connected by line are in frame.
+
+    :arg line: Line object. The line in question.
+    :arg complexes: List of complexes in workspace that can contain atoms.
+    """
+    all_atoms = chain(*[comp.atoms for comp in complexes])
+    # Find the atoms from the comp by their id, and make sure  they're in the same conformer.
+    atom1_in_frame = None
+    atom2_in_frame = None
+    for atom in all_atoms:
+        atom_index = str(atom.index)
+        if atom_index in line.atom1_idx_arr:
+            mol = atom.molecule
+            atom1_in_frame = mol.current_conformer == line.atom1_conformation
+        elif atom_index in line.atom2_idx_arr:
+            mol = atom.molecule
+            atom2_in_frame = mol.current_conformer == line.atom2_conformation
+        if atom1_in_frame is not None and atom2_in_frame is not None:
+            break
+
+    line_in_frame = atom1_in_frame and atom2_in_frame
+    return line_in_frame

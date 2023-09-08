@@ -2,7 +2,7 @@ from operator import attrgetter
 
 from nanome.api.shapes import Line
 from nanome.api.structure import Atom
-from nanome.util import Vector3
+from nanome.util import Vector3, Logs
 
 
 class InteractionStructure:
@@ -152,3 +152,23 @@ class InteractionLine(Line):
             self.color.a = 1
         else:
             self.color.a = 0
+
+    @property
+    def atom1_conformation(self):
+        """Return the conformer of the atom in the second structure."""
+        try:
+            atom_index = str(self.atom1_idx_arr[0])
+            conformer_key = next(key for key in self.conformers.keys() if str(atom_index) in key)
+            return self.conformers[conformer_key]
+        except IndexError:
+            Logs.warning("atom1_idx_arr is empty")
+
+    @property
+    def atom2_conformation(self):
+        """Return the conformer of the atom in the second structure."""
+        try:
+            atom_index = str(self.atom2_idx_arr[0])
+            conformer_key = next(key for key in self.conformers.keys() if str(atom_index) in key)
+            return self.conformers[conformer_key]
+        except IndexError:
+            Logs.warning("atom2_idx_arr is empty")

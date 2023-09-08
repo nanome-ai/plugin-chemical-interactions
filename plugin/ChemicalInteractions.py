@@ -1,5 +1,4 @@
 import asyncio
-import itertools
 import json
 import math
 import os
@@ -20,7 +19,7 @@ from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
 from .models import InteractionStructure
 from .managers import InteractionLineManager, LabelManager, ShapesLineManager
-from .utils import merge_complexes, interaction_type_map, calculate_interaction_length, chunks
+from .utils import merge_complexes, interaction_type_map, calculate_interaction_length, chunks, line_in_frame
 from .clean_pdb import clean_pdb
 
 
@@ -565,30 +564,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return line
 
     @classmethod
-    def line_in_frame(cls, line: Interaction, complexes):
-        """Return boolean stating whether both structures connected by line are in frame.
-
-        :arg line: Line object. The line in question.
-        :arg complexes: List of complexes in workspace that can contain atoms.
-        """
-        all_atoms = itertools.chain(*[comp.atoms for comp in complexes])
-        # Find the atoms from the comp by their id, and make sure  they're in the same conformer.
-        atom1_in_frame = None
-        atom2_in_frame = None
-        for atom in all_atoms:
-            if atom.index in line.atom1_idx_arr:
-                mol = atom.molecule
-                atom1_in_frame = mol.current_conformer == line.atom1_conformation
-            elif atom.index in line.atom2_idx_arr:
-                mol = atom.molecule
-                atom2_in_frame = mol.current_conformer == line.atom2_conformation
-            if atom1_in_frame is not None and atom2_in_frame is not None:
-                break
-
-        line_in_frame = atom1_in_frame and atom2_in_frame
-        return line_in_frame
-
-    @classmethod
     def check_struct_key(cls, struct_key, atom):
         # key_hash = struct_key.split('_')
         # parse key_hash
@@ -611,7 +586,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         lines_to_delete = []
         for line in all_lines:
-            if self.line_in_frame(line, complexes):
+            if line_in_frame(line, complexes):
                 lines_to_delete.append(line)
             else:
                 pass
@@ -638,7 +613,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # If theres any visible lines between the two structs in structpair, add a label.
             struct1_index = line.atom1_idx_arr[0]
             struct2_index = line.atom2_idx_arr[0]
-            if line.visible and self.line_in_frame(line, complexes):
+            if line.visible and line_in_frame(line, complexes):
                 label = Label()
                 interaction_distance = calculate_interaction_length(line, complexes)
                 label.text = str(round(interaction_distance, 2))
@@ -764,7 +739,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             distance_labels=distance_labels)
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
-        await self.line_manager.update_interaction_lines(interactions_data, complexes=complexes)
+        await self.line_manager.update_interaction_lines(interactions_data, complexes=complexes, plugin=self)
         if self.show_distance_labels:
             # Refresh label manager
             self.label_manager.clear()

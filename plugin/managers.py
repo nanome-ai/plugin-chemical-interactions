@@ -2,7 +2,7 @@ from collections import defaultdict
 from nanome.api.shapes import Label, Shape
 from nanome.api.interactions import Interaction
 from nanome.util import enums, Color, Logs
-from .utils import interaction_type_map
+from .utils import interaction_type_map, line_in_frame
 from .models import InteractionLine, InteractionStructure
 
 
@@ -162,7 +162,7 @@ class InteractionLineManager(StructurePairManager):
         line.visible = line_settings['visible']
         return line
 
-    async def update_interaction_lines(self, interactions_data, complexes=None):
+    async def update_interaction_lines(self, interactions_data, *args, **kwargs):
         interactions = await self.line_manager.all_lines()
         lines_to_update = []
         for line in interactions:
@@ -238,13 +238,13 @@ class ShapesLineManager(StructurePairManager):
             anchor.local_offset = struct.calculate_local_offset()
         return line
 
-    async def update_interaction_lines(self, interactions_data, complexes=None):
+    async def update_interaction_lines(self, interactions_data, complexes=None, plugin=None):
         complexes = complexes or []
         stream_type = enums.StreamType.shape_color.value
 
         all_lines = await self.all_lines()
         line_indices = [line.index for line in all_lines]
-        stream, _ = await self.create_writing_stream(line_indices, stream_type)
+        stream, _ = await plugin.create_writing_stream(line_indices, stream_type)
         if not stream:
             return
 
@@ -254,16 +254,16 @@ class ShapesLineManager(StructurePairManager):
 
         for line in all_lines:
             # Make sure that both atoms connected by line are in frame.
-            line_in_frame = self.line_in_frame(line, complexes)
-            if line_in_frame:
+            line_is_in_frame = line_in_frame(line, complexes)
+            if line_is_in_frame:
                 in_frame_count += 1
             else:
                 out_of_frame_count += 1
 
             # Parse forms, and add line data to stream
-            line_type = line.interaction_type
+            line_type = line.kind
             form_data = interactions_data[line_type]
-            hide_interaction = not form_data['visible'] or not line_in_frame
+            hide_interaction = not form_data['visible'] or not line_is_in_frame
             color = Color(*form_data['color'])
 
             color.a = 0 if hide_interaction else 255
@@ -275,4 +275,4 @@ class ShapesLineManager(StructurePairManager):
         # Logs.debug(f'out of frame: {out_of_frame_count}')
         if stream:
             stream.update(new_colors)
-        await stream.destroy()
+        stream.destroy()
