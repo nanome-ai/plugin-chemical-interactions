@@ -48,60 +48,60 @@ class LineForm(Form):
 
 # If you want to change the default line settings, update here
 default_line_settings = {
-    'covalent': {'visible': True, 'color': color_map['yellow']},
-    'hbond': {'visible': True, 'color': color_map['cyan']},
-    'ionic': {'visible': True, 'color': color_map['red']},
-    'xbond': {'visible': True, 'color': color_map['green']},
-    'metal_complex': {'visible': True, 'color': color_map['grey']},
-    'aromatic': {
+    'Covalent': {'visible': True, 'color': color_map['yellow']},
+    'HydrogenBond': {'visible': True, 'color': color_map['cyan']},
+    'Ionic': {'visible': True, 'color': color_map['red']},
+    'XBond': {'visible': True, 'color': color_map['green']},
+    'MetalComplex': {'visible': True, 'color': color_map['grey']},
+    'Aromatic': {
         'visible': True,
         'color': color_map['magenta'],
         'thickness': 0.09,
         'dash_distance': 0.5,
         'dash_length': 0.18
     },
-    'hydrophobic': {'visible': False, 'color': color_map['purple'], 'dash_length': 0.07, 'thickness': 0.12, "dash_distance": 0.4},
-    'vdw': {'visible': False, 'color': color_map['sienna']},
-    'vdw_clash': {'visible': False, 'color': color_map['maroon']},
-    'weak_hbond': {'visible': False, 'color': color_map['orange']},
-    'polar': {'visible': False, 'color': color_map['blue']},
-    'weak_polar': {
+    'Hydrophobic': {'visible': False, 'color': color_map['purple'], 'dash_length': 0.07, 'thickness': 0.12, "dash_distance": 0.4},
+    'VanDerWall': {'visible': False, 'color': color_map['sienna']},
+    'VanDerWallClash': {'visible': False, 'color': color_map['maroon']},
+    'WeakHBond': {'visible': False, 'color': color_map['orange']},
+    'Polar': {'visible': False, 'color': color_map['blue']},
+    'WeakPolar': {
         'visible': False,
         'color': color_map['steelblue'],
         'thickness': 0.12,
         'dash_distance': 0.4,
         'dash_length': 0.1
     },
-    'clash': {'visible': False, 'color': color_map['white']},
-    'carbonyl': {'visible': False, 'color': color_map['slategrey']},
-    'CARBONPI': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['red']},
-    'CATIONPI': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['orange']},
-    'DONORPI': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['yellow']},
-    'HALOGENPI': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['green']},
-    'METSULPHURPI': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['blue']},
-    # 'proximal': {'visible': False, 'color': color_map['lavender']},
+    'Clash': {'visible': False, 'color': color_map['white']},
+    'Carbonyl': {'visible': False, 'color': color_map['slategrey']},
+    'CarbonPi': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['red']},
+    'CationPi': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['orange']},
+    'DonorPi': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['yellow']},
+    'HalogenPi': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['green']},
+    'MetsulphurPi': {'visible': False, 'thickness': 0.07, 'dash_length': 0.1, 'dash_distance': 0.3, 'color': color_map['blue']},
+    # 'Proximal': {'visible': False, 'color': color_map['lavender']},
 }
 
 
 class LineSettingsForm(Form):
     """Set colors and visibility for supported Interaction types."""
-    covalent = FormField(LineForm, label='Covalent', default=default_line_settings['covalent'])
-    hbond = FormField(LineForm, label='Hydrogen Bond', default=default_line_settings['hbond'])
-    ionic = FormField(LineForm, label='Ionic', default=default_line_settings['ionic'])
-    xbond = FormField(LineForm, label='Halogen', default=default_line_settings['xbond'])
-    metal_complex = FormField(LineForm, label='Metal Complex', default=default_line_settings['metal_complex'])
-    aromatic = FormField(LineForm, label='Pi-Pi Aromatic', default=default_line_settings['aromatic'])
-    hydrophobic = FormField(LineForm, label='Hydrophobic', default=default_line_settings['hydrophobic'])
-    vdw = FormField(LineForm, label='VDW', default=default_line_settings['vdw'])
-    vdw_clash = FormField(LineForm, label='VDW Clash', default=default_line_settings['vdw_clash'])
-    weak_hbond = FormField(LineForm, label='Weak Hydrogen', default=default_line_settings['weak_hbond'])
-    polar = FormField(LineForm, label='Polar', default=default_line_settings['polar'])
-    weak_polar = FormField(LineForm, label='Weak Polar', default=default_line_settings['weak_polar'])
-    clash = FormField(LineForm, label='Clash', default=default_line_settings['clash'])
-    carbonyl = FormField(LineForm, label='Carbonyl', default=default_line_settings['carbonyl'])
-    CARBONPI = FormField(LineForm, label='Carbon-PI', default=default_line_settings['CARBONPI'])
-    CATIONPI = FormField(LineForm, label='Cation-PI', default=default_line_settings['CATIONPI'])
-    DONORPI = FormField(LineForm, label='Donor-PI', default=default_line_settings['DONORPI'])
-    HALOGENPI = FormField(LineForm, label='Halogen-PI', default=default_line_settings['HALOGENPI'])
-    METSULPHURPI = FormField(LineForm, label='Sulphur-PI', default=default_line_settings['METSULPHURPI'])
-    # proximal = FormField(LineForm, label='Proximal', default=default_line_settings['proximal'])
+    Covalent = FormField(LineForm, label='Covalent', default=default_line_settings['Covalent'])
+    HydrogenBond = FormField(LineForm, label='Hydrogen Bond', default=default_line_settings['HydrogenBond'])
+    Ionic = FormField(LineForm, label='Ionic', default=default_line_settings['Ionic'])
+    XBond = FormField(LineForm, label='Halogen', default=default_line_settings['XBond'])
+    MetalComplex = FormField(LineForm, label='Metal Complex', default=default_line_settings['MetalComplex'])
+    Aromatic = FormField(LineForm, label='Pi-Pi Aromatic', default=default_line_settings['Aromatic'])
+    Hydrophobic = FormField(LineForm, label='Hydrophobic', default=default_line_settings['Hydrophobic'])
+    VanDerWall = FormField(LineForm, label='VDW', default=default_line_settings['VanDerWall'])
+    VanDerWallClash = FormField(LineForm, label='VDW Clash', default=default_line_settings['VanDerWallClash'])
+    WeakHBond = FormField(LineForm, label='Weak Hydrogen', default=default_line_settings['WeakHBond'])
+    Polar = FormField(LineForm, label='Polar', default=default_line_settings['Polar'])
+    WeakPolar = FormField(LineForm, label='Weak Polar', default=default_line_settings['WeakPolar'])
+    Clash = FormField(LineForm, label='Clash', default=default_line_settings['Clash'])
+    Carbonyl = FormField(LineForm, label='Carbonyl', default=default_line_settings['Carbonyl'])
+    CarbonPi = FormField(LineForm, label='Carbon-PI', default=default_line_settings['CarbonPi'])
+    CationPi = FormField(LineForm, label='Cation-PI', default=default_line_settings['CationPi'])
+    DonorPi = FormField(LineForm, label='Donor-PI', default=default_line_settings['DonorPi'])
+    HalogenPi = FormField(LineForm, label='Halogen-PI', default=default_line_settings['HalogenPi'])
+    MetsulphurPi = FormField(LineForm, label='Sulphur-PI', default=default_line_settings['MetsulphurPi'])
+    # Proximal = FormField(LineForm, label='Proximal', default=default_line_settings['proximal'])

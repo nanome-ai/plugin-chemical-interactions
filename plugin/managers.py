@@ -2,7 +2,7 @@ from collections import defaultdict
 from nanome.api.shapes import Label, Shape
 from nanome.api.interactions import Interaction
 from nanome.util import enums, Color, Logs
-from .utils import interaction_type_map, line_in_frame
+from .utils import line_in_frame
 from .models import InteractionShapesLine, InteractionStructure
 
 
@@ -142,7 +142,7 @@ class InteractionLineManager(StructurePairManager):
         for struct2_index in struct2.index.split(','):
             struct2_indices.append(int(struct2_index))
 
-        interaction_kind = interaction_type_map[line_settings['kind']]
+        interaction_kind = line_settings['kind']
         atom1_conformation = struct1.conformer
         atom2_conformation = struct2.conformer
         line = Interaction(
@@ -159,13 +159,16 @@ class InteractionLineManager(StructurePairManager):
         interactions = await self.all_lines()
         lines_to_update = []
         for line in interactions:
-            interaction_type = line.kind
+            interaction_type = line.kind.name
             interaction_type_visible = interactions_data[interaction_type]['visible']
             if line.visible != interaction_type_visible:
                 line.visible = interaction_type_visible
                 lines_to_update.append(line)
         Logs.debug(f'Updating {len(lines_to_update)} lines')
         self.add_lines(lines_to_update)
+
+    def destroy_lines(self, lines_to_delete):
+        Interaction.destroy_multiple(lines_to_delete)
 
 
 class ShapesLineManager(StructurePairManager):
@@ -275,3 +278,6 @@ class ShapesLineManager(StructurePairManager):
         if getattr(self, '_stream', False):
             self._stream.destroy()
             del self._stream
+
+    def destroy_lines(self, lines_to_delete):
+        Shapes.destroy_multiple(lines_to_delete)

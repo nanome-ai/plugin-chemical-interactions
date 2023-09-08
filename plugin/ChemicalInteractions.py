@@ -435,11 +435,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Atom paths that current row is describing interactions between
             a1_data = row['bgn']
             a2_data = row['end']
-            interaction_types = row['contact']
+            contact_types = row['contact']
+            # Switch arpeggio interaction string into nanome InteractionKind enum
+            try:
+                interaction_kinds = [
+                    interaction_type_map[contact_type].name
+                    for contact_type in contact_types
+                    if contact_type in interaction_type_map.keys
+                ]
+            except KeyError:
+                pass
 
             # If we dont have line settings for any of the interactions in the row, we can continue
             # Typically this filters out rows with only `proximal` interactions.
-            if not set(interaction_types).intersection(set(form.data.keys())):
+            if not set(interaction_kinds).intersection(set(form.data.keys())):
                 continue
 
             # If structure's relationship is not included, continue
@@ -456,7 +465,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             except AtomNotFoundException:
                 message = (
                     f"Failed to parse interactions between {atom1_path} and {atom2_path} "
-                    f"skipping {len(interaction_types)} interactions"
+                    f"skipping {len(contact_types)} interactions"
                 )
                 Logs.warning(message)
                 continue
@@ -482,11 +491,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         struct.conformer = list(comp.molecules)[comp.current_frame].current_conformer
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
-            structpair_lines = self.create_new_lines(struct1, struct2, interaction_types, form.data, existing_lines)
+            structpair_lines = self.create_new_lines(struct1, struct2, interaction_kinds, form.data, existing_lines)
             new_lines += structpair_lines
         return new_lines
 
-    def create_new_lines(self, struct1, struct2, interaction_types, line_settings, existing_lines=None):
+    def create_new_lines(self, struct1, struct2, interaction_kinds, line_settings, existing_lines=None):
         """Parse rows of data from .contacts file into Line objects.
 
         struct1: InteractionStructure
@@ -496,15 +505,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """
         existing_lines = existing_lines or []
         new_lines = []
-        for interaction_type in interaction_types:
-            form_data = line_settings.get(interaction_type)
+        for interaction_kind in interaction_kinds:
+            form_data = line_settings.get(interaction_kind)
             if not form_data:
                 continue
 
             # See if we've already drawn this line
             line_exists = False
             try:
-                structpair_lines = self.line_manager.get_lines_for_structure_pair(struct1.index, struct2.index, existing_lines)
+                structpair_lines = self.line_manager.get_lines_for_structure_pair(
+                    struct1.index, struct2.index, existing_lines)
             except AttributeError:
                 continue
 
@@ -512,7 +522,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # struct2_atom_index = int(struct2.index.split('/')[0])
             for lin in structpair_lines:
                 struct1_is_atom1 = struct1_atom_index in lin.atom1_idx_arr
-                interaction_kind = interaction_type_map[interaction_type]
                 # struct2_is_atom1 = struct2_atom_index in lin.atom1_index
                 if struct1_is_atom1:
                     struct1_conformer_in_frame = struct1.conformer == lin.atom1_conformation
@@ -529,39 +538,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if line_exists:
                 continue
 
-            form_data['kind'] = interaction_type
+            form_data['kind'] = enums.InteractionKind[interaction_kind]
             # Draw line and add data about interaction type and frames.
             line = self.line_manager.draw_interaction_line(struct1, struct2, form_data)
             new_lines.append(line)
         return new_lines
-
-    @staticmethod
-    def draw_interaction_line(struct1: InteractionStructure, struct2: InteractionStructure, line_settings):
-        """Draw line connecting two structs.
-
-        :arg struct1: struct
-        :arg struct2: struct
-        :arg line_settings: Dict describing shape and color of line based on interaction_type
-        """
-        struct1_indices = []
-        struct2_indices = []
-        for struct1_index in struct1.index.split(','):
-            struct1_indices.append(int(struct1_index))
-        for struct2_index in struct2.index.split(','):
-            struct2_indices.append(int(struct2_index))
-
-        interaction_kind = interaction_type_map[line_settings['interaction_type']]
-        atom1_conformation = struct1.conformer
-        atom2_conformation = struct2.conformer
-        line = Interaction(
-            interaction_kind,
-            struct1_indices,
-            struct2_indices,
-            atom1_conf=atom1_conformation,
-            atom2_conf=atom2_conformation
-        )
-        line.visible = line_settings['visible']
-        return line
 
     @classmethod
     def check_struct_key(cls, struct_key, atom):
@@ -591,7 +572,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             else:
                 pass
         if lines_to_delete:
-            Interaction.destroy_multiple(lines_to_delete)
+            self.line_manager.destroy_lines(lines_to_delete)
         self.label_manager.clear()
 
         destroyed_line_count = len(lines_to_delete)
@@ -749,7 +730,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def supports_persistent_interactions():
         # Currently this always return True
         # TODO: "GetInteractions" should return 0 if not supported, else 1
-        return False
         version_table = TypeSerializer.get_version_table()
         return version_table.get('GetInteractions', -1) > 0
 
