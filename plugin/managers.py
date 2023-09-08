@@ -284,7 +284,6 @@ class ShapesLineManager(StructurePairManager):
             self._stream.update(new_colors)
 
     def destroy_stream(self):
-        if not getattr(self, 'stream', False):
+        if getattr(self, '_stream', False):
             self._stream.destroy()
             del self._stream
-        return self._color_stream
