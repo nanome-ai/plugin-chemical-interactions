@@ -21,11 +21,8 @@ class StructurePairManager:
     @staticmethod
     def get_structpair_key_for_line(line):
         """Return a string key for the given atom indices."""
-        try:
-            struct1_key = ','.join(line.atom1_idx_arr)
-        except TypeError:
-            pass
-        struct2_key = ','.join(line.atom2_idx_arr)
+        struct1_key = ','.join([str(x) for x in line.atom1_idx_arr])
+        struct2_key = ','.join([str(x) for x in line.atom2_idx_arr])
         structpair_key = '|'.join(sorted([struct1_key, struct2_key]))
         return structpair_key
 
@@ -126,10 +123,6 @@ class InteractionLineManager(StructurePairManager):
                 line_list[i] = line
                 break
 
-    def update(self, line_manager):
-        """"Merge another LineManager into self."""
-        self._data.update(line_manager._data)
-
     def upload(self, line_list):
         """Upload multiple lines to Nanome."""
         Interaction.upload_multiple(line_list)
@@ -149,7 +142,7 @@ class InteractionLineManager(StructurePairManager):
         for struct2_index in struct2.index.split(','):
             struct2_indices.append(int(struct2_index))
 
-        interaction_kind = interaction_type_map[line_settings['interaction_type']]
+        interaction_kind = interaction_type_map[line_settings['kind']]
         atom1_conformation = struct1.conformer
         atom2_conformation = struct2.conformer
         line = Interaction(
@@ -163,7 +156,7 @@ class InteractionLineManager(StructurePairManager):
         return line
 
     async def update_interaction_lines(self, interactions_data, *args, **kwargs):
-        interactions = await self.line_manager.all_lines()
+        interactions = await self.all_lines()
         lines_to_update = []
         for line in interactions:
             interaction_type = line.kind
@@ -172,7 +165,7 @@ class InteractionLineManager(StructurePairManager):
                 line.visible = interaction_type_visible
                 lines_to_update.append(line)
         Logs.debug(f'Updating {len(lines_to_update)} lines')
-        self.update(lines_to_update)
+        self.add_lines(lines_to_update)
 
 
 class ShapesLineManager(StructurePairManager):
@@ -215,10 +208,6 @@ class ShapesLineManager(StructurePairManager):
             if stored_line.index == line.index:
                 line_list[i] = line
                 break
-
-    def update(self, line_manager):
-        """"Merge another LineManager into self."""
-        self._data.update(line_manager._data)
 
     def upload(self, line_list):
         """Upload multiple lines to Nanome."""
