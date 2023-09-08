@@ -71,7 +71,7 @@ class InteractionStructure:
         return offset_vector
 
 
-class InteractionLine(Line):
+class InteractionShapesLine(Line):
     """A Line with additional properties needed for representing interactions."""
 
     def __init__(self, struct1, struct2, **kwargs):

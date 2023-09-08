@@ -3,7 +3,7 @@ from nanome.api.shapes import Label, Shape
 from nanome.api.interactions import Interaction
 from nanome.util import enums, Color, Logs
 from .utils import interaction_type_map, line_in_frame
-from .models import InteractionLine, InteractionStructure
+from .models import InteractionShapesLine, InteractionStructure
 
 
 class StructurePairManager:
@@ -190,7 +190,7 @@ class ShapesLineManager(StructurePairManager):
             self.add_line(line)
 
     def add_line(self, line):
-        if not isinstance(line, InteractionLine):
+        if not isinstance(line, InteractionShapesLine):
             raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
         structpair_key = self.get_structpair_key_for_line(line)
         self._data[structpair_key].append(line)
@@ -229,7 +229,7 @@ class ShapesLineManager(StructurePairManager):
         :arg struct2: struct
         :arg line_settings: Dict describing shape and color of line based on interaction_type
         """
-        line = InteractionLine(struct1, struct2, **line_settings)
+        line = InteractionShapesLine(struct1, struct2, **line_settings)
 
         for struct, anchor in zip([struct1, struct2], line.anchors):
             anchor.anchor_type = enums.ShapeAnchorType.Atom
