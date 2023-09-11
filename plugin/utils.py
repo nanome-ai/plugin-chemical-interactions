@@ -4,6 +4,8 @@ from nanome.api.interactions import Interaction
 from nanome.util import ComplexUtils, Vector3
 from nanome.util.enums import InteractionKind
 from scipy.spatial import KDTree
+from .models import InteractionShapesLine
+from typing import Union
 
 
 __all__ = ['chunks', 'extract_residues_from_complex', 'merge_complexes']
@@ -144,7 +146,7 @@ def calculate_interaction_length(line: Interaction, complexes):
     return distance
 
 
-def line_in_frame(line: Interaction, complexes):
+def line_in_frame(line: Union([Interaction, InteractionShapesLine]), complexes):
     """Return boolean stating whether both structures connected by line are in frame.
 
     :arg line: Line object. The line in question.
