@@ -41,6 +41,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.settings_menu = SettingsMenu(self)
         self.show_distance_labels = False
         self.__complex_cache = {}
+        self.integration.run_interactions = self.start_integration
 
     def on_stop(self):
         self.temp_dir.cleanup()
@@ -58,6 +59,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     def on_advanced_settings(self):
         self.settings_menu.render()
+
+    def start_integration(self, request):
+        pass
 
     @property
     def line_manager(self):
