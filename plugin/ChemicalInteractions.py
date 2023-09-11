@@ -6,12 +6,10 @@ import tempfile
 import time
 import uuid
 import nanome
-import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from nanome._internal.serializer_fields import TypeSerializer
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape, Anchor
-from nanome.api.interactions import Interaction
 from nanome.util import async_callback, enums, Logs, Process, Vector3, ComplexUtils
 from typing import List
 
@@ -541,22 +539,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             line = self.line_manager.draw_interaction_line(struct1, struct2, form_data)
             new_lines.append(line)
         return new_lines
-
-    @classmethod
-    def check_struct_key(cls, struct_key, atom):
-        # key_hash = struct_key.split('_')
-        # parse key_hash
-        atom_pos_strs = struct_key.split(',')
-        has_matches = False
-        for atom_pos_str in atom_pos_strs:
-            atom_index, x, y, z = atom_pos_str.split('/')
-            if atom_index != str(atom.index):
-                continue
-            pos = Vector3(float(x), float(y), float(z))
-            if np.allclose(atom.position.unpack(), pos.unpack()):
-                has_matches = True
-                break
-        return has_matches
 
     async def clear_lines_in_frame(self, complexes, send_notification=True):
         """Clear all interaction lines in the current set of frames and conformers."""
