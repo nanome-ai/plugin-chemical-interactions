@@ -259,7 +259,7 @@ class ShapesLineManager(StructurePairManager):
                 out_of_frame_count += 1
 
             # Parse forms, and add line data to stream
-            line_type = line.kind
+            line_type = line.kind.name
             form_data = interactions_data[line_type]
             hide_interaction = not form_data['visible'] or not line_is_in_frame
             color = Color(*form_data['color'])

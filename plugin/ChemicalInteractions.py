@@ -718,6 +718,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             distance_labels=distance_labels)
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
+        await self._ensure_deep_complexes(complexes)
         await self.line_manager.update_interaction_lines(interactions_data, complexes=complexes, plugin=self)
         if self.show_distance_labels:
             # Refresh label manager

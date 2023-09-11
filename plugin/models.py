@@ -91,8 +91,8 @@ class InteractionShapesLine(Line):
             self.conformers[struct.index] = struct.conformer
             self.struct_positions[struct.index] = struct_position
         # Save atom_indices to be interchangeable with Interaction objects
-        self.atom1_idx_arr = [str(atm.index) for atm in struct1.atoms]
-        self.atom2_idx_arr = [str(atm.index) for atm in struct2.atoms]
+        self.atom1_idx_arr = [atm.index for atm in struct1.atoms]
+        self.atom2_idx_arr = [atm.index for atm in struct2.atoms]
 
     @property
     def kind(self):
