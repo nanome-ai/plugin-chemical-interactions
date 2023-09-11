@@ -707,11 +707,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.label_manager.clear()
             await self.render_distance_labels(complexes)
 
-    @staticmethod
-    def supports_persistent_interactions():
-        # Currently this always return True
-        # TODO: "GetInteractions" should return 0 if not supported, else 1
-        version_table = TypeSerializer.get_version_table()
+    def supports_persistent_interactions(self):
+        version_table = self._network._version_table
         return version_table.get('GetInteractions', -1) > 0
 
     async def _ensure_deep_complexes(self, complexes):
