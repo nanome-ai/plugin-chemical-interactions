@@ -60,8 +60,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def on_advanced_settings(self):
         self.settings_menu.render()
 
-    def start_integration(self, request):
-        pass
+    @async_callback
+    async def start_integration(self, request):
+        btn = self.menu.btn_calculate
+        await self.menu.submit_form(btn)
 
     @property
     def line_manager(self):
