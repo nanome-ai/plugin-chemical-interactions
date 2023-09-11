@@ -441,7 +441,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 interaction_kinds = [
                     interaction_type_map[contact_type].name
                     for contact_type in contact_types
-                    if contact_type in interaction_type_map.keys
+                    if contact_type in interaction_type_map.keys()
                 ]
             except KeyError:
                 pass
@@ -519,10 +519,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             struct1_atom_index = int(struct1.index)
-            # struct2_atom_index = int(struct2.index.split('/')[0])
             for lin in structpair_lines:
                 struct1_is_atom1 = struct1_atom_index in lin.atom1_idx_arr
-                # struct2_is_atom1 = struct2_atom_index in lin.atom1_index
                 if struct1_is_atom1:
                     struct1_conformer_in_frame = struct1.conformer == lin.atom1_conformation
                     struct2_conformer_in_frame = struct2.conformer == lin.atom2_conformation
@@ -574,9 +572,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if lines_to_delete:
             self.line_manager.destroy_lines(lines_to_delete)
         self.label_manager.clear()
-
         destroyed_line_count = len(lines_to_delete)
         message = f'Deleted {destroyed_line_count} interactions'
+
         Logs.message(message)
         if send_notification:
             asyncio.create_task(self.send_async_notification(message))

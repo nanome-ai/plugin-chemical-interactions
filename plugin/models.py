@@ -96,7 +96,7 @@ class InteractionShapesLine(Line):
 
     @property
     def kind(self):
-        """The type of interaction this line is representing. See forms.InteractionsForm for valid values."""
+        """The type of interaction this line is representing. See forms.LineSettingsForm for valid values."""
         if not hasattr(self, '_kind'):
             self._kind = ''
         return self._kind

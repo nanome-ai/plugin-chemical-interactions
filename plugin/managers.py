@@ -280,4 +280,4 @@ class ShapesLineManager(StructurePairManager):
             del self._stream
 
     def destroy_lines(self, lines_to_delete):
-        Shapes.destroy_multiple(lines_to_delete)
+        Shape.destroy_multiple(lines_to_delete)

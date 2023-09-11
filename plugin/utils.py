@@ -155,11 +155,10 @@ def line_in_frame(line: Interaction, complexes):
     atom1_in_frame = None
     atom2_in_frame = None
     for atom in all_atoms:
-        atom_index = str(atom.index)
-        if atom_index in line.atom1_idx_arr:
+        if atom.index in line.atom1_idx_arr:
             mol = atom.molecule
             atom1_in_frame = mol.current_conformer == line.atom1_conformation
-        elif atom_index in line.atom2_idx_arr:
+        elif atom.index in line.atom2_idx_arr:
             mol = atom.molecule
             atom2_in_frame = mol.current_conformer == line.atom2_conformation
         if atom1_in_frame is not None and atom2_in_frame is not None:
