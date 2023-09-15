@@ -693,6 +693,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         updated_lig_comps = [
             cmp for cmp in updated_comps if cmp.index in lig_comp_indices]
 
+        target_has_changed = self.complex_has_changed(target_complex, updated_target_comp)
+        ligands_have_changed = any([
+            self.complex_has_changed(lig_comp, updated_lig_comp)
+            for lig_comp, updated_lig_comp in zip(ligand_complexes, updated_lig_comps)
+        ])
+        if not any([target_has_changed, ligands_have_changed]):
+            Logs.debug('No changes detected, skipping recalculation')
+            return
+
         updated_residues = []
         for comp in updated_lig_comps:
             updated_residues.extend([
@@ -704,6 +713,22 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             updated_target_comp, updated_residues, line_settings,
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
+
+    @staticmethod
+    def complex_has_changed(old_comp, new_comp) -> bool:
+        old_atom_count = sum(1 for _ in old_comp.atoms)
+        new_atom_count = sum(1 for _ in new_comp.atoms)
+        old_bond_count = sum(1 for _ in old_comp.bonds)
+        new_bond_count = sum(1 for _ in new_comp.bonds)
+        if old_atom_count != new_atom_count or old_bond_count != new_bond_count:
+            return True
+        # More thorough check to make sure atoms weren't updated.
+        comps_the_same = True
+        for old_atm, new_atm in zip(old_comp.atoms, new_comp.atoms):
+            if old_atm.symbol != new_atm.symbol:
+                comps_the_same = False
+                break
+        return not comps_the_same
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
         await self._ensure_deep_complexes(complexes)
