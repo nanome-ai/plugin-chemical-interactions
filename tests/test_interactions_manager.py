@@ -30,6 +30,9 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
         version_table = {}
         with open(f'{fixtures_dir}/version_table_1_24_2.json') as f:
             version_table = json.loads(f.read())
+
+        # Bump GetInteractions version to 1 so that the InteractionLineManager will be used
+        # to use the persistent interactions api.
         version_table['GetInteractions'] = 1
         self.plugin_instance._network._version_table = version_table
         self.plugin_instance.start()
