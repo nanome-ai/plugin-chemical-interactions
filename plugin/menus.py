@@ -510,7 +510,7 @@ class ChemInteractionsMenu():
         self.plugin.update_content(self.btn_calculate)
         self.plugin.update_content(self.dd_ligands)
 
-    @async_callback 
+    @async_callback
     async def on_complex_updated(self, complex):
         # Update complex in self.complexes, and redraw lines
         self.update_complex_data(complex)
