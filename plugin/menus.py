@@ -415,8 +415,9 @@ class ChemInteractionsMenu():
         self.ls_interactions.items = interactions
         self.plugin.update_content(self.ls_interactions)
 
-    def change_interaction_color(self, dropdown, item):
-        self.update_interaction_lines()
+    @async_callback
+    async def change_interaction_color(self, dropdown, item):
+        await self.update_interaction_lines()
 
     @async_callback
     async def toggle_visibility(self, btn):
@@ -509,10 +510,11 @@ class ChemInteractionsMenu():
         self.plugin.update_content(self.btn_calculate)
         self.plugin.update_content(self.dd_ligands)
 
-    def on_complex_updated(self, complex):
+    @async_callback 
+    async def on_complex_updated(self, complex):
         # Update complex in self.complexes, and redraw lines
         self.update_complex_data(complex)
-        self.update_interaction_lines()
+        await self.update_interaction_lines()
 
     def update_complex_data(self, new_complex):
         """Replace complex in self.complexes with updated data."""

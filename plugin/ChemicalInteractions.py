@@ -7,7 +7,7 @@ import time
 import uuid
 import nanome
 from concurrent.futures import ThreadPoolExecutor
-from nanome._internal.serializer_fields import TypeSerializer
+from itertools import zip_longest
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape, Anchor
 from nanome.util import async_callback, enums, Logs, Process, Vector3, ComplexUtils
@@ -42,6 +42,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.show_distance_labels = False
         self.__complex_cache = {}
         self.integration.run_interactions = self.start_integration
+        self.line_manager = self.get_line_manager()
 
     def on_stop(self):
         self.temp_dir.cleanup()
@@ -65,16 +66,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         btn = self.menu.btn_calculate
         await self.menu.submit_form(btn)
 
-    @property
-    def line_manager(self):
+    def get_line_manager(self):
         """Maintain a dict of all interaction lines stored in memory."""
-        if not hasattr(self, '_line_manager'):
-            if self.supports_persistent_interactions():
-                self._line_manager = InteractionLineManager()
-            else:
-                Logs.warning('Persistent Interactions not supported. Falling back to Shapes Interaction Lines.')
-                self._line_manager = ShapesLineManager()
-        return self._line_manager
+        if self.supports_persistent_interactions():
+            line_manager = InteractionLineManager()
+        else:
+            Logs.warning('Persistent Interactions not supported. Falling back to Shapes Interaction Lines.')
+            line_manager = ShapesLineManager()
+        return line_manager
 
     @property
     def label_manager(self):
@@ -596,7 +595,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 anchor2.viewer_offset = viewer_offset
                 label.anchors = [anchor1, anchor2]
                 self.label_manager.add_label(label, struct1_index, struct2_index)
-
         label_count = len(self.label_manager.all_labels())
         await Shape.upload_multiple(self.label_manager.all_labels())
         Logs.message(f'Uploaded {label_count} distance labels')
@@ -716,16 +714,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @staticmethod
     def complex_has_changed(old_comp, new_comp) -> bool:
-        old_atom_count = sum(1 for _ in old_comp.atoms)
-        new_atom_count = sum(1 for _ in new_comp.atoms)
-        old_bond_count = sum(1 for _ in old_comp.bonds)
-        new_bond_count = sum(1 for _ in new_comp.bonds)
-        if old_atom_count != new_atom_count or old_bond_count != new_bond_count:
-            return True
-        # More thorough check to make sure atoms weren't updated.
         comps_the_same = True
-        for old_atm, new_atm in zip(old_comp.atoms, new_comp.atoms):
-            if old_atm.symbol != new_atm.symbol:
+        for old_atm, new_atm in zip_longest(old_comp.atoms, new_comp.atoms):
+            if old_atm is None or new_comp is None or old_atm.index != new_atm.index:
                 comps_the_same = False
                 break
         return not comps_the_same

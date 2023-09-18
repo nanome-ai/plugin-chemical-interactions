@@ -7,7 +7,7 @@ from unittest.mock import patch
 from random import randint
 
 from unittest.mock import MagicMock
-from nanome.api import ui, PluginInstance
+from nanome.api import ui
 from nanome.api.structure import Atom, Chain, Complex, Molecule
 from plugin.menus import ChemInteractionsMenu
 from plugin.ChemicalInteractions import ChemicalInteractions
@@ -25,7 +25,7 @@ def run_awaitable(awaitable, *args, **kwargs):
     loop.close()
 
 
-class PluginFunctionTestCase(unittest.TestCase):
+class PluginFunctionTestCase(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
         tyl_pdb = f'{fixtures_dir}/1tyl.pdb'
@@ -121,7 +121,7 @@ class PluginFunctionTestCase(unittest.TestCase):
         self.assertTrue(contacts_data)
 
 
-class CalculateInteractionsTestCase(unittest.TestCase):
+class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
     """Test different combinations of args for calculate_interactions."""
 
     def setUp(self):
@@ -130,6 +130,9 @@ class CalculateInteractionsTestCase(unittest.TestCase):
         for atom in self.complex.atoms:
             atom.index = randint(1000000000, 9999999999)
         self.plugin_instance = ChemicalInteractions()
+        self.plugin_instance._network = MagicMock()
+        with open(f'{fixtures_dir}/version_table_1_24_2.json') as f:
+            self.plugin_instance._network._version_table = json.loads(f.read())
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
@@ -158,13 +161,16 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             distance_labels=distance_labels)
 
     @patch('nanome._internal.network.PluginNetwork._instance')
-    def test_separate_ligand_complex(self, _):
+    @patch('nanome.api.shapes.shape.Shape.upload_multiple')
+    def test_separate_ligand_complex(self, shape_mock, *mocks):
         """Validate calculate_interactions call where ligand is on a separate complex."""
         target_complex = self.complex
         chain_name = 'HC'
         residue_name = 'TYL'
         ligand_residue = next(res for res in self.complex.residues if res.name == residue_name)
 
+        shape_mock.return_value = asyncio.Future()
+        shape_mock.return_value.set_result(None)
         # Build new complex containing ligand residue
         ligand_complex = Complex()
         ligand_molecule = Molecule()
@@ -202,8 +208,10 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             selected_atoms_only=selected_atoms_only)
 
     @patch('nanome._internal.network.PluginNetwork._instance')
-    def test_distance_labels(self, _):
+    @patch('nanome.api.shapes.shape.Shape.upload_multiple')
+    def test_distance_labels(self, upload_mock, _):
         """Ensure that distance labels can be added to the InteractionLines."""
+        upload_mock.return_value = asyncio.Future()
         # Select all atoms on the ligand chain
         target_complex = self.complex
         chain_name = 'HC'
@@ -224,7 +232,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
     async def validate_calculate_interactions(
             self, target_complex, ligand_residues, selected_atoms_only=False, distance_labels=False):
         """Run plugin.calculate_interactions with provided args and make sure lines are added to LineManager."""
-        line_count = len(self.plugin_instance.line_manager.all_lines())
+        line_count = len(await self.plugin_instance.line_manager.all_lines())
         self.assertEqual(line_count, 0)
 
         await self.plugin_instance.calculate_interactions(
@@ -232,7 +240,7 @@ class CalculateInteractionsTestCase(unittest.TestCase):
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
 
-        new_line_count = len(self.plugin_instance.line_manager.all_lines())
+        new_line_count = len(await self.plugin_instance.line_manager.all_lines())
         self.assertTrue(new_line_count > 0)
         if distance_labels:
             label_count = len(self.plugin_instance.label_manager.all_labels())
@@ -240,48 +248,47 @@ class CalculateInteractionsTestCase(unittest.TestCase):
 
     @patch('nanome.api.plugin_instance.PluginInstance.create_writing_stream')
     @patch('nanome._internal.network.PluginNetwork._instance')
-    def test_menu(self, mock_network, create_writing_stream_mock):
-        async def _test_menu():
-            # Select all atoms on the ligand chain
-            chain_name = 'HC'
-            ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
-            target_complex = self.complex
-            ligand_residues = list(ligand_chain.residues)
-            selected_atoms_only = False
-            distance_labels = True
+    @patch('nanome.api.shapes.shape.Shape.upload_multiple')
+    async def test_menu(self, shape_upload_mock, mock_network, create_writing_stream_mock):
+        shape_upload_mock.return_value = asyncio.Future()
+        shape_upload_mock.return_value.set_result([])
+        # Select all atoms on the ligand chain
+        chain_name = 'HC'
+        ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
+        target_complex = self.complex
+        ligand_residues = list(ligand_chain.residues)
+        selected_atoms_only = False
+        distance_labels = True
 
-            line_count = len(self.plugin_instance.line_manager.all_lines())
-            self.assertEqual(line_count, 0)
-            await self.validate_calculate_interactions(
-                target_complex,
-                ligand_residues,
-                selected_atoms_only=selected_atoms_only,
-                distance_labels=distance_labels)
+        line_count = len(await self.plugin_instance.line_manager.all_lines())
+        self.assertEqual(line_count, 0)
+        await self.validate_calculate_interactions(
+            target_complex,
+            ligand_residues,
+            selected_atoms_only=selected_atoms_only,
+            distance_labels=distance_labels)
+        line_count = len(await self.plugin_instance.line_manager.all_lines())
+        self.assertTrue(line_count > 0)
+        # Set up mocked result for create_writing_stream_mock
+        fut = asyncio.Future()
+        fut.set_result((MagicMock(), None))
+        create_writing_stream_mock.return_value = fut
 
-            line_count = len(self.plugin_instance.line_manager.all_lines())
-            self.assertTrue(line_count > 0)
-            # Set up mocked result for create_writing_stream_mock
-            fut = asyncio.Future()
-            fut.set_result((MagicMock(), None))
-            create_writing_stream_mock.return_value = fut
+        menu = ChemInteractionsMenu(self.plugin_instance)
+        self.plugin_instance._menus = [menu]
+        await menu.render(complexes=[self.complex])
+        updated_line_settings = dict(default_line_settings)
+        updated_line_settings['Hydrophobic']['dash_length'] = 0.5
+        await menu.update_interaction_lines()
 
-            menu = ChemInteractionsMenu(self.plugin_instance)
-            self.plugin_instance._menus = [menu]
-            await menu.render(complexes=[self.complex])
-            updated_line_settings = dict(default_line_settings)
-            updated_line_settings['hydrophobic']['dash_length'] = 0.5
-            await menu.update_interaction_lines()
+        btn = ui.Button()
+        menu.toggle_all_interactions(btn)
+        menu.reset_calculate_btn()
+        menu.toggle_visibility(btn)
+        menu.toggle_atom_selection(btn)
 
-            btn = ui.Button()
-            menu.toggle_all_interactions(btn)
-            menu.reset_calculate_btn()
-            menu.toggle_visibility(btn)
-            menu.toggle_atom_selection(btn)
-
-            # Test clear_frame()
-            self.assertTrue(line_count > 0)
-            await menu.clear_frame(MagicMock())
-            line_count = len(self.plugin_instance.line_manager.all_lines())
-            self.assertEqual(line_count, 0)
-
-        run_awaitable(_test_menu)
+        # Test clear_frame()
+        self.assertTrue(line_count > 0)
+        await menu.clear_frame(MagicMock())
+        line_count = len(await self.plugin_instance.line_manager.all_lines())
+        self.assertEqual(line_count, 0)
