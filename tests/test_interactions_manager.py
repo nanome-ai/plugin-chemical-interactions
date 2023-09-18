@@ -178,7 +178,8 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
         mock_interaction_get.side_effect = [
             self.get_fut_1, self.get_fut_1, self.get_fut_1, self.get_fut_2,
             self.get_fut_2, self.get_fut_2, self.get_fut_2, self.get_fut_2,
-            self.get_fut_2, self.get_fut_2, self.get_fut_1, self.get_fut_1, self.get_fut_1, self.get_fut_1
+            self.get_fut_2, self.get_fut_2, self.get_fut_1, self.get_fut_1,
+            self.get_fut_1, self.get_fut_1
         ]
         # Select all atoms on the ligand chain
         chain_name = 'HC'
