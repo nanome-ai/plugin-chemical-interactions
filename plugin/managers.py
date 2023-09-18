@@ -171,6 +171,12 @@ class InteractionLineManager(StructurePairManager):
 
     def destroy_lines(self, lines_to_delete):
         Interaction.destroy_multiple(lines_to_delete)
+        for line in lines_to_delete:
+            structpair_key = self.get_structpair_key_for_line(line)
+            if structpair_key in self._data:
+                self._data[structpair_key].remove(line)
+            else:
+                Logs.warning("Line not found in manager while deleting.")
 
 
 class ShapesLineManager(StructurePairManager):
