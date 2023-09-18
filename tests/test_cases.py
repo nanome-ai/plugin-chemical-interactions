@@ -17,14 +17,6 @@ from plugin.forms import default_line_settings
 fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 
-def run_awaitable(awaitable, *args, **kwargs):
-    loop = asyncio.get_event_loop()
-    if loop.is_running:
-        loop = asyncio.new_event_loop()
-    loop.run_until_complete(awaitable(*args, **kwargs))
-    loop.close()
-
-
 class PluginFunctionTestCase(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
@@ -144,7 +136,7 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
         return super().tearDown()
 
     @patch('nanome._internal.network.PluginNetwork._instance')
-    def test_selected_atoms(self, _):
+    async def test_selected_atoms(self, _):
         """Validate calculate_interactions call using selected atoms."""
         target_complex = self.complex
         # Select ligand residues
@@ -156,8 +148,7 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
         ligand_residues = list(ligand_chain.residues)
         selected_atoms_only = True
         distance_labels = False
-        run_awaitable(
-            self.validate_calculate_interactions,
+        await self.validate_calculate_interactions(
             target_complex,
             ligand_residues,
             selected_atoms_only=selected_atoms_only,
@@ -165,7 +156,7 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
 
     @patch('nanome._internal.network.PluginNetwork._instance')
     @patch('nanome.api.shapes.shape.Shape.upload_multiple')
-    def test_separate_ligand_complex(self, shape_mock, *mocks):
+    async def test_separate_ligand_complex(self, shape_mock, *mocks):
         """Validate calculate_interactions call where ligand is on a separate complex."""
         target_complex = self.complex
         chain_name = 'HC'
@@ -188,14 +179,13 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
         ligand_complex.index = 99
         distance_labels = True
         ligand_residues = list(ligand_complex.residues)
-        return run_awaitable(
-            self.validate_calculate_interactions,
+        await self.validate_calculate_interactions(
             target_complex,
             ligand_residues,
             distance_labels=distance_labels)
 
     @patch('nanome._internal.network.PluginNetwork._instance')
-    def test_specific_structures(self, _):
+    async def test_specific_structures(self, _):
         """Validate calculate_interactions call with no selections, but a list of residues provided."""
         chain_name = 'HC'
         ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
@@ -204,17 +194,17 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
         ligand_residues = list(ligand_chain.residues)
         selected_atoms_only = False
 
-        return run_awaitable(
-            self.validate_calculate_interactions,
+        await self.validate_calculate_interactions(
             target_complex,
             ligand_residues,
             selected_atoms_only=selected_atoms_only)
 
     @patch('nanome._internal.network.PluginNetwork._instance')
     @patch('nanome.api.shapes.shape.Shape.upload_multiple')
-    def test_distance_labels(self, upload_mock, _):
+    async def test_distance_labels(self, upload_mock, _):
         """Ensure that distance labels can be added to the InteractionLines."""
         upload_mock.return_value = asyncio.Future()
+        upload_mock.return_value.set_result([])
         # Select all atoms on the ligand chain
         target_complex = self.complex
         chain_name = 'HC'
@@ -225,8 +215,7 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
         ligand_residues = list(ligand_chain.residues)
         selected_atoms_only = True
         distance_labels = True
-        run_awaitable(
-            self.validate_calculate_interactions,
+        await self.validate_calculate_interactions(
             target_complex,
             ligand_residues,
             selected_atoms_only=selected_atoms_only,
