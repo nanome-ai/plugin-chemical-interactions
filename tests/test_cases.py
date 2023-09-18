@@ -33,6 +33,9 @@ class PluginFunctionTestCase(unittest.IsolatedAsyncioTestCase):
         for atom in self.complex.atoms:
             atom.index = randint(1000000000, 9999999999)
         self.plugin_instance = ChemicalInteractions()
+        self.plugin_instance._network = MagicMock()
+        with open(f'{fixtures_dir}/version_table_1_24_2.json') as f:
+            self.plugin_instance._network._version_table = json.loads(f.read())
         self.plugin_instance.start()
         self.plugin_instance._network = MagicMock()
 
@@ -106,10 +109,10 @@ class PluginFunctionTestCase(unittest.IsolatedAsyncioTestCase):
             contacts_data = json.loads(f.read())
         # Known value from 1tyl_contacts_data.json
         expected_line_count = 26
-        line_manager = self.plugin_instance.parse_contacts_data(
+        line_list = self.plugin_instance.parse_contacts_data(
             contacts_data, [self.complex], default_line_settings
         )
-        self.assertEqual(len(line_manager.all_lines()), expected_line_count)
+        self.assertEqual(len(line_list), expected_line_count)
 
     def test_run_arpeggio(self):
         with open(f'{fixtures_dir}/1tyl_ligand_selections.json') as f:
