@@ -84,7 +84,7 @@ class InteractionLineManager(StructurePairManager):
             self.add_lines(interactions)
 
         all_lines = []
-        for structpair_key, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
+        for _, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
             all_lines.extend(line_list)
         return all_lines
 
@@ -97,7 +97,9 @@ class InteractionLineManager(StructurePairManager):
             raise TypeError(f'add_line() expected Interaction, received {type(line)}')
 
         structpair_key = self.get_structpair_key_for_line(line)
-        self._data[structpair_key].append(line)
+        existing_interaction_kinds = [ln.kind for ln in self._data[structpair_key]]
+        if line.kind not in existing_interaction_kinds:
+            self._data[structpair_key].append(line)
 
     def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str, existing_lines=None):
         """Given two InteractionStructures, return all interaction lines connecting them.
@@ -184,7 +186,7 @@ class ShapesLineManager(StructurePairManager):
     async def all_lines(self, **kwargs):
         """Return a flat list of all lines being stored."""
         all_lines = []
-        for structpair_key, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
+        for _, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
             all_lines.extend(line_list)
         return all_lines
 
@@ -197,9 +199,11 @@ class ShapesLineManager(StructurePairManager):
             raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
 
         structpair_key = self.get_structpair_key_for_line(line)
-        self._data[structpair_key].append(line)
-        # Clear stream now that the line list is changing
-        self._destroy_stream()
+        existing_interaction_kinds = [ln.kind for ln in self._data[structpair_key]]
+        if line.kind not in existing_interaction_kinds:
+            self._data[structpair_key].append(line)
+            # Clear stream now that the line list is changing
+            self._destroy_stream()
 
     def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str, *args, **kwargs):
         """Given two InteractionStructures, return all interaction lines connecting them.
