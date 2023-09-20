@@ -2,8 +2,8 @@ from collections import defaultdict
 from nanome.api.shapes import Label, Shape
 from nanome.api.interactions import Interaction
 from nanome.util import enums, Color, Logs
-from operator import attrgetter
 from .models import InteractionShapesLine, InteractionStructure
+from . import utils
 
 
 class StructurePairManager:
@@ -181,7 +181,7 @@ class InteractionLineManager(StructurePairManager):
 class ShapesLineManager(StructurePairManager):
     """Organizes Interaction lines by atom pairs."""
 
-    async def all_lines(self):
+    async def all_lines(self, **kwargs):
         """Return a flat list of all lines being stored."""
         all_lines = []
         for structpair_key, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
@@ -254,7 +254,7 @@ class ShapesLineManager(StructurePairManager):
 
         for line in all_lines:
             # Make sure that both atoms connected by line are in frame.
-            line_is_in_frame = line_in_frame(line, complexes)
+            line_is_in_frame = utils.line_in_frame(line, complexes)
             if line_is_in_frame:
                 in_frame_count += 1
             else:

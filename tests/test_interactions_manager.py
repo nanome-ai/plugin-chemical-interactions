@@ -175,15 +175,9 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
     @patch('nanome.api.shapes.shape.Shape.upload_multiple')
     @patch('nanome.api.interactions.Interaction.get')
     async def test_menu(self, mock_interaction_get, shape_upload_mock, create_writing_stream_mock, *mocks):
-        shape_upload_mock.return_value = asyncio.Future()
-        shape_upload_mock.return_value.set_result([])
+        shape_upload_mock.return_value = self.get_fut_1
+        mock_interaction_get.return_value = self.get_fut_1
 
-        mock_interaction_get.side_effect = [
-            self.get_fut_1, self.get_fut_1, self.get_fut_1, self.get_fut_2,
-            self.get_fut_2, self.get_fut_2, self.get_fut_2, self.get_fut_2,
-            self.get_fut_2, self.get_fut_2, self.get_fut_1, self.get_fut_1,
-            self.get_fut_1, self.get_fut_1
-        ]
         # Select all atoms on the ligand chain
         chain_name = 'HC'
         ligand_chain = next(ch for ch in self.complex.chains if ch.name == chain_name)
