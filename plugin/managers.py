@@ -77,14 +77,16 @@ class LabelManager(StructurePairManager):
 class InteractionLineManager(StructurePairManager):
     """Organizes Interaction lines by atom pairs."""
 
-    async def all_lines(self):
+    async def all_lines(self, network_refresh=False):
         """Return a flat list of all lines being stored."""
+        if network_refresh:
+            interactions = await Interaction.get()
+            self.add_lines(interactions)
+
         all_lines = []
         for structpair_key, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
             all_lines.extend(line_list)
         return all_lines
-        # interactions = await Interaction.get()
-        # return interactions
 
     def add_lines(self, line_list):
         for line in line_list:
@@ -154,7 +156,7 @@ class InteractionLineManager(StructurePairManager):
 
     async def update_interaction_lines(self, interactions_data, *args, **kwargs):
         """Update all interaction lines in workspace according to provided colors and visibility settings."""
-        interactions = await self.all_lines()
+        interactions = await self.all_lines(network_refresh=True)
         lines_to_update = []
         for line in interactions:
             interaction_type = line.kind.name

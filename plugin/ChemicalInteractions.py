@@ -163,7 +163,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.total_contacts_count = len(contacts_data)
         self.loading_bar_i = 0
 
-        existing_interactions = await self.line_manager.all_lines()
+        existing_interactions = await self.line_manager.all_lines(network_refresh=True)
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
             for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
                 fut = executor.submit(
@@ -548,7 +548,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def clear_lines_in_frame(self, complexes, send_notification=True):
         """Clear all interaction lines in the current set of frames and conformers."""
         await self._ensure_deep_complexes(complexes)
-        all_lines = await self.line_manager.all_lines()
+        all_lines = await self.line_manager.all_lines(network_refresh=True)
 
         lines_to_delete = []
         for line in all_lines:
@@ -574,7 +574,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def render_distance_labels(self, complexes):
         await self._ensure_deep_complexes(complexes)
         self.show_distance_labels = True
-        all_lines = await self.line_manager.all_lines()
+        all_lines = await self.line_manager.all_lines(network_refresh=True)
         for line in all_lines:
             # If theres any visible lines between the two structs in structpair, add a label.
             struct1_index = int(line.atom1_idx_arr[0])
