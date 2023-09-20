@@ -75,9 +75,36 @@ class ShapesLineManagerTestCase(unittest.IsolatedAsyncioTestCase):
         upload_mock.assert_called_with(line_list)
 
     def test_draw_interaction_line(self):
-        breakpoint()
         interaction_kind = enums.InteractionKind.Covalent
         line_settings = default_line_settings[interaction_kind.name]
         line = self.manager.draw_interaction_line(self.struct1, self.struct2, interaction_kind, line_settings)
         self.assertTrue(isinstance(line, InteractionShapesLine))
         self.assertTrue(line.kind, interaction_kind)
+
+    @patch('nanome.api.shapes.shape.Shape.destroy_multiple')
+    async def test_destroy_lines(self, destroy_mock):
+        lines = [self.interaction_line, self.interaction_line_2]
+        self.manager.add_lines(lines)
+        line_count = len(await self.manager.all_lines())
+        self.assertEqual(line_count, 2)
+        self.manager.destroy_lines(lines)
+        destroy_mock.assert_called_with(lines)
+        line_count = len(await self.manager.all_lines())
+        self.assertEqual(line_count, 0)
+
+    async def test_get_lines_for_structure_pair(self):
+        lines = [self.interaction_line, self.interaction_line_2]
+        self.manager.add_lines(lines)
+        line_count = len(await self.manager.all_lines())
+        self.assertEqual(line_count, 2)
+        structpair_lines_1_2 = self.manager.get_lines_for_structure_pair(
+            self.struct1.index, self.struct2.index)
+        self.assertEqual(len(structpair_lines_1_2), 1)
+
+        structpair_lines_1_3 = self.manager.get_lines_for_structure_pair(
+            self.struct1.index, self.struct3.index)
+        self.assertEqual(len(structpair_lines_1_3), 1)
+
+        structpair_lines_2_3 = self.manager.get_lines_for_structure_pair(
+            self.struct2.index, self.struct3.index)
+        self.assertEqual(len(structpair_lines_2_3), 0)

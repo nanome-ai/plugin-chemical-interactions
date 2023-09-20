@@ -200,7 +200,7 @@ class ShapesLineManager(StructurePairManager):
         structpair_key = self.get_structpair_key_for_line(line)
         self._data[structpair_key].append(line)
         # Clear stream now that the line list is changing
-        self.destroy_stream()
+        self._destroy_stream()
 
     def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str, *args, **kwargs):
         """Given two InteractionStructures, return all interaction lines connecting them.
@@ -286,7 +286,7 @@ class ShapesLineManager(StructurePairManager):
         if self._stream:
             self._stream.update(new_colors)
 
-    def destroy_stream(self):
+    def _destroy_stream(self):
         if getattr(self, '_stream', False):
             self._stream.destroy()
             del self._stream
