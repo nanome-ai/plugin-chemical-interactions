@@ -539,9 +539,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if line_exists:
                 continue
 
-            form_data['kind'] = enums.InteractionKind[interaction_kind]
+            interaction_kind = enums.InteractionKind[interaction_kind]
             # Draw line and add data about interaction type and frames.
-            line = self.line_manager.draw_interaction_line(struct1, struct2, form_data)
+            line = self.line_manager.draw_interaction_line(struct1, struct2, interaction_kind, form_data)
             new_lines.append(line)
         return new_lines
 

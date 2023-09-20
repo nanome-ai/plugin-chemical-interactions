@@ -128,7 +128,7 @@ class InteractionLineManager(StructurePairManager):
         Interaction.upload_multiple(line_list)
 
     @staticmethod
-    def draw_interaction_line(struct1: InteractionStructure, struct2: InteractionStructure, line_settings):
+    def draw_interaction_line(struct1: InteractionStructure, struct2: InteractionStructure, kind: enums.InteractionKind, line_settings):
         """Draw line connecting two structs.
 
         :arg struct1: struct
@@ -142,7 +142,7 @@ class InteractionLineManager(StructurePairManager):
         for struct2_index in struct2.index.split(','):
             struct2_indices.append(int(struct2_index))
 
-        interaction_kind = line_settings['kind']
+        interaction_kind = kind
         atom1_conformation = struct1.conformer
         atom2_conformation = struct2.conformer
         line = Interaction(
@@ -197,10 +197,10 @@ class ShapesLineManager(StructurePairManager):
         if not isinstance(line, InteractionShapesLine):
             raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
 
-        # Clear stream now that the line list is changing
-        self.destroy_stream()
         structpair_key = self.get_structpair_key_for_line(line)
         self._data[structpair_key].append(line)
+        # Clear stream now that the line list is changing
+        self.destroy_stream()
 
     def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str, *args, **kwargs):
         """Given two InteractionStructures, return all interaction lines connecting them.
@@ -225,7 +225,11 @@ class ShapesLineManager(StructurePairManager):
         Shape.upload_multiple(line_list)
 
     @staticmethod
-    def draw_interaction_line(struct1, struct2, line_settings):
+    def draw_interaction_line(
+        struct1: InteractionStructure,
+        struct2: InteractionStructure,
+        kind: enums.InteractionKind,
+            line_settings: dict) -> InteractionShapesLine:
         """Draw line connecting two structs.
 
         :arg struct1: struct
@@ -233,7 +237,7 @@ class ShapesLineManager(StructurePairManager):
         :arg line_settings: Dict describing shape and color of line based on interaction_type
         """
         line = InteractionShapesLine(struct1, struct2, **line_settings)
-
+        line.kind = kind
         for struct, anchor in zip([struct1, struct2], line.anchors):
             anchor.anchor_type = enums.ShapeAnchorType.Atom
             anchor.target = struct.line_anchor.index
