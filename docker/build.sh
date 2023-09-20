@@ -18,4 +18,4 @@ if [ ! -f ".cachebust" ] || (($cachebust)); then
 fi
 
 cachebust=`cat .cachebust`
-docker build -f Dockerfile --build-arg CACHEBUST=$cachebust -t $container_name:latest ..
+docker build -f Dockerfile --build-arg CACHEBUST=$cachebust -t $container_name:interaction-line ..

@@ -77,8 +77,12 @@ class InteractionLineManager(StructurePairManager):
 
     async def all_lines(self):
         """Return a flat list of all lines being stored."""
-        interactions = await Interaction.get()
-        return interactions
+        all_lines = []
+        for structpair_key, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
+            all_lines.extend(line_list)
+        return all_lines
+        # interactions = await Interaction.get()
+        # return interactions
 
     def add_lines(self, line_list):
         for line in line_list:
@@ -113,15 +117,6 @@ class InteractionLineManager(StructurePairManager):
                 struct_pair_lines.append(line)
         # interactions = await Interaction.get(atom_idx=[*struct1_indices, *struct2_indices])
         return struct_pair_lines
-
-    def update_line(self, line):
-        """Replace line stored in manager with updated version passed as arg."""
-        structpair_key = self.get_structpair_key(*line.structure_indices)
-        line_list = self._data[structpair_key]
-        for i, stored_line in enumerate(line_list):
-            if stored_line.index == line.index:
-                line_list[i] = line
-                break
 
     def upload(self, line_list):
         """Upload multiple lines to Nanome."""
@@ -211,15 +206,6 @@ class ShapesLineManager(StructurePairManager):
         key = self.get_structpair_key(struct1_index, struct2_index)
         return self._data[key]
 
-    def update_line(self, line):
-        """Replace line stored in manager with updated version passed as arg."""
-        structpair_key = self.get_structpair_key(*line.structure_indices)
-        line_list = self._data[structpair_key]
-        for i, stored_line in enumerate(line_list):
-            if stored_line.index == line.index:
-                line_list[i] = line
-                break
-
     def upload(self, line_list):
         """Upload multiple lines to Nanome."""
         Shape.upload_multiple(line_list)
@@ -279,17 +265,12 @@ class ShapesLineManager(StructurePairManager):
             color.a = 0 if hide_interaction else 255
             new_colors.extend(color.rgba)
             line.color = color
-            self.update_line(line)
+            self._update_line(line)
 
         # Logs.debug(f'in frame: {in_frame_count}')
         # Logs.debug(f'out of frame: {out_of_frame_count}')
         if self._stream:
             self._stream.update(new_colors)
-
-    def _destroy_stream(self):
-        if getattr(self, '_stream', False):
-            self._stream.destroy()
-            del self._stream
 
     def destroy_lines(self, lines_to_delete):
         Shape.destroy_multiple(lines_to_delete)
@@ -299,3 +280,17 @@ class ShapesLineManager(StructurePairManager):
                 self._data[structpair_key].remove(line)
             else:
                 Logs.warning("Line not found in manager while deleting.")
+
+    def _destroy_stream(self):
+        if getattr(self, '_stream', False):
+            self._stream.destroy()
+            del self._stream
+
+    def _update_line(self, line):
+        """Replace line stored in manager with updated version passed as arg."""
+        structpair_key = self.get_structpair_key(*line.structure_indices)
+        line_list = self._data[structpair_key]
+        for i, stored_line in enumerate(line_list):
+            if stored_line.index == line.index:
+                line_list[i] = line
+                break
