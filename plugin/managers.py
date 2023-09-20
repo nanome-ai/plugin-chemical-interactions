@@ -2,7 +2,7 @@ from collections import defaultdict
 from nanome.api.shapes import Label, Shape
 from nanome.api.interactions import Interaction
 from nanome.util import enums, Color, Logs
-from .utils import line_in_frame
+from operator import attrgetter
 from .models import InteractionShapesLine, InteractionStructure
 
 
@@ -21,8 +21,10 @@ class StructurePairManager:
     @staticmethod
     def get_structpair_key_for_line(line):
         """Return a string key for the given atom indices."""
-        struct1_key = ','.join([str(x) for x in line.atom1_idx_arr])
-        struct2_key = ','.join([str(x) for x in line.atom2_idx_arr])
+        sorted_atom1_idx_arr = sorted(line.atom1_idx_arr)
+        sorted_atom2_idx_arr = sorted(line.atom2_idx_arr)
+        struct1_key = ','.join([str(x) for x in sorted_atom1_idx_arr])
+        struct2_key = ','.join([str(x) for x in sorted_atom2_idx_arr])
         structpair_key = '|'.join(sorted([struct1_key, struct2_key]))
         return structpair_key
 

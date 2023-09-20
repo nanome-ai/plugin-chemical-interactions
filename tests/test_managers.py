@@ -64,11 +64,13 @@ class ShapesLineManagerTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(line.kind, enums.InteractionKind.Covalent)
         new_kind = enums.InteractionKind.Clash
         line.kind = new_kind
-        self.manager.update_line(line)
+        self.manager._update_line(line)
         # Ensure update worked
         all_lines = await self.manager.all_lines()
+        # Assert we have the same number of lines we started with
         self.assertEqual(len(all_lines), starting_line_count)
-        updated_line = all_lines[0]
+        # Make sure one of the lines is a Clash
+        updated_line = line = next(line for line in all_lines if line.kind == new_kind)
         self.assertEqual(updated_line.kind, new_kind)
 
     @patch('nanome.api.shapes.shape.Shape.upload_multiple')
@@ -198,13 +200,13 @@ class InteractionLineManagerTestCase(unittest.IsolatedAsyncioTestCase):
         line_count = len(await self.manager.all_lines())
         self.assertEqual(line_count, 2)
         structpair_lines_1_2 = self.manager.get_lines_for_structure_pair(
-            self.struct1.index, self.struct2.index)
+            self.struct1.index, self.struct2.index, existing_lines=lines)
         self.assertEqual(len(structpair_lines_1_2), 1)
 
         structpair_lines_1_3 = self.manager.get_lines_for_structure_pair(
-            self.struct1.index, self.struct3.index)
+            self.struct1.index, self.struct3.index, existing_lines=lines)
         self.assertEqual(len(structpair_lines_1_3), 1)
 
         structpair_lines_2_3 = self.manager.get_lines_for_structure_pair(
-            self.struct2.index, self.struct3.index)
+            self.struct2.index, self.struct3.index, existing_lines=lines)
         self.assertEqual(len(structpair_lines_2_3), 0)
