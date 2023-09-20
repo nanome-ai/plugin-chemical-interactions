@@ -291,8 +291,12 @@ class ShapesLineManager(StructurePairManager):
 
     def _destroy_stream(self):
         if getattr(self, '_stream', False):
-            self._stream.destroy()
-            del self._stream
+            try:
+                self._stream.destroy()
+                del self._stream
+            except KeyError:
+                Logs.warning("Stream not found while destroying.")
+                pass
 
     def _update_line(self, line):
         """Replace line stored in manager with updated version passed as arg."""
