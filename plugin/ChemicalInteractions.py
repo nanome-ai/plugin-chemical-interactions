@@ -207,7 +207,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.update_structures_shallow(comps_to_lock)
 
         if distance_labels:
-            await self.render_distance_labels(complexes)
+            await self.render_distance_labels()
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
@@ -589,8 +589,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         notifcation_type = enums.NotificationTypes.message
         self.send_notification(notifcation_type, message)
 
-    async def render_distance_labels(self, complexes):
-        await self._ensure_deep_complexes(complexes)
+    async def render_distance_labels(self):
+        complexes = list(self.__complex_cache.values())
         self.show_distance_labels = True
         all_lines = await self.line_manager.all_lines(network_refresh=True)
         for line in all_lines:
@@ -681,12 +681,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.__complex_cache[updated_comp.index] = updated_comp
         updated_comp_list = self.__complex_cache.values()
 
-        # The interaction api already redraws lines based on frame/conformer changes
-        # So we can skip this if statement
-        if not self.supports_persistent_interactions():
-            # Redraw lines
-            interactions_data = self.menu.collect_interaction_data()
-            await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
+        interactions_data = self.menu.collect_interaction_data()
+        await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
 
         # Recalculate interactions if that setting is enabled.
         recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
@@ -748,7 +744,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if self.show_distance_labels:
             # Refresh label manager
             self.label_manager.clear()
-            await self.render_distance_labels(complexes)
+            await self.render_distance_labels()
 
     def supports_persistent_interactions(self):
         version_table = self._network._version_table
