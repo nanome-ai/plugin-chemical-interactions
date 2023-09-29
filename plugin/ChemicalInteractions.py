@@ -567,11 +567,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Clear all interaction lines in the current set of frames and conformers."""
         # await self._ensure_deep_complexes(complexes)
         complexes = list(self.__complex_cache.values())
-        from nanome.api.interactions.interaction import Interaction
-        comp_indices = [comp.index for comp in complexes]
-        comp_interactions = await Interaction.get(complexes_idx=comp_indices)
+        all_lines = await self.line_manager.all_lines(network_refresh=True)
         lines_to_delete = []
-        for line in comp_interactions:
+        for line in all_lines:
             if line_in_frame(line, complexes):
                 lines_to_delete.append(line)
             else:
