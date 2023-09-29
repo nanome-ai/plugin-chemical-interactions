@@ -175,7 +175,11 @@ class InteractionLineManager(StructurePairManager):
         for line in lines_to_delete:
             structpair_key = self.get_structpair_key_for_line(line)
             if structpair_key in self._data:
-                self._data[structpair_key].remove(line)
+                try:
+                    self._data[structpair_key].remove(line)
+                except ValueError:
+                    # This is ok if it fails
+                    pass
             else:
                 Logs.warning("Line not found in manager while deleting.")
 

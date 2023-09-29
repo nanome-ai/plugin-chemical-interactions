@@ -34,7 +34,8 @@ class AtomNotFoundException(Exception):
 
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
-    def start(self):
+    @async_callback
+    async def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.residue = ''
         self.menu = ChemInteractionsMenu(self)
@@ -43,6 +44,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.__complex_cache = {}
         self.integration.run_interactions = self.start_integration
         self.line_manager = self.get_line_manager()
+        await self._populate_complex_cache()
 
     def on_stop(self):
         self.temp_dir.cleanup()
@@ -52,6 +54,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.menu.enabled = True
         complexes = await self.request_complex_list()
         self.menu.render(complexes=complexes, default_values=True)
+        # Get any lines that already exist in the workspace
+        current_lines = await self.line_manager.all_lines(network_refresh=True)
+        if current_lines:
+            self.line_manager.add_lines(current_lines)
 
     @async_callback
     async def on_complex_list_changed(self):
@@ -557,13 +563,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             new_lines.append(line)
         return new_lines
 
-    async def clear_lines_in_frame(self, complexes, send_notification=True):
+    async def clear_lines_in_frame(self, send_notification=True):
         """Clear all interaction lines in the current set of frames and conformers."""
-        await self._ensure_deep_complexes(complexes)
-        all_lines = await self.line_manager.all_lines(network_refresh=True)
-
+        # await self._ensure_deep_complexes(complexes)
+        complexes = list(self.__complex_cache.values())
+        from nanome.api.interactions.interaction import Interaction
+        comp_indices = [comp.index for comp in complexes]
+        comp_interactions = await Interaction.get(complexes_idx=comp_indices)
         lines_to_delete = []
-        for line in all_lines:
+        for line in comp_interactions:
             if line_in_frame(line, complexes):
                 lines_to_delete.append(line)
             else:
@@ -672,12 +680,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_complex_updated(self, updated_comp: Complex):
         """Callback for when a complex is updated."""
         # Get all updated complexes
-        cached_complexes = [cmp for cmp in self.__complex_cache.values() if cmp.index != updated_comp.index]
-        updated_comp_list = [updated_comp] + cached_complexes
+        self.__complex_cache[updated_comp.index] = updated_comp
+        updated_comp_list = self.__complex_cache.values()
 
-        # Redraw lines
-        interactions_data = self.menu.collect_interaction_data()
-        await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
+        # The interaction api already redraws lines based on frame/conformer changes
+        # So we can skip this if statement
+        if not self.supports_persistent_interactions():
+            # Redraw lines
+            interactions_data = self.menu.collect_interaction_data()
+            await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
 
         # Recalculate interactions if that setting is enabled.
         recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
@@ -754,3 +765,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             for i, comp in enumerate(deep_complexes):
                 if complexes[i].index == comp.index:
                     complexes[i] = comp
+
+    async def _populate_complex_cache(self):
+        ws = await self.request_workspace()
+        for comp in ws.complexes:
+            self.__complex_cache[comp.index] = comp
+            comp.register_complex_updated_callback(self.on_complex_updated)
