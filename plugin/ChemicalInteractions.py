@@ -113,6 +113,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             else:
                 raise Exception('No Complex associated with Residue')
 
+        # If recalculate interactions is enabled, we need to make sure we store current run data.
         settings = self.settings_menu.get_settings()
         if settings['recalculate_on_update']:
             self.setup_previous_run(
@@ -156,6 +157,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             return
         Logs.message(f'Contacts Count: {len(contacts_data)}')
 
+        # Set up ThreadPoolExecutor to parse contacts data into InteractionLines.
         interacting_entities_to_render = settings['interacting_entities']
         contacts_per_thread = 1000
         thread_count = max(len(contacts_data) // contacts_per_thread, 1)
@@ -174,11 +176,16 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         new_lines = []
         for fut in futs:
             new_lines += fut.result()
+
+        # Destroy existing lines between two structures in the current frame
+        # This ensures we remove any interactions that are no longer present
         existing_lines_in_frame = [
             line for line in existing_interactions if line_in_frame(line, complexes)
         ]
         if existing_lines_in_frame:
             self.line_manager.destroy_lines(existing_lines_in_frame)
+
+        # Upload new lines
         self.line_manager.add_lines(new_lines)
         self.line_manager.upload(new_lines)
 
