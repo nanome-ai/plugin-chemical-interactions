@@ -174,6 +174,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         new_lines = []
         for fut in futs:
             new_lines += fut.result()
+        existing_lines_in_frame = [
+            line for line in existing_interactions if line_in_frame(line, complexes)
+        ]
+        if existing_lines_in_frame:
+            self.line_manager.destroy_lines(existing_lines_in_frame)
         self.line_manager.add_lines(new_lines)
         self.line_manager.upload(new_lines)
 
