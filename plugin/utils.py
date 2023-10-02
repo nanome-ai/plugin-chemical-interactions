@@ -157,12 +157,11 @@ def line_in_frame(line: Union[Interaction, InteractionShapesLine], complexes):
     atom1_in_frame = None
     atom2_in_frame = None
     for atom in all_atoms:
+        atom_conformer = atom.molecule.current_conformer
         if atom.index in line.atom1_idx_arr:
-            mol = atom.molecule
-            atom1_in_frame = mol.current_conformer == line.atom1_conformation
+            atom1_in_frame = atom_conformer == line.atom1_conformation
         elif atom.index in line.atom2_idx_arr:
-            mol = atom.molecule
-            atom2_in_frame = mol.current_conformer == line.atom2_conformation
+            atom2_in_frame = atom_conformer == line.atom2_conformation
         if atom1_in_frame is not None and atom2_in_frame is not None:
             break
 

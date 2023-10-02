@@ -68,10 +68,6 @@ class ChemInteractionsMenu():
     async def render(self, complexes=None, default_values=False):
         complexes = complexes or []
         self.complexes = complexes
-
-        for comp in self.complexes:
-            comp.register_complex_updated_callback(self.on_complex_updated)
-
         self.render_interaction_form()
 
         # If we are rendering with default values, get default complex and ligand
@@ -510,18 +506,11 @@ class ChemInteractionsMenu():
         self.plugin.update_content(self.btn_calculate)
         self.plugin.update_content(self.dd_ligands)
 
-    @async_callback
-    async def on_complex_updated(self, complex):
-        # Update complex in self.complexes, and redraw lines
-        self.update_complex_data(complex)
-        await self.update_interaction_lines()
-
     def update_complex_data(self, new_complex):
         """Replace complex in self.complexes with updated data."""
         for i, comp in enumerate(self.complexes):
             if comp.index == new_complex.index:
                 self.complexes[i] = new_complex
-                self.complexes[i].register_complex_updated_callback(self.on_complex_updated)
                 return
 
     def toggle_atom_selection(self, btn):

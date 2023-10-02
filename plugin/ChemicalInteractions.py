@@ -127,10 +127,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 selected_atoms_only, distance_labels)
 
         complexes = set([target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]])
-        for cmp in complexes:
-            self.__complex_cache[cmp.index] = cmp
-            cmp.register_complex_updated_callback(self.on_complex_updated)
-
         # If the ligands are not part of selected complex, merge into one complex
         if len(complexes) > 1:
             full_complex = merge_complexes(complexes, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
@@ -591,9 +587,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.send_notification(notifcation_type, message)
 
     async def render_distance_labels(self):
+        Logs.message('Rendering Distance Labels')
         complexes = list(self.__complex_cache.values())
         self.show_distance_labels = True
-        all_lines = await self.line_manager.all_lines(network_refresh=True)
+        all_lines = await self.line_manager.all_lines()
         for line in all_lines:
             # If theres any visible lines between the two structs in structpair, add a label.
             struct1_index = int(line.atom1_idx_arr[0])

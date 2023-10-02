@@ -69,9 +69,7 @@ class LabelManager(StructurePairManager):
     def clear(self):
         # Destroy all labels in workspace, and clear dict that's tracking them.
         Shape.destroy_multiple(self.all_labels())
-        keys = list(self._data.keys())
-        for key in keys:
-            del self._data[key]
+        self._data = {}
 
 
 class InteractionLineManager(StructurePairManager):
