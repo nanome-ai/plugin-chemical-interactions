@@ -193,7 +193,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Upload new lines
         self.line_manager.add_lines(new_lines)
-        self.line_manager.upload(new_lines)
+        self.line_manager.upload(await self.line_manager.all_lines())
 
         # Make sure complexes are locked
         # Skip if user has recalculate on update turned on
