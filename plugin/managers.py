@@ -156,7 +156,7 @@ class InteractionLineManager(StructurePairManager):
 
     async def update_interaction_lines(self, interactions_data, *args, **kwargs):
         """Update all interaction lines in workspace according to provided colors and visibility settings."""
-        interactions = await self.all_lines(network_refresh=True)
+        interactions = await self.all_lines()
         lines_to_update = []
         for line in interactions:
             interaction_type = line.kind.name

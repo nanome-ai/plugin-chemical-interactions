@@ -679,6 +679,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.__complex_cache[updated_comp.index] = updated_comp
         updated_comp_list = self.__complex_cache.values()
 
+        self.label_manager.clear()
         interactions_data = self.menu.collect_interaction_data()
         await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
 
