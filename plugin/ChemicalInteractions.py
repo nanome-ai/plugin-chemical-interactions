@@ -34,8 +34,7 @@ class AtomNotFoundException(Exception):
 
 class ChemicalInteractions(nanome.AsyncPluginInstance):
 
-    @async_callback
-    async def start(self):
+    def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.residue = ''
         self.menu = ChemInteractionsMenu(self)
@@ -44,7 +43,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.__complex_cache = {}
         self.integration.run_interactions = self.start_integration
         self.line_manager = self.get_line_manager()
-        await self._populate_complex_cache()
 
     def on_stop(self):
         self.temp_dir.cleanup()
@@ -52,7 +50,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @async_callback
     async def on_run(self):
         self.menu.enabled = True
-        complexes = await self.request_complex_list()
+        await self._populate_complex_cache()
+        complexes = list(self.__complex_cache.values())
         self.menu.render(complexes=complexes, default_values=True)
         # Get any lines that already exist in the workspace
         current_lines = await self.line_manager.all_lines(network_refresh=True)
