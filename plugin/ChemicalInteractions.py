@@ -49,9 +49,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @async_callback
     async def on_run(self):
-        self.menu.enabled = True
         await self._populate_complex_cache()
-        complexes = list(self.__complex_cache.values())
+        # Pretty annoying to have to get complex list again, but we want to ensure complexes
+        # are in the same order as the entry list. This isn't possible using the complex cache.
+        complexes = await self.request_complex_list()
         self.menu.render(complexes=complexes, default_values=True)
         # Get any lines that already exist in the workspace
         current_lines = await self.line_manager.all_lines(network_refresh=True)
@@ -170,13 +171,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.total_contacts_count = len(contacts_data)
         self.loading_bar_i = 0
 
-        existing_interactions = await self.line_manager.all_lines(network_refresh=True)
+        all_lines_at_start = await self.line_manager.all_lines(network_refresh=True)
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
             for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
                 fut = executor.submit(
                     self.parse_contacts_data,
                     chunk, complexes, line_settings, selected_atoms_only,
-                    interacting_entities_to_render, existing_interactions)
+                    interacting_entities_to_render, all_lines_at_start)
                 futs.append(fut)
         new_lines = []
         for fut in futs:
@@ -185,14 +186,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Destroy existing lines between two structures in the current frame
         # This ensures we remove any interactions that are no longer present
         existing_lines_in_frame = [
-            line for line in existing_interactions if line_in_frame(line, complexes)
+            line for line in all_lines_at_start if line_in_frame(line, complexes)
         ]
         if existing_lines_in_frame:
             self.line_manager.destroy_lines(existing_lines_in_frame)
 
-        # Upload new lines
+        # Re-Upload all lines
         self.line_manager.add_lines(new_lines)
-        self.line_manager.upload(await self.line_manager.all_lines())
+        all_lines = await self.line_manager.all_lines()
+        self.line_manager.upload(all_lines)
 
         # Make sure complexes are locked
         # Skip if user has recalculate on update turned on
@@ -219,8 +221,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             Logs.message(msg, extra={'calculation_time': float(elapsed_time)})
 
         asyncio.create_task(log_elapsed_time(start_time))
-
-        notification_txt = f"Finished Calculating Interactions! {len(new_lines)} lines added"
+        added_line_count = len(all_lines) - len(all_lines_at_start)
+        notification_txt = f"Finished Calculating Interactions! {added_line_count} lines added"
         asyncio.create_task(self.send_async_notification(notification_txt))
 
     def get_clean_pdb_file(self, complex):
