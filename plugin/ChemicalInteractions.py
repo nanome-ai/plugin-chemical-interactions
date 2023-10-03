@@ -40,7 +40,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.menu = ChemInteractionsMenu(self)
         self.settings_menu = SettingsMenu(self)
         self.show_distance_labels = False
-        self.__complex_cache = {}
+        self._complex_cache = {}
         self.integration.run_interactions = self.start_integration
         self.line_manager = self.get_line_manager()
 
@@ -112,13 +112,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         start_time = time.time()
 
         # Let's make sure we have a deep target complex and ligand complexes
-        ligand_complexes = []
+        ligand_complexes = set()
         for res in ligand_residues:
             if res.complex:
-                ligand_complexes.append(res.complex)
+                ligand_complexes.add(res.complex)
             else:
                 raise Exception('No Complex associated with Residue')
 
+        ligand_complexes = list(ligand_complexes)
         # If recalculate interactions is enabled, we need to make sure we store current run data.
         settings = self.settings_menu.get_settings()
         if settings['recalculate_on_update']:
@@ -218,7 +219,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         asyncio.create_task(log_elapsed_time(start_time))
         added_line_count = len(all_lines) - len(all_lines_at_start)
-        notification_txt = f"Finished Calculating Interactions! {added_line_count} lines added"
+        added_or_removed = 'added' if added_line_count >= 0 else 'removed'
+        notification_txt = f"Finished Calculating Interactions! {abs(added_line_count)} lines {added_or_removed}"
         asyncio.create_task(self.send_async_notification(notification_txt))
 
     def get_clean_pdb_file(self, complex):
@@ -563,7 +565,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def clear_lines_in_frame(self, send_notification=True):
         """Clear all interaction lines in the current set of frames and conformers."""
         # await self._ensure_deep_complexes(complexes)
-        complexes = list(self.__complex_cache.values())
+        complexes = list(self._complex_cache.values())
         all_lines = await self.line_manager.all_lines(network_refresh=True)
         lines_to_delete = []
         for line in all_lines:
@@ -588,7 +590,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def render_distance_labels(self):
         Logs.message('Rendering Distance Labels')
-        complexes = list(self.__complex_cache.values())
+        complexes = list(self._complex_cache.values())
         self.show_distance_labels = True
         all_lines = await self.line_manager.all_lines()
         for line in all_lines:
@@ -676,8 +678,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_complex_updated(self, updated_comp: Complex):
         """Callback for when a complex is updated."""
         # Get all updated complexes
-        self.__complex_cache[updated_comp.index] = updated_comp
-        updated_comp_list = self.__complex_cache.values()
+        self._complex_cache[updated_comp.index] = updated_comp
+        updated_comp_list = self._complex_cache.values()
 
         self.label_manager.clear()
         interactions_data = self.menu.collect_interaction_data()
@@ -686,7 +688,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Recalculate interactions if that setting is enabled.
         recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
         if recalculate_enabled and hasattr(self, 'previous_run'):
-            await self.recalculate_interactions(updated_comp_list)
+            is_target_comp = updated_comp.index == self.previous_run['target_complex'].index
+            lig_comp_indices = [cmp.index for cmp in self.previous_run['ligand_complexes']]
+            is_ligand_comp = updated_comp.index in lig_comp_indices
+            if any([is_target_comp, is_ligand_comp]):
+                await self.recalculate_interactions(updated_comp_list)
 
     async def recalculate_interactions(self, updated_comps: List[Complex]):
         """Recalculate interactions from the previous run."""
@@ -762,5 +768,5 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def _populate_complex_cache(self):
         ws = await self.request_workspace()
         for comp in ws.complexes:
-            self.__complex_cache[comp.index] = comp
+            self._complex_cache[comp.index] = comp
             comp.register_complex_updated_callback(self.on_complex_updated)
