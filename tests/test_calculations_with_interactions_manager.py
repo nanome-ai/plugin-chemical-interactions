@@ -36,6 +36,7 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
         version_table['GetInteractions'] = 1
         self.plugin_instance._network._version_table = version_table
         self.plugin_instance.start()
+        self.plugin_instance._complex_cache[self.complex.index] = self.complex
         self.plugin_instance._network = MagicMock()
 
         atom1 = list(self.complex.atoms)[0]

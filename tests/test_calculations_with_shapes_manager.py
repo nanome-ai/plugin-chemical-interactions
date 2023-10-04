@@ -29,6 +29,7 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
         with open(f'{fixtures_dir}/version_table_1_24_2.json') as f:
             self.plugin_instance._network._version_table = json.loads(f.read())
         self.plugin_instance.start()
+        self.plugin_instance._complex_cache[self.complex.index] = self.complex
         self.plugin_instance._network = MagicMock()
 
     def tearDown(self) -> None:
