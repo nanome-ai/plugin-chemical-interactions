@@ -166,7 +166,7 @@ class InteractionLineManager(StructurePairManager):
                 lines_to_update.append(line)
         Logs.debug(f'Updating {len(lines_to_update)} lines')
         self.add_lines(lines_to_update)
-        self.upload(lines_to_update)
+        self.upload(await self.all_lines())
 
     def destroy_lines(self, lines_to_delete):
         Interaction.destroy_multiple(lines_to_delete)
