@@ -75,7 +75,7 @@ class LabelManager(StructurePairManager):
 class InteractionLineManager(StructurePairManager):
     """Organizes Interaction lines by atom pairs."""
 
-    async def all_lines(self, network_refresh=False):
+    async def all_lines(self, network_refresh=True):
         """Return a flat list of all lines being stored."""
         if network_refresh:
             interactions = await Interaction.get()
