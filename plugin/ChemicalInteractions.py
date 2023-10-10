@@ -55,7 +55,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complexes = await self.request_complex_list()
         self.menu.render(complexes=complexes, default_values=True)
         # Get any lines that already exist in the workspace
-        current_lines = await self.line_manager.all_lines(network_refresh=True)
+        current_lines = await self.line_manager.all_lines()
         if current_lines:
             self.line_manager.add_lines(current_lines)
 
@@ -168,7 +168,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.total_contacts_count = len(contacts_data)
         self.loading_bar_i = 0
 
-        all_lines_at_start = await self.line_manager.all_lines(network_refresh=True)
+        all_lines_at_start = await self.line_manager.all_lines()
         with ThreadPoolExecutor(max_workers=thread_count) as executor:
             for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
                 fut = executor.submit(
@@ -566,7 +566,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Clear all interaction lines in the current set of frames and conformers."""
         # await self._ensure_deep_complexes(complexes)
         complexes = list(self._complex_cache.values())
-        all_lines = await self.line_manager.all_lines(network_refresh=True)
+        all_lines = await self.line_manager.all_lines()
         lines_to_delete = []
         for line in all_lines:
             if line_in_frame(line, complexes):
