@@ -403,6 +403,7 @@ class ChemInteractionsMenu():
                     if ddi.rgb == default_rgb
                 ), None)
                 selected_item.selected = True
+                dropdown.items = [selected_item]
 
             ln.add_child(ln_btn)
             ln.add_child(ln_label)
