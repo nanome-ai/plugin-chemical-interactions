@@ -61,7 +61,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @async_callback
     async def on_complex_list_changed(self):
-        complexes = await self.request_complex_list()
+        await self._populate_complex_cache()
+        complexes = list(self._complex_cache.values())
         await self.menu.render(complexes=complexes, default_values=True)
 
     def on_advanced_settings(self):
@@ -766,6 +767,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     complexes[i] = comp
 
     async def _populate_complex_cache(self):
+        self._complex_cache = {}
         ws = await self.request_workspace()
         for comp in ws.complexes:
             self._complex_cache[comp.index] = comp
