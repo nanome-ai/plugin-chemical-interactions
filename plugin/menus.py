@@ -403,7 +403,10 @@ class ChemInteractionsMenu():
                     if ddi.rgb == default_rgb
                 ), None)
                 selected_item.selected = True
-                dropdown.items = [selected_item]
+                if self.plugin.supports_persistent_interactions():
+                    # For persistent interactions, we no longer support the option
+                    # to change the color of the interaction.
+                    dropdown.items = [selected_item]
 
             ln.add_child(ln_btn)
             ln.add_child(ln_label)
