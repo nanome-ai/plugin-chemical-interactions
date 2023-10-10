@@ -53,7 +53,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Pretty annoying to have to get complex list again, but we want to ensure complexes
         # are in the same order as the entry list. This isn't possible using the complex cache.
         complexes = await self.request_complex_list()
-        self.menu.render(complexes=complexes, default_values=True)
+        await self.menu.render(complexes=complexes, default_values=True)
         # Get any lines that already exist in the workspace
         current_lines = await self.line_manager.all_lines()
         if current_lines:
@@ -62,7 +62,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @async_callback
     async def on_complex_list_changed(self):
         await self._populate_complex_cache()
-        complexes = list(self._complex_cache.values())
+        complexes = await self.request_complex_list()
         await self.menu.render(complexes=complexes, default_values=True)
 
     def on_advanced_settings(self):
@@ -697,8 +697,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def recalculate_interactions(self, updated_comps: List[Complex]):
         """Recalculate interactions from the previous run."""
-        Logs.message("Recalculating previous run with updated structures.")
-        await self.send_async_notification('Recalculating interactions...')
         target_complex = self.previous_run['target_complex']
         ligand_residues = self.previous_run['ligand_residues']
         ligand_complexes = self.previous_run['ligand_complexes']
@@ -733,7 +731,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             Logs.warning('No updated residues found, skipping recalculation')
             self.previous_run = None
             return
-
+        await self.send_async_notification('Recalculating interactions...')
+        Logs.message("Recalculating previous run with updated structures.")
         await self.menu.run_calculation(
             updated_target_comp, updated_residues, line_settings,
             selected_atoms_only=selected_atoms_only,
