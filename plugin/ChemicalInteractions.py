@@ -688,7 +688,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Recalculate interactions if that setting is enabled.
         recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
-        if recalculate_enabled and hasattr(self, 'previous_run'):
+        if recalculate_enabled and hasattr(self, 'previous_run') and getattr(self, 'previous_run', False):
             is_target_comp = updated_comp.index == self.previous_run['target_complex'].index
             lig_comp_indices = [cmp.index for cmp in self.previous_run['ligand_complexes']]
             is_ligand_comp = updated_comp.index in lig_comp_indices
@@ -729,6 +729,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 res for res in comp.residues
                 if res.index in [r.index for r in ligand_residues]
             ])
+        if not updated_residues:
+            Logs.warning('No updated residues found, skipping recalculation')
+            self.previous_run = None
+            return
 
         await self.menu.run_calculation(
             updated_target_comp, updated_residues, line_settings,
