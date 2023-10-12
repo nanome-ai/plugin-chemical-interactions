@@ -694,6 +694,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             is_ligand_comp = updated_comp.index in lig_comp_indices
             if any([is_target_comp, is_ligand_comp]):
                 await self.recalculate_interactions(updated_comp_list)
+                await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
 
     async def recalculate_interactions(self, updated_comps: List[Complex]):
         """Recalculate interactions from the previous run."""
@@ -742,7 +743,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def complex_has_changed(old_comp, new_comp) -> bool:
         comps_the_same = True
         for old_atm, new_atm in zip_longest(old_comp.atoms, new_comp.atoms):
-            if old_atm is None or new_comp is None or old_atm.index != new_atm.index:
+            atoms_exist = old_atm is not None and new_atm is not None
+            if atoms_exist:
+                indices_match = old_atm.index == new_atm.index
+                positions_match = old_atm.position.unpack() == new_atm.position.unpack()
+            if not atoms_exist or not indices_match or not positions_match:
                 comps_the_same = False
                 break
         return not comps_the_same
