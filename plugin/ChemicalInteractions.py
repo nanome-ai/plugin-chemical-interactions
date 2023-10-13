@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from itertools import zip_longest
 from nanome.api.structure import Complex
 from nanome.api.shapes import Label, Shape, Anchor
+from nanome.api.interactions import Interaction
 from nanome.util import async_callback, enums, Logs, Process, Vector3, ComplexUtils
 from typing import List
 
@@ -72,6 +73,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def start_integration(self, request):
         btn = self.menu.btn_calculate
         await self.menu.submit_form(btn)
+        Interaction.signal_calculation_done()
 
     def get_line_manager(self):
         """Maintain a dict of all interaction lines stored in memory."""
