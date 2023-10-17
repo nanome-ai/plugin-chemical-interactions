@@ -192,9 +192,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.line_manager.destroy_lines(existing_lines_in_frame)
 
         # Re-Upload all lines
+        self.line_manager.upload(new_lines)
         self.line_manager.add_lines(new_lines)
         all_lines = await self.line_manager.all_lines()
-        self.line_manager.upload(all_lines)
 
         # Make sure complexes are locked
         # Skip if user has recalculate on update turned on
@@ -511,7 +511,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     relevant_atoms = [a.index for a in comp.atoms if a.index in atom_indices]
                     if relevant_atoms:
                         struct.frame = comp.current_frame
-                        struct.conformer = list(comp.molecules)[comp.current_frame].current_conformer
+                        struct.conformer = comp.current_conformer
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
             structpair_lines = self.create_new_lines(struct1, struct2, interaction_kinds, form.data, existing_lines)
