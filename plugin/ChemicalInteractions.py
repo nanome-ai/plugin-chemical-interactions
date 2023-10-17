@@ -194,7 +194,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Re-Upload all lines
         self.line_manager.upload(new_lines)
         self.line_manager.add_lines(new_lines)
-        all_lines = await self.line_manager.all_lines()
 
         # Make sure complexes are locked
         # Skip if user has recalculate on update turned on
@@ -221,9 +220,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             Logs.message(msg, extra={'calculation_time': float(elapsed_time)})
 
         asyncio.create_task(log_elapsed_time(start_time))
-        added_line_count = len(all_lines) - len(all_lines_at_start)
-        added_or_removed = 'added' if added_line_count >= 0 else 'removed'
-        notification_txt = f"Finished Calculating Interactions! {abs(added_line_count)} lines {added_or_removed}"
+        notification_txt = f"Finished Calculating Interactions! {len(new_lines)} interactions found."
         asyncio.create_task(self.send_async_notification(notification_txt))
 
     def get_clean_pdb_file(self, complex):
@@ -684,11 +681,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         """Callback for when a complex is updated."""
         # Get all updated complexes
         start_time = time.time()
-        ws = await self.request_workspace()
-        updated_comp_list = ws.complexes
-
         self.label_manager.clear()
         interactions_data = self.menu.collect_interaction_data()
+
         # Recalculate interactions if that setting is enabled.
         recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
         if recalculate_enabled and hasattr(self, 'previous_run') and getattr(self, 'previous_run', False):
@@ -696,8 +691,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             lig_comp_indices = [cmp.index for cmp in self.previous_run['ligand_complexes']]
             is_ligand_comp = updated_comp.index in lig_comp_indices
             if any([is_target_comp, is_ligand_comp]):
+                # Get updated complexes relevant to recalculation
+                comp_indices = [updated_comp.index, *lig_comp_indices]
+                updated_comp_list = await self.request_complexes(comp_indices)
                 await self.recalculate_interactions(updated_comp_list)
-        await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
+                await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
         end_time = time.time()
         elapsed_time = end_time - start_time
         Logs.debug(f'Complex Update callback completed in {round(elapsed_time, 2)} seconds')
