@@ -28,15 +28,6 @@ class StructurePairManager:
         structpair_key = '|'.join(sorted([struct1_key, struct2_key]))
         return structpair_key
 
-    def get_struct_pairs(self):
-        """Return a list of structure pairs being tracked by manager."""
-        struct_pairs = []
-        for structpair_key in self._data:
-            struct1_key, struct2_key = structpair_key.split('|')
-            # struct1_index, struct1_frame, struct1_conformer = struct1_key.split('_')
-            struct_pairs.append((struct1_key, struct2_key))
-        return struct_pairs
-
 
 class LabelManager(StructurePairManager):
 
@@ -72,55 +63,49 @@ class LabelManager(StructurePairManager):
         self._data = {}
 
 
-class InteractionLineManager(StructurePairManager):
+class InteractionLineManager:
     """Organizes Interaction lines by atom pairs."""
 
-    async def all_lines(self, network_refresh=True):
+    async def all_lines(self):
         """Return a flat list of all lines being stored."""
-        if network_refresh:
-            interactions = await Interaction.get()
-            self.add_lines(interactions)
-
-        all_lines = []
-        for _, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
-            all_lines.extend(line_list)
+        all_lines = await Interaction.get()
         return all_lines
 
     def add_lines(self, line_list):
-        for line in line_list:
-            self.add_line(line)
+        pass
 
     def add_line(self, line):
-        if not isinstance(line, Interaction):
-            raise TypeError(f'add_line() expected Interaction, received {type(line)}')
+        pass
 
-        structpair_key = self.get_structpair_key_for_line(line)
-        existing_interaction_kinds = [ln.kind for ln in self._data[structpair_key]]
-        if line.kind not in existing_interaction_kinds:
-            self._data[structpair_key].append(line)
-
-    def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str, existing_lines=None):
+    def get_lines_for_structure_pair(self, struct1: InteractionStructure, struct2: InteractionStructure, existing_lines=None):
         """Given two InteractionStructures, return all interaction lines connecting them.
 
         :arg struct1: InteractionStructure, or index str
         :arg struct2: InteractionStructure, or index str
         """
-        existing_lines = existing_lines or []
-        struct1_indices_str = struct1_index.split(',')
-        struct2_indices_str = struct2_index.split(',')
-        struct1_indices = [int(idx) for idx in struct1_indices_str]
-        struct2_indices = [int(idx) for idx in struct2_indices_str]
-        struct_pair_lines = []
+        struct_lines = []
+        struct1_atom_indices = [int(x) for x in struct1.index.split(',')]
+        struct2_atom_indices = [int(x) for x in struct2.index.split(',')]
         for line in existing_lines:
-            struct1_in_atom1 = all([idx in struct1_indices for idx in line.atom1_idx_arr])
-            struct1_in_atom2 = all([idx in struct1_indices for idx in line.atom2_idx_arr])
-            struct2_in_atom1 = all([idx in struct2_indices for idx in line.atom1_idx_arr])
-            struct2_in_atom2 = all([idx in struct2_indices for idx in line.atom2_idx_arr])
-            line_match = (struct1_in_atom1 or struct1_in_atom2) and (struct2_in_atom1 or struct2_in_atom2)
-            if line_match:
-                struct_pair_lines.append(line)
-        # interactions = await Interaction.get(atom_idx=[*struct1_indices, *struct2_indices])
-        return struct_pair_lines
+            struct1_is_line_atom1 = all(i in line.atom1_idx_arr for i in struct1_atom_indices)
+            struct1_is_line_atom2 = all(i in line.atom2_idx_arr for i in struct1_atom_indices)
+            if not struct1_is_line_atom1 and not struct1_is_line_atom2:
+                continue
+
+            struct2_is_line_atom1 = all(i in line.atom1_idx_arr for i in struct2_atom_indices)
+            struct2_is_line_atom2 = all(i in line.atom2_idx_arr for i in struct2_atom_indices)
+            if not struct2_is_line_atom1 and not struct2_is_line_atom2:
+                continue
+
+            # Confirm conformers match
+            expected_struct1_conformation = line.atom1_conformation if struct1_is_line_atom1 else line.atom2_conformation
+            expected_struct2_conformation = line.atom1_conformation if struct2_is_line_atom1 else line.atom2_conformation
+            struct1_correct_conformer = struct1.conformer == expected_struct1_conformation
+            struct2_correct_conformer = struct2.conformer == expected_struct2_conformation
+            if struct1_correct_conformer and struct2_correct_conformer:
+                struct_lines.append(line)
+
+        return struct_lines
 
     def upload(self, line_list):
         """Upload multiple lines to Nanome."""
@@ -166,20 +151,10 @@ class InteractionLineManager(StructurePairManager):
                 lines_to_update.append(line)
         Logs.debug(f'Updating {len(lines_to_update)} lines')
         self.add_lines(lines_to_update)
-        self.upload(await self.all_lines())
+        self.upload(lines_to_update)
 
     def destroy_lines(self, lines_to_delete):
         Interaction.destroy_multiple(lines_to_delete)
-        for line in lines_to_delete:
-            structpair_key = self.get_structpair_key_for_line(line)
-            if structpair_key in self._data:
-                try:
-                    self._data[structpair_key].remove(line)
-                except ValueError:
-                    # This is ok if it fails
-                    pass
-            else:
-                Logs.warning("Line not found in manager while deleting.")
 
 
 class ShapesLineManager(StructurePairManager):
@@ -207,13 +182,13 @@ class ShapesLineManager(StructurePairManager):
             # Clear stream now that the line list is changing
             self._destroy_stream()
 
-    def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str, *args, **kwargs):
+    def get_lines_for_structure_pair(self, struct1: InteractionStructure, struct2: InteractionStructure, *args, **kwargs):
         """Given two InteractionStructures, return all interaction lines connecting them.
 
-        :arg struct1: InteractionStructure, or index str
-        :arg struct2: InteractionStructure, or index str
+        :arg struct1: InteractionStructure
+        :arg struct2: InteractionStructure
         """
-        key = self.get_structpair_key(struct1_index, struct2_index)
+        key = self.get_structpair_key(struct1.index, struct2.index)
         return self._data[key]
 
     def upload(self, line_list):

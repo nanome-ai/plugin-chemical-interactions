@@ -537,7 +537,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             line_exists = False
             try:
                 structpair_lines = self.line_manager.get_lines_for_structure_pair(
-                    struct1.index, struct2.index, existing_lines)
+                    struct1, struct2, existing_lines)
             except AttributeError:
                 continue
 
