@@ -41,7 +41,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.menu = ChemInteractionsMenu(self)
         self.settings_menu = SettingsMenu(self)
         self.show_distance_labels = False
-        self._complex_cache = {}
         self.integration.run_interactions = self.start_integration
         self.line_manager = self.get_line_manager()
 
@@ -50,9 +49,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @async_callback
     async def on_run(self):
-        await self._populate_complex_cache()
-        # Pretty annoying to have to get complex list again, but we want to ensure complexes
-        # are in the same order as the entry list. This isn't possible using the complex cache.
         complexes = await self.request_complex_list()
         await self.menu.render(complexes=complexes, default_values=True)
         # Get any lines that already exist in the workspace
@@ -62,7 +58,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @async_callback
     async def on_complex_list_changed(self):
-        await self._populate_complex_cache()
+        # await self._populate_complex_cache()
         complexes = await self.request_complex_list()
         await self.menu.render(complexes=complexes, default_values=True)
 
@@ -567,8 +563,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def clear_lines_in_frame(self, send_notification=True):
         """Clear all interaction lines in the current set of frames and conformers."""
-        # await self._ensure_deep_complexes(complexes)
-        complexes = list(self._complex_cache.values())
+        ws = await self.request_workspace()
+        complexes = ws.complexes
         all_lines = await self.line_manager.all_lines()
         lines_to_delete = []
         for line in all_lines:
@@ -593,7 +589,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def render_distance_labels(self):
         Logs.message('Rendering Distance Labels')
-        complexes = list(self._complex_cache.values())
+        # complexes = list(self._complex_cache.values())
+        ws = await self.request_workspace()
+        complexes = ws.complexes
         self.show_distance_labels = True
         all_lines = await self.line_manager.all_lines()
         for line in all_lines:
@@ -681,13 +679,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_complex_updated(self, updated_comp: Complex):
         """Callback for when a complex is updated."""
         # Get all updated complexes
-        self._complex_cache[updated_comp.index] = updated_comp
-        updated_comp_list = self._complex_cache.values()
+        start_time = time.time()
+        ws = await self.request_workspace()
+        updated_comp_list = ws.complexes
 
         self.label_manager.clear()
         interactions_data = self.menu.collect_interaction_data()
-        await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
-
         # Recalculate interactions if that setting is enabled.
         recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
         if recalculate_enabled and hasattr(self, 'previous_run') and getattr(self, 'previous_run', False):
@@ -696,7 +693,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             is_ligand_comp = updated_comp.index in lig_comp_indices
             if any([is_target_comp, is_ligand_comp]):
                 await self.recalculate_interactions(updated_comp_list)
-                await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
+        await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        Logs.debug(f'Complex Update callback completed in {round(elapsed_time, 2)} seconds')
 
     async def recalculate_interactions(self, updated_comps: List[Complex]):
         """Recalculate interactions from the previous run."""
