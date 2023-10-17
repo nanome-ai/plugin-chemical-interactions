@@ -50,6 +50,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @async_callback
     async def on_run(self):
         complexes = await self.request_complex_list()
+        for comp in complexes:
+            comp.register_complex_updated_callback(self.on_complex_updated)
         await self.menu.render(complexes=complexes, default_values=True)
         # Get any lines that already exist in the workspace
         current_lines = await self.line_manager.all_lines()
@@ -60,6 +62,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_complex_list_changed(self):
         # await self._populate_complex_cache()
         complexes = await self.request_complex_list()
+        for comp in complexes:
+            comp.register_complex_updated_callback(self.on_complex_updated)
         await self.menu.render(complexes=complexes, default_values=True)
 
     def on_advanced_settings(self):
