@@ -131,9 +131,9 @@ class InteractionLineManagerTestCase(unittest.IsolatedAsyncioTestCase):
         self.manager = InteractionLineManager()
 
         atom_list = list(self.complex.atoms)
-        self.struct1 = InteractionStructure(atom_list[0], conformer=0)
-        self.struct2 = InteractionStructure(atom_list[1], conformer=0)
-        self.struct3 = InteractionStructure(atom_list[2:7], conformer=0)
+        self.struct1 = InteractionStructure(atom_list[0])
+        self.struct2 = InteractionStructure(atom_list[1])
+        self.struct3 = InteractionStructure(atom_list[2:7])
         struct1_atom_indices = [atom.index for atom in self.struct1.atoms]
         struct2_atom_indices = [atom.index for atom in self.struct2.atoms]
         struct3_atom_indices = [atom.index for atom in self.struct3.atoms]

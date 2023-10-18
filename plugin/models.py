@@ -15,12 +15,19 @@ class InteractionStructure:
     frame = None
     conformer = None
 
-    def __init__(self, atom_or_atoms, frame=None, conformer=None):
+    def __init__(self, atom_or_atoms):
         """Pass in either a single Atom object or a list of Atoms."""
+        frame = None
+        conformer = None
         if isinstance(atom_or_atoms, Atom):
             self.atoms.append(atom_or_atoms)
+            frame = atom_or_atoms.complex.current_frame
+            conformer = atom_or_atoms.molecule.current_conformer
         elif isinstance(atom_or_atoms, list):
             self.atoms.extend(atom_or_atoms)
+            atom = atom_or_atoms[0]
+            frame = atom.complex.current_frame
+            conformer = atom.molecule.current_conformer
         self.frame = frame
         self.conformer = conformer
 

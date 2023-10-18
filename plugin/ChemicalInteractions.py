@@ -398,10 +398,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if ',' in atompath:
                 # Parse aromatic ring, and add list of atoms to struct_list
                 ring_atoms = cls.parse_ring_atoms(atompath, complexes)
-                # Get frame and conformer from first atom in ring
-                conformer = ring_atoms[0].molecule.current_conformer
-                frame = ring_atoms[0].molecule.complex.current_frame
-                struct = InteractionStructure(ring_atoms, frame=frame, conformer=conformer)
+                struct = InteractionStructure(ring_atoms)
             else:
                 # Parse single atom
                 for comp in complexes:
@@ -410,9 +407,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                         break
                 if not atom:
                     continue
-                conformer = atom.molecule.current_conformer
-                frame = atom.molecule.complex.current_frame
-                struct = InteractionStructure(atom, frame=frame, conformer=conformer)
+                struct = InteractionStructure(atom)
             struct_list.append(struct)
         return struct_list
 
