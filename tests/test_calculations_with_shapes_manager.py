@@ -6,7 +6,6 @@ from unittest.mock import patch
 from random import randint
 
 from unittest.mock import MagicMock
-from nanome.api import ui
 from nanome.api.structure import Chain, Complex, Molecule, Workspace
 from plugin.ChemicalInteractions import ChemicalInteractions
 from plugin.forms import default_line_settings
