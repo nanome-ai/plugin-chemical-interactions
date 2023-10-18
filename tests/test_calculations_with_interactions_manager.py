@@ -50,14 +50,13 @@ class CalculateInteractionsTestCase(unittest.IsolatedAsyncioTestCase):
         self.get_fut_2 = asyncio.Future()
         self.get_fut_1.set_result([])
         self.get_fut_2.set_result([interaction])
-        
+
         ws = Workspace()
         ws.complexes = [self.complex]
         self.request_workspace_fut = asyncio.Future()
         self.request_workspace_fut.set_result(ws)
         self.plugin_instance.request_workspace = MagicMock()
         self.plugin_instance.request_workspace.return_value = self.request_workspace_fut
-        
 
     def tearDown(self) -> None:
         self.plugin_instance.on_stop()
