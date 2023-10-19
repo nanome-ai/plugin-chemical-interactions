@@ -188,7 +188,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
         # Destroy existing lines between two structures in the current frame
         # This ensures we remove any interactions that are no longer present
-        existing_lines_in_frame = utils.lines_in_frame(all_lines_at_start, complexes)
+        existing_lines_in_frame = utils.get_lines_in_frame(all_lines_at_start, complexes)
         if existing_lines_in_frame:
             self.line_manager.destroy_lines(existing_lines_in_frame)
 
@@ -563,7 +563,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         ws = await self.request_workspace()
         complexes = ws.complexes
         all_lines = await self.line_manager.all_lines()
-        lines_to_delete = utils.lines_in_frame(all_lines, complexes)
+        lines_to_delete = utils.get_lines_in_frame(all_lines, complexes)
         if lines_to_delete:
             self.line_manager.destroy_lines(lines_to_delete)
         self.label_manager.clear()
@@ -585,7 +585,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complexes = ws.complexes
         self.show_distance_labels = True
         all_lines = await self.line_manager.all_lines()
-        in_frame_lines = utils.lines_in_frame(all_lines, complexes)
+        in_frame_lines = utils.get_lines_in_frame(all_lines, complexes)
         for line in in_frame_lines:
             # If theres any visible lines between the two structs in structpair, add a label.
             struct1_index = int(line.atom1_idx_arr[0])
