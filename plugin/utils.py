@@ -1,14 +1,15 @@
-from itertools import chain
+import itertools
+import time
 from nanome.api import structure
 from nanome.api.interactions import Interaction
-from nanome.util import ComplexUtils, Vector3
+from nanome.util import ComplexUtils, Vector3, Logs
 from nanome.util.enums import InteractionKind
 from scipy.spatial import KDTree
 from .models import InteractionShapesLine
-from typing import Union
+from typing import Union, List
 
 
-__all__ = ['chunks', 'extract_residues_from_complex', 'merge_complexes']
+__all__ = ['chunks', 'extract_residues_from_complex', 'merge_complexes', 'get_neighboring_atoms', 'interaction_type_map']
 
 
 def extract_residues_from_complex(comp, residue_list, comp_name=None):
@@ -38,7 +39,7 @@ def get_neighboring_atoms(target_reference: structure.Complex, selected_atoms: l
         mol for i, mol in enumerate(target_reference.molecules)
         if i == target_reference.current_frame)
     ligand_positions = [atom.position.unpack() for atom in selected_atoms]
-    target_atoms = chain(*[ch.atoms for ch in mol.chains if not ch.name.startswith("H")])
+    target_atoms = itertools.chain(*[ch.atoms for ch in mol.chains if not ch.name.startswith("H")])
     target_tree = KDTree([atom.position.unpack() for atom in target_atoms])
     target_point_indices = target_tree.query_ball_point(ligand_positions, site_size)
     near_point_set = set()
@@ -132,7 +133,7 @@ def centroid(atoms):
 
 def calculate_interaction_length(line: Interaction, complexes):
     """Determine length of line using the distance between the structures."""
-    all_atoms = chain(*[comp.atoms for comp in complexes])
+    all_atoms = itertools.chain(*[comp.atoms for comp in complexes])
     struct1_atoms = []
     struct2_atoms = []
     for atom in all_atoms:
@@ -146,17 +147,16 @@ def calculate_interaction_length(line: Interaction, complexes):
     return distance
 
 
-def line_in_frame(line: Union[Interaction, InteractionShapesLine], complexes):
+def line_in_frame(line: Union[Interaction, InteractionShapesLine], atom_iter):
     """Return boolean stating whether both structures connected by line are in frame.
 
     :arg line: Line object. The line in question.
     :arg complexes: List of complexes in workspace that can contain atoms.
     """
-    all_atoms = chain(*[comp.atoms for comp in complexes])
     # Find the atoms from the comp by their id, and make sure  they're in the same conformer.
     atom1_in_frame = None
     atom2_in_frame = None
-    for atom in all_atoms:
+    for atom in atom_iter:
         atom_conformer = atom.molecule.current_conformer
         if atom.index in line.atom1_idx_arr:
             atom1_in_frame = atom_conformer == line.atom1_conformation
@@ -164,6 +164,21 @@ def line_in_frame(line: Union[Interaction, InteractionShapesLine], complexes):
             atom2_in_frame = atom_conformer == line.atom2_conformation
         if atom1_in_frame is not None and atom2_in_frame is not None:
             break
-
     line_in_frame = atom1_in_frame and atom2_in_frame
     return line_in_frame
+
+
+def lines_in_frame(all_lines: List[Union[Interaction, InteractionShapesLine]], complexes):
+    output = []
+    Logs.debug("Starting lines in frame.")
+    start_time = time.time()
+    for line in all_lines:
+        relevant_atom_indices = set(line.atom1_idx_arr + line.atom2_idx_arr)
+        atom_chain = itertools.chain(*(cmp.atoms for cmp in complexes))
+        atoms_with_interactions = filter(lambda atm: atm.index in relevant_atom_indices, atom_chain)
+        line_is_in_frame = line_in_frame(line, atoms_with_interactions)
+        if line_is_in_frame:
+            output.append(line)
+    end_time = time.time()
+    Logs.debug(f"Finished lines in frame. Took {round(end_time - start_time, 1)} seconds.")
+    return output
