@@ -566,8 +566,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         for line in all_lines:
             if line_in_frame(line, complexes):
                 lines_to_delete.append(line)
-            else:
-                pass
         if lines_to_delete:
             self.line_manager.destroy_lines(lines_to_delete)
         self.label_manager.clear()
