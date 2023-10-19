@@ -150,7 +150,6 @@ class InteractionLineManager:
                 line.visible = interaction_type_visible
                 lines_to_update.append(line)
         Logs.debug(f'Updating {len(lines_to_update)} lines')
-        self.add_lines(lines_to_update)
         self.upload(lines_to_update)
 
     def destroy_lines(self, lines_to_delete):

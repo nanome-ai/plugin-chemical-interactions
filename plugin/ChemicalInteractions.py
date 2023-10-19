@@ -208,7 +208,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             self.update_structures_shallow(comps_to_lock)
 
         if distance_labels:
-            await self.render_distance_labels()
+            await self.render_distance_labels(complexes, new_lines)
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
@@ -579,14 +579,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         notification_type = enums.NotificationTypes.message
         self.send_notification(notification_type, message)
 
-    async def render_distance_labels(self):
+    async def render_distance_labels(self, complexes=None, lines=None):
         Logs.message('Rendering Distance Labels')
-        ws = await self.request_workspace()
-        complexes = ws.complexes
+        self.label_manager.clear()
+        if not complexes:
+            ws = await self.request_workspace()
+            complexes = ws.complexes
         self.show_distance_labels = True
-        all_lines = await self.line_manager.all_lines()
-        in_frame_lines = utils.get_lines_in_frame(all_lines, complexes)
-        for line in in_frame_lines:
+        if not lines:
+            all_lines = await self.line_manager.all_lines()
+            lines = utils.get_lines_in_frame(all_lines, complexes)
+        for line in lines:
             # If theres any visible lines between the two structs in structpair, add a label.
             struct1_index = int(line.atom1_idx_arr[0])
             struct2_index = int(line.atom2_idx_arr[0])
@@ -607,8 +610,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 label.anchors = [anchor1, anchor2]
                 self.label_manager.add_label(label, struct1_index, struct2_index)
         label_count = len(self.label_manager.all_labels())
-        await Shape.upload_multiple(self.label_manager.all_labels())
-        Logs.message(f'Uploaded {label_count} distance labels')
+        if label_count > 0:
+            await Shape.upload_multiple(self.label_manager.all_labels())
+            Logs.message(f'Uploaded {label_count} distance labels')
 
     def clear_distance_labels(self):
         self.show_distance_labels = False
@@ -675,8 +679,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         start_time = time.time()
         self.label_manager.clear()
 
+        updated_comp_list = []
         # Recalculate interactions if that setting is enabled.
-
         recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
         interactions_data = self.menu.collect_interaction_data()
         if recalculate_enabled and hasattr(self, 'previous_run') and getattr(self, 'previous_run', False):
@@ -689,7 +693,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 ws = await self.request_workspace()
                 updated_comp_list = ws.complexes
                 await self.recalculate_interactions(updated_comp_list)
-                await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
+        if not updated_comp_list:
+            shallow_comps = await self.request_complex_list()
+            comp_indices = [cmp.index for cmp in shallow_comps]
+            updated_comp_list = await self.request_complexes(comp_indices)
+        await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
+
         end_time = time.time()
         elapsed_time = end_time - start_time
         Logs.debug(f'Complex Update callback completed in {round(elapsed_time, 2)} seconds')
@@ -769,7 +778,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if self.show_distance_labels:
             # Refresh label manager
             self.label_manager.clear()
-            await self.render_distance_labels()
+            await self.render_distance_labels(complexes)
 
     def supports_persistent_interactions(self):
         version_table = self._network._version_table
