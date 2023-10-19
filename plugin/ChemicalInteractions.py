@@ -576,8 +576,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     async def send_async_notification(self, message):
         """Send notification asynchronously."""
-        notifcation_type = enums.NotificationTypes.message
-        self.send_notification(notifcation_type, message)
+        notification_type = enums.NotificationTypes.message
+        self.send_notification(notification_type, message)
 
     async def render_distance_labels(self):
         Logs.message('Rendering Distance Labels')
