@@ -777,7 +777,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         await self.line_manager.update_interaction_lines(interactions_data, complexes=complexes, plugin=self)
         if self.show_distance_labels:
             # Refresh label manager
-            self.label_manager.clear()
             await self.render_distance_labels(complexes)
 
     def supports_persistent_interactions(self):
