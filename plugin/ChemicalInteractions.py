@@ -617,7 +617,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def clear_distance_labels(self):
         self.show_distance_labels = False
         label_count = len(self.label_manager.all_labels())
-        Shape.destroy_multiple(self.label_manager.all_labels())
+        self.label_manager.clear()
         Logs.message(f'Deleted {label_count} distance labels')
 
     @staticmethod
