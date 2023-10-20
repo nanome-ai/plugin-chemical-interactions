@@ -197,10 +197,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.line_manager.add_lines(new_lines)
 
         # Make sure complexes are locked
-        # Skip if user has recalculate on update turned on
-        # Causes cycles of continuous recalculation.
         comps_to_lock = [cmp for cmp in complexes if not cmp.locked]
-        if any(comps_to_lock) and not settings['recalculate_on_update']:
+        if any(comps_to_lock):
             for comp in comps_to_lock:
                 # Make sure we don't inadvertantly move the complex
                 ComplexUtils.reset_transform(comp)
