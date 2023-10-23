@@ -44,6 +44,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.show_distance_labels = False
         self.integration.run_interactions = self.start_integration
         self.line_manager = self.get_line_manager()
+        self.currently_running_recalculate = False
 
     def on_stop(self):
         self.temp_dir.cleanup()
@@ -789,12 +790,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             Logs.warning('No updated residues found, skipping recalculation')
             self.previous_run = None
             return
+        if self.currently_running_recalculate:
+            Logs.warning('Recalculation already running, skipping')
+            return
+        self.currently_running_recalculate = True
         await self.send_async_notification('Recalculating interactions...')
         Logs.message("Recalculating previous run with updated structures.")
         await self.menu.run_calculation(
             updated_target_comp, updated_residues, line_settings,
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
+        self.currently_running_recalculate = False
 
     @staticmethod
     def complex_has_changed(old_comp, new_comp) -> bool:
