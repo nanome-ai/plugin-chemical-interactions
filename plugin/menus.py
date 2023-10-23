@@ -599,3 +599,30 @@ class SettingsMenu:
             Logs.message("Clearing previous run from memory")
             del self.plugin.previous_run
         self.plugin.update_content(btn)
+
+    @property
+    def show_inter_selection_interactions(self):
+        return self.btn_inter.selected
+
+    @property
+    def show_intra_selection_interactions(self):
+        return self.btn_intra_selection.selected
+
+    @property
+    def show_selection_water_interactions(self):
+        return self.btn_selection_water.selected
+
+    @show_inter_selection_interactions.setter
+    def show_inter_selection_interactions(self, value: bool):
+        self.btn_inter.selected = value
+        self.plugin.update_content(self.btn_inter)
+
+    @show_intra_selection_interactions.setter
+    def show_intra_selection_interactions(self, value: bool):
+        self.btn_intra_selection.selected = value
+        self.plugin.update_content(self.btn_intra_selection)
+
+    @show_selection_water_interactions.setter
+    def show_selection_water_interactions(self, value: bool):
+        self.btn_selection_water.selected = value
+        self.plugin.update_content(self.btn_selection_water)

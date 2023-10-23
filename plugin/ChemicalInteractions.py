@@ -72,9 +72,53 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @async_callback
     async def start_integration(self, request):
+        try:
+            await self.run_integration(request)
+        except Exception as e:
+            Interaction.signal_calculation_done()
+            raise e
+        else:
+            Interaction.signal_calculation_done()
+
+    async def run_integration(self, request):
+        comp_list = await self.request_complex_list()
+        # Only render if we havent already done so.
+        already_rendered = hasattr(self.menu, 'complexes')
+        if not already_rendered:
+            self.menu.render(complexes=comp_list, default_values=True)
+
+        # When we run the integration in selected mode, we want to be smart about what interactions to show
+        initial_inter_selection_val = self.settings_menu.show_inter_selection_interactions
+        initial_intra_selection_val = self.settings_menu.show_intra_selection_interactions
+        initial_selection_water_val = self.settings_menu.show_selection_water_interactions
+        if self.menu.btn_show_selected_interactions.selected:
+            selected_comps = [comp for comp in comp_list if comp.get_selected()]
+            deep_selected_comps = await self.request_complexes([cmp.index for cmp in selected_comps])
+            selected_atoms = filter(
+                lambda atom: atom.selected,
+                itertools.chain.from_iterable(cmp.atoms for cmp in deep_selected_comps)
+            )
+            # Change interaction types to show based on what atoms are selected.
+            ligand_in_selection = False
+            protein_in_selection = False
+            for atm in selected_atoms:
+                if atm.is_het:
+                    ligand_in_selection = True
+                else:
+                    protein_in_selection = True
+                if ligand_in_selection and protein_in_selection:
+                    break
+            if ligand_in_selection and protein_in_selection:
+                # If both ligand and protein are selected, show interactions between them
+                self.settings_menu.show_inter_selection_interactions = True
+                self.settings_menu.show_intra_selection_interactions = True
+                self.settings_menu.show_selection_water_interactions = True
         btn = self.menu.btn_calculate
         await self.menu.submit_form(btn)
-        Interaction.signal_calculation_done()
+        self.settings_menu.show_inter_selection_interactions = initial_inter_selection_val
+        self.settings_menu.show_intra_selection_interactions = initial_intra_selection_val
+        self.settings_menu.show_selection_water_interactions = initial_selection_water_val
+        self.update_menu(self.settings_menu._menu)
 
     def get_line_manager(self):
         """Maintain a dict of all interaction lines stored in memory."""
