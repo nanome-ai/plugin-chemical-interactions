@@ -45,6 +45,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.integration.run_interactions = self.start_integration
         self.line_manager = self.get_line_manager()
         self.currently_running_recalculate = False
+        self.recalculate_queue = []
 
     def on_stop(self):
         self.temp_dir.cleanup()
@@ -746,9 +747,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         target_complex = self.previous_run['target_complex']
         ligand_residues = self.previous_run['ligand_residues']
         ligand_complexes = self.previous_run['ligand_complexes']
-        line_settings = self.previous_run['line_settings']
         selected_atoms_only = self.previous_run['selected_atoms_only']
         distance_labels = self.previous_run['distance_labels']
+        line_settings = self.menu.collect_interaction_data()
 
         updated_target_comp = next(
             cmp for cmp in updated_comps
@@ -784,8 +785,14 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             Logs.warning('No updated residues found, skipping recalculation')
             self.previous_run = None
             return
+
         if self.currently_running_recalculate:
-            Logs.warning('Recalculation already running, skipping')
+            Logs.warning('Recalculation already running. Adding to queue')
+            # queue should always have 1 item
+            self.recalculate_queue = [(
+                updated_target_comp, updated_residues, line_settings,
+                selected_atoms_only, distance_labels
+            )]
             return
         self.currently_running_recalculate = True
         await self.send_async_notification('Recalculating interactions...')
@@ -794,6 +801,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             updated_target_comp, updated_residues, line_settings,
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
+
+        while self.recalculate_queue:
+            Logs.debug('Recalculation queue found, running next recalculation')
+            next_recalculation = self.recalculate_queue.pop()
+            await self.menu.run_calculation(*next_recalculation)
+
         self.currently_running_recalculate = False
 
     @staticmethod
