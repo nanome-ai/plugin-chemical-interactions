@@ -202,33 +202,27 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # make the request to get interactions
         self.menu.set_update_text("Calculating...")
         contacts_data = await self.run_arpeggio_process(data, cleaned_filepath)
-
-        Logs.debug("Interaction data retrieved!")
-        if not contacts_data:
-            notification_message = "Arpeggio run failed. Please make sure source files are valid."
-            self.send_notification(enums.NotificationTypes.error, notification_message)
-            return
         Logs.message(f'Contacts Count: {len(contacts_data)}')
 
-        # Set up ThreadPoolExecutor to parse contacts data into InteractionLines.
         interacting_entities_to_render = settings['interacting_entities']
         contacts_per_thread = 1000
         thread_count = max(len(contacts_data) // contacts_per_thread, 1)
         futs = []
         self.total_contacts_count = len(contacts_data)
         self.loading_bar_i = 0
-
         all_lines_at_start = await self.line_manager.all_lines()
-        with ThreadPoolExecutor(max_workers=thread_count) as executor:
-            for chunk in utils.chunks(contacts_data, len(contacts_data) // thread_count):
-                fut = executor.submit(
-                    self.parse_contacts_data,
-                    chunk, complexes, line_settings, selected_atoms_only,
-                    interacting_entities_to_render, all_lines_at_start)
-                futs.append(fut)
         new_lines = []
-        for fut in futs:
-            new_lines += fut.result()
+        # Set up ThreadPoolExecutor to parse contacts data into InteractionLines.
+        if contacts_data:
+            with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                for chunk in utils.chunks(contacts_data, len(contacts_data) // thread_count):
+                    fut = executor.submit(
+                        self.parse_contacts_data,
+                        chunk, complexes, line_settings, selected_atoms_only,
+                        interacting_entities_to_render, all_lines_at_start)
+                    futs.append(fut)
+            for fut in futs:
+                new_lines += fut.result()
         Logs.debug(f"{self.loading_bar_i} / {self.total_contacts_count} contacts processed")
         Logs.debug("Finished parsing contacts data")
 
