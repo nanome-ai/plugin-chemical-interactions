@@ -63,7 +63,7 @@ class ChemInteractionsMenu():
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
 
     @async_callback
-    async def render(self, complexes=None, default_values=False):
+    async def render(self, complexes=None, default_values=False, enable_menu=True):
         complexes = complexes or []
         self.complexes = complexes
         self.render_interaction_form()
@@ -89,6 +89,7 @@ class ChemInteractionsMenu():
         self.dd_ligands.register_item_clicked_callback(self.update_dropdown)
 
         self.dd_complexes.register_item_clicked_callback(self.toggle_complex)
+        self._menu.enabled = enable_menu
         self.plugin.update_menu(self._menu)
 
     def toggle_ln_ligands_visibility(self, visible=True):

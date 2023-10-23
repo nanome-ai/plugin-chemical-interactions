@@ -85,7 +85,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # Only render if we havent already done so.
         already_rendered = hasattr(self.menu, 'complexes')
         if not already_rendered:
-            self.menu.render(complexes=comp_list, default_values=True)
+            self.menu.render(complexes=comp_list, default_values=True, enable_menu=False)
 
         # When we run the integration in selected mode, we want to be smart about what interactions to show
         initial_inter_selection_val = self.settings_menu.show_inter_selection_interactions
@@ -108,8 +108,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                     protein_in_selection = True
                 if ligand_in_selection and protein_in_selection:
                     break
+            # If both ligand and protein are selected, show interactions between them
             if ligand_in_selection and protein_in_selection:
-                # If both ligand and protein are selected, show interactions between them
                 self.settings_menu.show_inter_selection_interactions = True
                 self.settings_menu.show_intra_selection_interactions = True
                 self.settings_menu.show_selection_water_interactions = True
@@ -118,6 +118,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.settings_menu.show_inter_selection_interactions = initial_inter_selection_val
         self.settings_menu.show_intra_selection_interactions = initial_intra_selection_val
         self.settings_menu.show_selection_water_interactions = initial_selection_water_val
+        self.settings_menu._menu._enabled = False
         self.update_menu(self.settings_menu._menu)
 
     def get_line_manager(self):
