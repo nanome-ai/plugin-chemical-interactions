@@ -1,3 +1,4 @@
+import itertools
 from collections import defaultdict
 from nanome.api.shapes import Label, Shape
 from nanome.api.interactions import Interaction
@@ -236,7 +237,8 @@ class ShapesLineManager(StructurePairManager):
 
         for line in all_lines:
             # Make sure that both atoms connected by line are in frame.
-            line_is_in_frame = utils.line_in_frame(line, complexes)
+            atom_iter = itertools.chain.from_iterable(cmp.atoms for cmp in complexes)
+            line_is_in_frame = utils.line_in_frame(line, atom_iter)
             if line_is_in_frame:
                 in_frame_count += 1
             else:
