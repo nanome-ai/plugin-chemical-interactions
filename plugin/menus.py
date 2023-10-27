@@ -16,6 +16,8 @@ BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
 MENU_PATH = path.join(BASE_PATH, 'menu_json', 'menu.json')
 SETTINGS_MENU_PATH = path.join(BASE_PATH, 'menu_json', 'settings.json')
 
+GEAR_PNG = path.join(BASE_PATH, 'assets', 'gear.png')
+
 
 class INTERACTING_ENTITIES_OPTIONS:
     """Arpeggio options for types of interacting entities.
@@ -61,6 +63,10 @@ class ChemInteractionsMenu():
 
         self.btn_toggle_interactions = self._menu.root.find_node('Toggle Display').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
+
+        self.btn_settings = self._menu.root.find_node('ln_btn_settings').get_content()
+        self.btn_settings.icon.value.set_all(GEAR_PNG)
+        self.btn_settings.register_pressed_callback(self.toggle_settings_menu)
 
     @async_callback
     async def render(self, complexes=None, default_values=False, enable_menu=True):
@@ -542,6 +548,10 @@ class ChemInteractionsMenu():
             await self.plugin.render_distance_labels()
         else:
             self.plugin.clear_distance_labels()
+
+    def toggle_settings_menu(self, btn):
+        Logs.message("Opening Advanced Settings menu")
+        self.plugin.open_advanced_settings()
 
 
 class SettingsMenu:

@@ -70,6 +70,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         await self.menu.render(complexes=complexes, default_values=True)
 
     def on_advanced_settings(self):
+        self.open_advanced_settings()
+
+    def open_advanced_settings(self):
         self.settings_menu.render()
 
     @async_callback
