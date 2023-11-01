@@ -636,7 +636,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             complexes = ws.complexes
         self.show_distance_labels = True
         if not lines:
-            all_lines = await self.line_manager.all_lines()
+            molecule_indices = [cmp.current_molecule.index for cmp in complexes]
+            all_lines = await self.line_manager.all_lines(molecules_idx=molecule_indices)
             lines = utils.get_lines_in_frame(all_lines, complexes)
         for line in lines:
             # If theres any visible lines between the two structs in structpair, add a label.

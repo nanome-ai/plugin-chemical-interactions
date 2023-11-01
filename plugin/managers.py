@@ -142,9 +142,13 @@ class InteractionLineManager:
         line.visible = line_settings['visible']
         return line
 
-    async def update_interaction_lines(self, interactions_data, *args, **kwargs):
+    async def update_interaction_lines(self, interactions_data, complexes=None, **kwargs):
         """Update all interaction lines in workspace according to provided colors and visibility settings."""
-        interactions = await self.all_lines()
+        get_kwargs = {}
+        if complexes:
+            mol_indices = [cmp.current_molecule.index for cmp in complexes]
+            get_kwargs['molecules_idx'] = mol_indices
+        interactions = await self.all_lines(**get_kwargs)
         lines_to_update = []
         for line in interactions:
             interaction_type = line.kind.name
