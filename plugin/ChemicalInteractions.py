@@ -214,7 +214,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         futs = []
         self.total_contacts_count = len(contacts_data)
         self.loading_bar_i = 0
-        all_lines_at_start = await self.line_manager.all_lines()
+
+        relevant_mol_indices = [cmp.current_molecule.index for cmp in complexes]
+        all_lines_at_start = await self.line_manager.all_lines(molecules_idx=relevant_mol_indices)
         new_lines = []
         # Set up ThreadPoolExecutor to parse contacts data into InteractionLines.
         if contacts_data:
@@ -543,7 +545,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 # Set `frame` and `conformer` attribute for InteractionStructure.
                 for comp in complexes:
                     atom_indices = [a.index for a in struct.atoms]
-                    relevant_atoms = [a.index for a in comp.atoms if a.index in atom_indices]
+                    relevant_atoms = [a.index for a in comp.current_molecule.atoms if a.index in atom_indices]
                     if relevant_atoms:
                         struct.frame = comp.current_frame
                         struct.conformer = comp.current_conformer
@@ -821,7 +823,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             return True
 
         comp_changed = False
-        for old_atm, new_atm in itertools.zip_longest(old_comp.atoms, new_comp.atoms):
+        old_atoms = old_comp.current_molecule.atoms
+        new_atoms = new_comp.current_molecule.atoms
+        for old_atm, new_atm in itertools.zip_longest(old_atoms, new_atoms):
             atoms_exist = old_atm is not None and new_atm is not None
             if atoms_exist:
                 indices_match = old_atm.index == new_atm.index

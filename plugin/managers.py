@@ -69,9 +69,9 @@ class LabelManager(StructurePairManager):
 class InteractionLineManager:
     """Organizes Interaction lines by atom pairs."""
 
-    async def all_lines(self):
+    async def all_lines(self, **get_kwargs):
         """Return a flat list of all lines being stored."""
-        all_lines = await Interaction.get()
+        all_lines = await Interaction.get(**get_kwargs)
         return all_lines
 
     def add_lines(self, line_list):
@@ -237,7 +237,7 @@ class ShapesLineManager(StructurePairManager):
 
         for line in all_lines:
             # Make sure that both atoms connected by line are in frame.
-            atom_iter = itertools.chain.from_iterable(cmp.atoms for cmp in complexes)
+            atom_iter = itertools.chain.from_iterable(cmp.current_molecule.atoms for cmp in complexes)
             line_is_in_frame = utils.line_in_frame(line, atom_iter)
             if line_is_in_frame:
                 in_frame_count += 1
