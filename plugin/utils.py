@@ -61,29 +61,34 @@ def merge_complexes(complexes, align_reference, selected_atoms_only=False):
     # Copy list so that conformer modifications aren't propogated.
     comp_copies = [cmp._deep_copy() for cmp in complexes]
     # Fix indices
-    for original, cpy in zip(complexes, comp_copies):
-        cpy.index = original.index
+    for original_comp, cpy_comp in zip(complexes, comp_copies):
+        cpy_comp.index = original_comp.index
+        for original_mol, cpy_mol in zip(original_comp.molecules, cpy_comp.molecules):
+            cpy_mol.index = original_mol.index
 
     merged_complex = structure.Complex()
-    mol = structure.Molecule()
-    merged_complex.add_molecule(mol)
+    new_mol = structure.Molecule()
+    merged_complex.add_molecule(new_mol)
     for comp in comp_copies:
         ComplexUtils.align_to(comp, align_reference)
-        # Only return current conformer
-        existing_mol = comp.current_molecule
+        current_mol_index = int(comp.current_molecule.index)
+        # Only return current molecule
+        comp._molecules = [mol for mol in comp._molecules if mol.index == current_mol_index]
+        comp.set_current_frame(0)
+        current_mol = comp.current_molecule
         # Extract only the current conformer from the molecule
-        existing_mol.move_conformer(existing_mol.current_conformer, 0)
-        existing_mol.set_conformer_count(1)
+        current_mol.move_conformer(current_mol.current_conformer, 0)
+        current_mol.set_conformer_count(1)
 
         if selected_atoms_only and comp.index != align_reference.index:
             # Extract selected copy selected residues
-            selected_residues = [res for res in existing_mol.residues if any(a.selected for a in res.atoms)]
+            selected_residues = [res for res in current_mol.residues if any(a.selected for a in res.atoms)]
             extracted_comp = extract_residues_from_complex(comp, selected_residues)
             for ch in extracted_comp.chains:
-                mol.add_chain(ch)
+                new_mol.add_chain(ch)
         else:
-            for ch in existing_mol.chains:
-                mol.add_chain(ch)
+            for ch in current_mol.chains:
+                new_mol.add_chain(ch)
     return merged_complex
 
 
