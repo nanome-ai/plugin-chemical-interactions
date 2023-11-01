@@ -182,11 +182,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 selected_atoms_only, distance_labels)
 
         complexes = set([target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]])
-        # If the ligands are not part of selected complex, merge into one complex
-        if len(complexes) > 1:
-            full_complex = utils.merge_complexes(complexes, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
-        else:
-            full_complex = target_complex
+        full_complex = utils.merge_complexes(complexes, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
 
         # Clean complex and return as tempfile
         self.menu.set_update_text("Prepping...")
