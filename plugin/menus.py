@@ -280,13 +280,13 @@ class ChemInteractionsMenu():
                 if residue_complex and not selected_ligand:
                     deep_comp = (await self.plugin.request_complexes([residue_complex.index]))[0]
                     self.update_complex_data(deep_comp)
-                    ligand_residues.extend(list(deep_comp.residues))
+                    ligand_residues.extend(list(deep_comp.current_molecule.residues))
         elif selected_atoms_only:
             # Find first complex with selected atoms, and set residue complex to that.
             complexes = await self.plugin.request_complexes([c.index for c in self.complexes])
             for comp in complexes:
                 self.update_complex_data(comp)
-                for rez in comp.residues:
+                for rez in comp.current_molecule.residues:
                     if any(a.selected for a in rez.atoms):
                         ligand_residues.append(rez)
         else:
@@ -489,10 +489,7 @@ class ChemInteractionsMenu():
             item.complex = deep_complex
 
             # Find ligands nested inside of complex, and add them to dropdown.
-            mol = next(
-                mol for i, mol in enumerate(deep_complex.molecules)
-                if i == deep_complex.current_frame
-            )
+            mol = deep_complex.current_molecule
             ligands = await mol.get_ligands()
             for ligand in ligands:
                 # make sure complex is stored on residue, we will need it later

@@ -198,6 +198,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         data = {}
         selection = self.get_interaction_selections(
             target_complex, ligand_residues, selected_atoms_only)
+        if selected_atoms_only and not selection:
+            message = 'Please select atoms to calculate interactions.'
+            Logs.warning(message)
+            self.send_notification(enums.NotificationTypes.error, message)
+            return
         Logs.debug(f'Selections: {selection}')
 
         if selection:
@@ -206,6 +211,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # make the request to get interactions
         self.menu.set_update_text("Calculating...")
         contacts_data = await self.run_arpeggio_process(data, cleaned_filepath)
+        if contacts_data is None:
+            message = 'Arpeggio run failed'
+            Logs.warning(message)
+            self.send_notification(enums.NotificationTypes.error, message)
+            return
         Logs.message(f'Contacts Count: {len(contacts_data)}')
 
         interacting_entities_to_render = settings['interacting_entities']
@@ -312,7 +322,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @classmethod
     def get_complex_selection_paths(cls, comp):
         selections = set()
-        for res in comp.residues:
+        for res in comp.current_molecule.residues:
             res_selections = cls.get_residue_selection_paths(res)
             if res_selections:
                 selections = selections.union(res_selections)
@@ -322,8 +332,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def get_residue_selection_paths(cls, residue):
         """Return a set of atom paths for the selected atoms in a structure (Complex/Residue)."""
         selections = set()
-        unselected_atoms = filter(lambda atom: not atom.selected, residue.atoms)
-        if sum(1 for _ in unselected_atoms) == 0:
+        atom_count = sum(1 for atm in residue.atoms)
+
+        selected_atoms = filter(lambda atom: atom.selected, residue.atoms)
+        if sum(1 for _ in selected_atoms) == atom_count:
             selections.add(cls.get_residue_path(residue))
         else:
             selected_atoms = filter(lambda atom: atom.selected, residue.atoms)
@@ -360,24 +372,21 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return selection_str
 
     @staticmethod
-    def get_atom_from_path(complex, atom_path):
+    def get_atom_from_path(comp, atom_path):
         """Return atom corresponding to atom path.
 
-        :arg complex: nanome.api.Complex object
+        :arg comp: nanome.api.Complex object
         :arg atom_path: str (e.g C/20/O)
 
         rtype: nanome.api.Atom object, or None
         """
         chain_name, res_id, atom_name = atom_path.split('/')
         # Use the molecule corresponding to current frame
-        complex_molecule = next(
-            mol for i, mol in enumerate(complex.molecules)
-            if i == complex.current_frame
-        )
+        comp_mol = comp.current_molecule
         # Chain naming seems inconsistent, so we need to check the provided name,
         # as well as heteroatom variation
         atoms = [
-            a for a in complex_molecule.atoms
+            a for a in comp_mol.atoms
             if all([
                 a.name == atom_name,
                 str(a.residue.serial) == str(res_id),
@@ -390,7 +399,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if len(atoms) > 1:
             # If multiple atoms found, check exact matches (no heteroatoms)
             atoms = [
-                a for a in complex_molecule.atoms
+                a for a in comp_mol.atoms
                 if all([
                     a.name == atom_name,
                     str(a.residue.serial) == str(res_id),
@@ -776,13 +785,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         updated_residues = []
         if selected_atoms_only:
             # Get new list of selected residues
-            res_iter = itertools.chain(*[comp.residues for comp in updated_comps])
+            res_iter = itertools.chain(*[comp.current_molecule.residues for comp in updated_comps])
             for res in res_iter:
                 if any([atom.selected for atom in res.atoms]):
                     updated_residues.append(res)
         else:
             selected_res_indices = [res.index for res in ligand_residues]
-            res_iter = itertools.chain(*[comp.residues for comp in updated_comps])
+            res_iter = itertools.chain(*[comp.current_molecule.residues for comp in updated_comps])
             updated_residues = [
                 res for res in res_iter if res.index in selected_res_indices
             ]

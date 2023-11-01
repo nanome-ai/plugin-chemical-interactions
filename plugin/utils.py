@@ -13,7 +13,7 @@ __all__ = ['chunks', 'extract_residues_from_complex', 'merge_complexes', 'get_ne
 
 
 def extract_residues_from_complex(comp, residue_list, comp_name=None):
-    """Copy comp, and remove all residues that are not part of the binding site."""
+    """Copy comp, and remove all residues that are not in residue list."""
     new_comp = structure.Complex()
     new_mol = structure.Molecule()
     new_comp.add_molecule(new_mol)
@@ -35,9 +35,7 @@ def extract_residues_from_complex(comp, residue_list, comp_name=None):
 
 def get_neighboring_atoms(target_reference: structure.Complex, selected_atoms: list, site_size=6):
     """Use KDTree to find target atoms within site_size radius of selected atoms."""
-    mol = next(
-        mol for i, mol in enumerate(target_reference.molecules)
-        if i == target_reference.current_frame)
+    mol = target_reference.current_molecule
     ligand_positions = [atom.position.unpack() for atom in selected_atoms]
     target_atoms = itertools.chain(*[ch.atoms for ch in mol.chains if not ch.name.startswith("H")])
     target_tree = KDTree([atom.position.unpack() for atom in target_atoms])
@@ -72,7 +70,7 @@ def merge_complexes(complexes, align_reference, selected_atoms_only=False):
     for comp in comp_copies:
         ComplexUtils.align_to(comp, align_reference)
         # Only return current conformer
-        existing_mol = next(mol for i, mol in enumerate(comp.molecules) if i == comp.current_frame)
+        existing_mol = comp.current_molecule
         # Extract only the current conformer from the molecule
         existing_mol.move_conformer(existing_mol.current_conformer, 0)
         existing_mol.set_conformer_count(1)
