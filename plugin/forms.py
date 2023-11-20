@@ -61,8 +61,8 @@ default_line_settings = {
         'dash_length': 0.18
     },
     'Hydrophobic': {'visible': False, 'color': color_map['purple'], 'dash_length': 0.07, 'thickness': 0.12, "dash_distance": 0.4},
-    'VanDerWall': {'visible': False, 'color': color_map['sienna']},
-    'VanDerWallClash': {'visible': False, 'color': color_map['maroon']},
+    'VanDerWaals': {'visible': False, 'color': color_map['sienna']},
+    'VanDerWaalsClash': {'visible': False, 'color': color_map['maroon']},
     'WeakHBond': {'visible': False, 'color': color_map['orange']},
     'Polar': {'visible': False, 'color': color_map['blue']},
     'WeakPolar': {
@@ -92,8 +92,8 @@ class LineSettingsForm(Form):
     MetalComplex = FormField(LineForm, label='Metal Complex', default=default_line_settings['MetalComplex'])
     Aromatic = FormField(LineForm, label='Pi-Pi Aromatic', default=default_line_settings['Aromatic'])
     Hydrophobic = FormField(LineForm, label='Hydrophobic', default=default_line_settings['Hydrophobic'])
-    VanDerWall = FormField(LineForm, label='VDW', default=default_line_settings['VanDerWall'])
-    VanDerWallClash = FormField(LineForm, label='VDW Clash', default=default_line_settings['VanDerWallClash'])
+    VanDerWaals = FormField(LineForm, label='VDW', default=default_line_settings['VanDerWaals'])
+    VanDerWaalsClash = FormField(LineForm, label='VDW Clash', default=default_line_settings['VanDerWaalsClash'])
     WeakHBond = FormField(LineForm, label='Weak Hydrogen', default=default_line_settings['WeakHBond'])
     Polar = FormField(LineForm, label='Polar', default=default_line_settings['Polar'])
     WeakPolar = FormField(LineForm, label='Weak Polar', default=default_line_settings['WeakPolar'])
