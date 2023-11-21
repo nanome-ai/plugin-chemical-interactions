@@ -1,4 +1,4 @@
-from os import environ, path
+from os import path
 
 import nanome
 from nanome.api.structure import Complex
@@ -15,6 +15,8 @@ PDBOPTIONS.write_bonds = True
 BASE_PATH = path.dirname(f'{path.realpath(__file__)}')
 MENU_PATH = path.join(BASE_PATH, 'menu_json', 'menu.json')
 SETTINGS_MENU_PATH = path.join(BASE_PATH, 'menu_json', 'settings.json')
+
+GEAR_PNG = path.join(BASE_PATH, 'assets', 'gear.png')
 
 
 class INTERACTING_ENTITIES_OPTIONS:
@@ -33,7 +35,6 @@ class ChemInteractionsMenu():
 
     def __init__(self, plugin):
         self.plugin = plugin
-        self.interactions_url = environ.get('INTERACTIONS_URL')
         self._menu = nanome.ui.Menu.io.from_json(MENU_PATH)
 
         self.ln_complexes = self._menu.root.find_node('Complex Dropdown')
@@ -63,14 +64,14 @@ class ChemInteractionsMenu():
         self.btn_toggle_interactions = self._menu.root.find_node('Toggle Display').get_content()
         self.btn_toggle_interactions.register_pressed_callback(self.toggle_all_interactions)
 
+        self.btn_settings = self._menu.root.find_node('ln_btn_settings').get_content()
+        self.btn_settings.icon.value.set_all(GEAR_PNG)
+        self.btn_settings.register_pressed_callback(self.toggle_settings_menu)
+
     @async_callback
-    async def render(self, complexes=None, default_values=False):
+    async def render(self, complexes=None, default_values=False, enable_menu=True):
         complexes = complexes or []
         self.complexes = complexes
-
-        for comp in self.complexes:
-            comp.register_complex_updated_callback(self.on_complex_updated)
-
         self.render_interaction_form()
 
         # If we are rendering with default values, get default complex and ligand
@@ -94,6 +95,7 @@ class ChemInteractionsMenu():
         self.dd_ligands.register_item_clicked_callback(self.update_dropdown)
 
         self.dd_complexes.register_item_clicked_callback(self.toggle_complex)
+        self._menu.enabled = enable_menu
         self.plugin.update_menu(self._menu)
 
     def toggle_ln_ligands_visibility(self, visible=True):
@@ -206,7 +208,7 @@ class ChemInteractionsMenu():
         self.plugin.update_content(btn)
 
         Logs.message('Clearing Frame Interactions')
-        await self.plugin.clear_visible_lines(self.complexes)
+        await self.plugin.clear_lines_in_frame()
         btn.unusable = False
         self.plugin.update_content(btn)
 
@@ -278,13 +280,13 @@ class ChemInteractionsMenu():
                 if residue_complex and not selected_ligand:
                     deep_comp = (await self.plugin.request_complexes([residue_complex.index]))[0]
                     self.update_complex_data(deep_comp)
-                    ligand_residues.extend(list(deep_comp.residues))
+                    ligand_residues.extend(list(deep_comp.current_molecule.residues))
         elif selected_atoms_only:
             # Find first complex with selected atoms, and set residue complex to that.
             complexes = await self.plugin.request_complexes([c.index for c in self.complexes])
             for comp in complexes:
                 self.update_complex_data(comp)
-                for rez in comp.residues:
+                for rez in comp.current_molecule.residues:
                     if any(a.selected for a in rez.atoms):
                         ligand_residues.append(rez)
         else:
@@ -406,6 +408,10 @@ class ChemInteractionsMenu():
                     if ddi.rgb == default_rgb
                 ), None)
                 selected_item.selected = True
+                if self.plugin.supports_persistent_interactions():
+                    # For persistent interactions, we no longer support the option
+                    # to change the color of the interaction.
+                    dropdown.items = [selected_item]
 
             ln.add_child(ln_btn)
             ln.add_child(ln_label)
@@ -414,8 +420,9 @@ class ChemInteractionsMenu():
         self.ls_interactions.items = interactions
         self.plugin.update_content(self.ls_interactions)
 
-    def change_interaction_color(self, dropdown, item):
-        self.update_interaction_lines()
+    @async_callback
+    async def change_interaction_color(self, dropdown, item):
+        await self.update_interaction_lines()
 
     @async_callback
     async def toggle_visibility(self, btn):
@@ -482,10 +489,7 @@ class ChemInteractionsMenu():
             item.complex = deep_complex
 
             # Find ligands nested inside of complex, and add them to dropdown.
-            mol = next(
-                mol for i, mol in enumerate(deep_complex.molecules)
-                if i == deep_complex.current_frame
-            )
+            mol = deep_complex.current_molecule
             ligands = await mol.get_ligands()
             for ligand in ligands:
                 # make sure complex is stored on residue, we will need it later
@@ -508,17 +512,11 @@ class ChemInteractionsMenu():
         self.plugin.update_content(self.btn_calculate)
         self.plugin.update_content(self.dd_ligands)
 
-    def on_complex_updated(self, complex):
-        # Update complex in self.complexes, and redraw lines
-        self.update_complex_data(complex)
-        self.update_interaction_lines()
-
     def update_complex_data(self, new_complex):
         """Replace complex in self.complexes with updated data."""
         for i, comp in enumerate(self.complexes):
             if comp.index == new_complex.index:
                 self.complexes[i] = new_complex
-                self.complexes[i].register_complex_updated_callback(self.on_complex_updated)
                 return
 
     def toggle_atom_selection(self, btn):
@@ -544,9 +542,13 @@ class ChemInteractionsMenu():
     @async_callback
     async def toggle_distance_labels(self, btn):
         if btn.selected:
-            await self.plugin.render_distance_labels(self.complexes)
+            await self.plugin.render_distance_labels()
         else:
             self.plugin.clear_distance_labels()
+
+    def toggle_settings_menu(self, btn):
+        Logs.message("Opening Advanced Settings menu")
+        self.plugin.open_advanced_settings()
 
 
 class SettingsMenu:
@@ -605,3 +607,30 @@ class SettingsMenu:
             Logs.message("Clearing previous run from memory")
             del self.plugin.previous_run
         self.plugin.update_content(btn)
+
+    @property
+    def show_inter_selection_interactions(self):
+        return self.btn_inter.selected
+
+    @property
+    def show_intra_selection_interactions(self):
+        return self.btn_intra_selection.selected
+
+    @property
+    def show_selection_water_interactions(self):
+        return self.btn_selection_water.selected
+
+    @show_inter_selection_interactions.setter
+    def show_inter_selection_interactions(self, value: bool):
+        self.btn_inter.selected = value
+        self.plugin.update_content(self.btn_inter)
+
+    @show_intra_selection_interactions.setter
+    def show_intra_selection_interactions(self, value: bool):
+        self.btn_intra_selection.selected = value
+        self.plugin.update_content(self.btn_intra_selection)
+
+    @show_selection_water_interactions.setter
+    def show_selection_water_interactions(self, value: bool):
+        self.btn_selection_water.selected = value
+        self.plugin.update_content(self.btn_selection_water)

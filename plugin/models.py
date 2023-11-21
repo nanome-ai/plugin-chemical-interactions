@@ -1,9 +1,8 @@
-from collections import defaultdict
 from operator import attrgetter
 
-from nanome.api.shapes import Label, Line, Shape
+from nanome.api.shapes import Line
 from nanome.api.structure import Atom
-from nanome.util import Vector3
+from nanome.util import Vector3, Logs
 
 
 class InteractionStructure:
@@ -16,12 +15,19 @@ class InteractionStructure:
     frame = None
     conformer = None
 
-    def __init__(self, atom_or_atoms, frame=None, conformer=None):
+    def __init__(self, atom_or_atoms):
         """Pass in either a single Atom object or a list of Atoms."""
+        frame = None
+        conformer = None
         if isinstance(atom_or_atoms, Atom):
             self.atoms.append(atom_or_atoms)
+            frame = atom_or_atoms.complex.current_frame
+            conformer = atom_or_atoms.molecule.current_conformer
         elif isinstance(atom_or_atoms, list):
             self.atoms.extend(atom_or_atoms)
+            atom = atom_or_atoms[0]
+            frame = atom.complex.current_frame
+            conformer = atom.molecule.current_conformer
         self.frame = frame
         self.conformer = conformer
 
@@ -40,14 +46,13 @@ class InteractionStructure:
     def index(self):
         """Unique index based on atoms in structure and their positions.
         examples
-        single atom structure -> '5432591673/-7.344/7.814/8.34'
-        ring structures are multiple of above, separated by commas
+        single atom structure -> '5432591673'
+        ring structures -> '5432591673,75462591674,943234535'
         """
-        atom_pos_strs = []
+        atom_strs = []
         for a in sorted(self.atoms, key=attrgetter('index')):
-            atom_str = f"{a.index}/{a.position.x}/{a.position.y}/{a.position.z}"
-            atom_pos_strs.append(atom_str)
-        index = ','.join(atom_pos_strs)
+            atom_strs.append(str(a.index))
+        index = ','.join(atom_strs)
         return index
 
     @property
@@ -73,7 +78,7 @@ class InteractionStructure:
         return offset_vector
 
 
-class InteractionLine(Line):
+class InteractionShapesLine(Line):
     """A Line with additional properties needed for representing interactions."""
 
     def __init__(self, struct1, struct2, **kwargs):
@@ -92,17 +97,20 @@ class InteractionLine(Line):
             self.frames[struct.index] = struct.frame
             self.conformers[struct.index] = struct.conformer
             self.struct_positions[struct.index] = struct_position
+        # Save atom_indices to be interchangeable with Interaction objects
+        self.atom1_idx_arr = [atm.index for atm in struct1.atoms]
+        self.atom2_idx_arr = [atm.index for atm in struct2.atoms]
 
     @property
-    def interaction_type(self):
-        """The type of interaction this line is representing. See forms.InteractionsForm for valid values."""
-        if not hasattr(self, '_interaction_type'):
-            self._interaction_type = ''
-        return self._interaction_type
+    def kind(self):
+        """The type of interaction this line is representing. See forms.LineSettingsForm for valid values."""
+        if not hasattr(self, '_kind'):
+            self._kind = ''
+        return self._kind
 
-    @interaction_type.setter
-    def interaction_type(self, value):
-        self._interaction_type = value
+    @kind.setter
+    def kind(self, value):
+        self._kind = value
 
     @property
     def frames(self):
@@ -141,112 +149,33 @@ class InteractionLine(Line):
         """Return a list of struture indices."""
         return self.frames.keys()
 
+    @property
+    def visible(self):
+        return self.color.a > 0
 
-class StructurePairManager:
-    """Functions used by Managers to create keys to uniquely identify pairs of InteractionStructures."""
+    @visible.setter
+    def visible(self, value: bool):
+        if value:
+            self.color.a = 1
+        else:
+            self.color.a = 0
 
-    def __init__(self):
-        super().__init__()
-        self._data = defaultdict(list)
+    @property
+    def atom1_conformation(self):
+        """Return the conformer of the atom in the second structure."""
+        try:
+            atom_index = str(self.atom1_idx_arr[0])
+            conformer_key = next(key for key in self.conformers.keys() if str(atom_index) in key)
+            return self.conformers[conformer_key]
+        except IndexError:
+            Logs.warning("atom1_idx_arr is empty")
 
-    @staticmethod
-    def get_structpair_key(struct1_key, struct2_key):
-        """Return a string key for the given atom indices."""
-        structpair_key = '|'.join(sorted([struct1_key, struct2_key]))
-        return structpair_key
-
-    @staticmethod
-    def get_structpair_key_for_line(line):
-        """Return a string key for the given atom indices."""
-        struct1_key, struct2_key = line.structure_indices
-        structpair_key = '|'.join(sorted([struct1_key, struct2_key]))
-        return structpair_key
-
-    def get_struct_pairs(self):
-        """Return a list of structure pairs being tracked by manager."""
-        struct_pairs = []
-        for structpair_key in self._data:
-            struct1_key, struct2_key = structpair_key.split('|')
-            # struct1_index, struct1_frame, struct1_conformer = struct1_key.split('_')
-            struct_pairs.append((struct1_key, struct2_key))
-        return struct_pairs
-
-
-class LineManager(StructurePairManager):
-    """Organizes Interaction lines by atom pairs."""
-
-    def all_lines(self):
-        """Return a flat list of all lines being stored."""
-        all_lines = []
-        for structpair_key, line_list in sorted(self._data.items(), key=lambda keyval: keyval[0]):
-            all_lines.extend(line_list)
-        return all_lines
-
-    def add_lines(self, line_list):
-        for line in line_list:
-            self.add_line(line)
-
-    def add_line(self, line):
-        if not isinstance(line, InteractionLine):
-            raise TypeError(f'add_line() expected InteractionLine, received {type(line)}')
-
-        structpair_key = self.get_structpair_key_for_line(line)
-        self._data[structpair_key].append(line)
-
-    def get_lines_for_structure_pair(self, struct1_index: str, struct2_index: str):
-        """Given two InteractionStructures, return all interaction lines connecting them.
-
-        :arg struct1: InteractionStructure, or index str
-        :arg struct2: InteractionStructure, or index str
-        """
-        key = self.get_structpair_key(struct1_index, struct2_index)
-        return self._data[key]
-
-    def update_line(self, line):
-        """Replace line stored in manager with updated version passed as arg."""
-        structpair_key = self.get_structpair_key(*line.structure_indices)
-        line_list = self._data[structpair_key]
-        for i, stored_line in enumerate(line_list):
-            if stored_line.index == line.index:
-                line_list[i] = line
-                break
-
-    def update(self, line_manager):
-        """"Merge another LineManager into self."""
-        self._data.update(line_manager._data)
-
-
-class LabelManager(StructurePairManager):
-
-    def all_labels(self):
-        """Return a flat list of all lines being stored."""
-        all_lines = []
-        for structpair_key, label in sorted(self._data.items(), key=lambda keyval: keyval[0]):
-            all_lines.append(self._data[structpair_key])
-        return all_lines
-
-    def add_label(self, label, struct1_index, struct2_index):
-        if not isinstance(label, Label):
-            raise TypeError(f'add_label() expected Label, received {type(label)}')
-        structpair_key = self.get_structpair_key(struct1_index, struct2_index)
-        self._data[structpair_key] = label
-
-    def remove_label_for_structpair(self, struct1_index, struct2_index):
-        """Remove all lines from data structure.
-
-        Note that Shape.destroy() is not called, so lines still exist in workspace if uploaded.
-        The label is returned, so that it can be destroyed at a later time.
-        """
-        key = self.get_structpair_key(struct1_index, struct2_index)
-        label = None
-        if key in self._data:
-            label = self._data[key]
-            del self._data[key]
-        return label
-
-    def clear(self):
-        # Destroy all labels in workspace, and clear dict that's tracking them.
-        Shape.destroy_multiple(self.all_labels())
-        keys = list(self._data.keys())
-        for key in keys:
-            del self._data[key]
+    @property
+    def atom2_conformation(self):
+        """Return the conformer of the atom in the second structure."""
+        try:
+            atom_index = str(self.atom2_idx_arr[0])
+            conformer_key = next(key for key in self.conformers.keys() if str(atom_index) in key)
+            return self.conformers[conformer_key]
+        except IndexError:
+            Logs.warning("atom2_idx_arr is empty")

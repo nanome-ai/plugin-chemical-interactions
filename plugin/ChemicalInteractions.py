@@ -1,24 +1,27 @@
 import asyncio
-import itertools
 import json
+import itertools
 import math
 import os
 import tempfile
 import time
 import uuid
 import nanome
-import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from nanome.api.structure import Complex
-from nanome.api.shapes import Label, Shape
-from nanome.util import async_callback, Color, enums, Logs, Process, Vector3, ComplexUtils
+from nanome.api.shapes import Label, Shape, Anchor
+from nanome.api.interactions import Interaction
+from nanome.util import async_callback, enums, Logs, Process, Vector3, ComplexUtils
 from typing import List
 
+from . import utils
 from .forms import LineSettingsForm
 from .menus import ChemInteractionsMenu, SettingsMenu
-from .models import InteractionLine, LineManager, LabelManager, InteractionStructure
-from .utils import merge_complexes, chunks
+from .models import InteractionStructure
+from .managers import InteractionLineManager, LabelManager, ShapesLineManager
+from .utils import interaction_type_map
 from .clean_pdb import clean_pdb
+
 
 PDBOPTIONS = Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -39,35 +42,98 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.menu = ChemInteractionsMenu(self)
         self.settings_menu = SettingsMenu(self)
         self.show_distance_labels = False
-        self.__complex_cache = {}
+        self.integration.run_interactions = self.start_integration
+        self.line_manager = self.get_line_manager()
+        self.currently_running_recalculate = False
+        self.recalculate_queue = []
 
     def on_stop(self):
         self.temp_dir.cleanup()
 
     @async_callback
     async def on_run(self):
-        self.menu.enabled = True
         complexes = await self.request_complex_list()
-        self.menu.render(complexes=complexes, default_values=True)
+        for comp in complexes:
+            comp.register_complex_updated_callback(self.on_complex_updated)
+        await self.menu.render(complexes=complexes, default_values=True)
+        # Get any lines that already exist in the workspace
+        current_lines = await self.line_manager.all_lines()
+        if current_lines:
+            self.line_manager.add_lines(current_lines)
 
     @async_callback
     async def on_complex_list_changed(self):
+        # await self._populate_complex_cache()
         complexes = await self.request_complex_list()
+        for comp in complexes:
+            comp.register_complex_updated_callback(self.on_complex_updated)
         await self.menu.render(complexes=complexes, default_values=True)
 
     def on_advanced_settings(self):
+        self.open_advanced_settings()
+
+    def open_advanced_settings(self):
         self.settings_menu.render()
 
-    @property
-    def line_manager(self):
-        """Maintain a dict of all interaction lines stored in memory."""
-        if not hasattr(self, '_line_manager'):
-            self._line_manager = LineManager()
-        return self._line_manager
+    @async_callback
+    async def start_integration(self, request):
+        try:
+            await self.run_integration(request)
+        except Exception as e:
+            Interaction.signal_calculation_done()
+            raise e
+        else:
+            Interaction.signal_calculation_done()
 
-    @line_manager.setter
-    def line_manager(self, value):
-        self._line_manager = value
+    async def run_integration(self, request):
+        comp_list = await self.request_complex_list()
+        # Only render if we havent already done so.
+        already_rendered = hasattr(self.menu, 'complexes')
+        if not already_rendered:
+            self.menu.render(complexes=comp_list, default_values=True, enable_menu=False)
+
+        # When we run the integration in selected mode, we want to be smart about what interactions to show
+        initial_inter_selection_val = self.settings_menu.show_inter_selection_interactions
+        initial_intra_selection_val = self.settings_menu.show_intra_selection_interactions
+        initial_selection_water_val = self.settings_menu.show_selection_water_interactions
+        if self.menu.btn_show_selected_interactions.selected:
+            selected_comps = [comp for comp in comp_list if comp.get_selected()]
+            deep_selected_comps = await self.request_complexes([cmp.index for cmp in selected_comps])
+            selected_atoms = filter(
+                lambda atom: atom.selected,
+                itertools.chain.from_iterable(cmp.atoms for cmp in deep_selected_comps)
+            )
+            # Change interaction types to show based on what atoms are selected.
+            ligand_in_selection = False
+            protein_in_selection = False
+            for atm in selected_atoms:
+                if atm.is_het:
+                    ligand_in_selection = True
+                else:
+                    protein_in_selection = True
+                if ligand_in_selection and protein_in_selection:
+                    break
+            # If both ligand and protein are selected, show interactions between them
+            if ligand_in_selection and protein_in_selection:
+                self.settings_menu.show_inter_selection_interactions = True
+                self.settings_menu.show_intra_selection_interactions = True
+                self.settings_menu.show_selection_water_interactions = True
+        btn = self.menu.btn_calculate
+        await self.menu.submit_form(btn)
+        self.settings_menu.show_inter_selection_interactions = initial_inter_selection_val
+        self.settings_menu.show_intra_selection_interactions = initial_intra_selection_val
+        self.settings_menu.show_selection_water_interactions = initial_selection_water_val
+        self.settings_menu._menu._enabled = False
+        self.update_menu(self.settings_menu._menu)
+
+    def get_line_manager(self):
+        """Maintain a dict of all interaction lines stored in memory."""
+        if self.supports_persistent_interactions():
+            line_manager = InteractionLineManager()
+        else:
+            Logs.warning('Persistent Interactions not supported. Falling back to Shapes Interaction Lines.')
+            line_manager = ShapesLineManager()
+        return line_manager
 
     @property
     def label_manager(self):
@@ -100,13 +166,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         start_time = time.time()
 
         # Let's make sure we have a deep target complex and ligand complexes
-        ligand_complexes = []
+        ligand_complexes = set()
         for res in ligand_residues:
             if res.complex:
-                ligand_complexes.append(res.complex)
+                ligand_complexes.add(res.complex)
             else:
                 raise Exception('No Complex associated with Residue')
 
+        ligand_complexes = list(ligand_complexes)
+        # If recalculate interactions is enabled, we need to make sure we store current run data.
         settings = self.settings_menu.get_settings()
         if settings['recalculate_on_update']:
             self.setup_previous_run(
@@ -114,15 +182,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 selected_atoms_only, distance_labels)
 
         complexes = set([target_complex, *[lig_comp for lig_comp in ligand_complexes if lig_comp.index != target_complex.index]])
-        for cmp in complexes:
-            self.__complex_cache[cmp.index] = cmp
-            cmp.register_complex_updated_callback(self.on_complex_updated)
-
-        # If the ligands are not part of selected complex, merge into one complex
-        if len(complexes) > 1:
-            full_complex = merge_complexes(complexes, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
-        else:
-            full_complex = target_complex
+        full_complex = utils.merge_complexes(complexes, align_reference=target_complex, selected_atoms_only=selected_atoms_only)
 
         # Clean complex and return as tempfile
         self.menu.set_update_text("Prepping...")
@@ -130,10 +190,15 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         size_in_kb = os.path.getsize(cleaned_filepath) / 1000
         Logs.message(f'Complex File Size (KB): {size_in_kb}')
 
-        # Set up data for request to interactions service
+        # Set up selections to send to arpeggio
         data = {}
         selection = self.get_interaction_selections(
             target_complex, ligand_residues, selected_atoms_only)
+        if selected_atoms_only and not selection:
+            message = 'Please select atoms to calculate interactions.'
+            Logs.warning(message)
+            self.send_notification(enums.NotificationTypes.error, message)
+            return
         Logs.debug(f'Selections: {selection}')
 
         if selection:
@@ -142,11 +207,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         # make the request to get interactions
         self.menu.set_update_text("Calculating...")
         contacts_data = await self.run_arpeggio_process(data, cleaned_filepath)
-
-        Logs.debug("Interaction data retrieved!")
-        if not contacts_data:
-            notification_message = "Arpeggio run failed. Please make sure source files are valid."
-            self.send_notification(enums.NotificationTypes.error, notification_message)
+        if contacts_data is None:
+            message = 'Arpeggio run failed'
+            Logs.warning(message)
+            self.send_notification(enums.NotificationTypes.error, message)
             return
         Logs.message(f'Contacts Count: {len(contacts_data)}')
 
@@ -156,31 +220,45 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         futs = []
         self.total_contacts_count = len(contacts_data)
         self.loading_bar_i = 0
-        with ThreadPoolExecutor(max_workers=thread_count) as executor:
-            for chunk in chunks(contacts_data, len(contacts_data) // thread_count):
-                fut = executor.submit(self.parse_contacts_data, chunk, complexes, line_settings, selected_atoms_only, interacting_entities_to_render)
-                futs.append(fut)
-        new_line_manager = LineManager()
-        for fut in futs:
-            new_line_manager.update(fut.result())
-        all_new_lines = new_line_manager.all_lines()
-        Logs.message(f'Adding {len(all_new_lines)} interactions')
-        Shape.upload_multiple(all_new_lines)
+
+        relevant_mol_indices = [cmp.current_molecule.index for cmp in complexes]
+        all_lines_at_start = await self.line_manager.all_lines(molecules_idx=relevant_mol_indices)
+        new_lines = []
+        # Set up ThreadPoolExecutor to parse contacts data into InteractionLines.
+        if contacts_data:
+            with ThreadPoolExecutor(max_workers=thread_count) as executor:
+                for chunk in utils.chunks(contacts_data, len(contacts_data) // thread_count):
+                    fut = executor.submit(
+                        self.parse_contacts_data,
+                        chunk, complexes, line_settings, selected_atoms_only,
+                        interacting_entities_to_render, all_lines_at_start)
+                    futs.append(fut)
+            for fut in futs:
+                new_lines += fut.result()
+        Logs.debug(f"{self.loading_bar_i} / {self.total_contacts_count} contacts processed")
+        Logs.debug("Finished parsing contacts data")
+
+        # Destroy existing lines between two structures in the current frame
+        # This ensures we remove any interactions that are no longer present
+        existing_lines_in_frame = utils.get_lines_in_frame(all_lines_at_start, complexes)
+        if existing_lines_in_frame:
+            self.line_manager.destroy_lines(existing_lines_in_frame)
+
+        # Re-Upload all lines
+        self.line_manager.upload(new_lines)
+        self.line_manager.add_lines(new_lines)
 
         # Make sure complexes are locked
-        # Skip if user has recalculate on update turned on
-        # Causes cycles of continuous recalculation.
         comps_to_lock = [cmp for cmp in complexes if not cmp.locked]
-        if any(comps_to_lock) and not settings['recalculate_on_update']:
+        if any(comps_to_lock):
             for comp in comps_to_lock:
                 # Make sure we don't inadvertantly move the complex
                 ComplexUtils.reset_transform(comp)
                 comp.locked = True
             self.update_structures_shallow(comps_to_lock)
 
-        self.line_manager.update(new_line_manager)
         if distance_labels:
-            await self.render_distance_labels(complexes)
+            await self.render_distance_labels(complexes, new_lines)
 
         async def log_elapsed_time(start_time):
             """Log the elapsed time since start time.
@@ -193,8 +271,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             Logs.message(msg, extra={'calculation_time': float(elapsed_time)})
 
         asyncio.create_task(log_elapsed_time(start_time))
-
-        notification_txt = f"Finished Calculating Interactions!\n{len(all_new_lines)} lines added"
+        notification_txt = f"Finished Calculating Interactions! {len(new_lines)} interactions found."
         asyncio.create_task(self.send_async_notification(notification_txt))
 
     def get_clean_pdb_file(self, complex):
@@ -241,7 +318,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @classmethod
     def get_complex_selection_paths(cls, comp):
         selections = set()
-        for res in comp.residues:
+        for res in comp.current_molecule.residues:
             res_selections = cls.get_residue_selection_paths(res)
             if res_selections:
                 selections = selections.union(res_selections)
@@ -251,8 +328,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     def get_residue_selection_paths(cls, residue):
         """Return a set of atom paths for the selected atoms in a structure (Complex/Residue)."""
         selections = set()
-        unselected_atoms = filter(lambda atom: not atom.selected, residue.atoms)
-        if sum(1 for _ in unselected_atoms) == 0:
+        atom_count = sum(1 for atm in residue.atoms)
+
+        selected_atoms = filter(lambda atom: atom.selected, residue.atoms)
+        if sum(1 for _ in selected_atoms) == atom_count:
             selections.add(cls.get_residue_path(residue))
         else:
             selected_atoms = filter(lambda atom: atom.selected, residue.atoms)
@@ -289,24 +368,21 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return selection_str
 
     @staticmethod
-    def get_atom_from_path(complex, atom_path):
+    def get_atom_from_path(comp, atom_path):
         """Return atom corresponding to atom path.
 
-        :arg complex: nanome.api.Complex object
+        :arg comp: nanome.api.Complex object
         :arg atom_path: str (e.g C/20/O)
 
         rtype: nanome.api.Atom object, or None
         """
         chain_name, res_id, atom_name = atom_path.split('/')
         # Use the molecule corresponding to current frame
-        complex_molecule = next(
-            mol for i, mol in enumerate(complex.molecules)
-            if i == complex.current_frame
-        )
+        comp_mol = comp.current_molecule
         # Chain naming seems inconsistent, so we need to check the provided name,
         # as well as heteroatom variation
         atoms = [
-            a for a in complex_molecule.atoms
+            a for a in comp_mol.atoms
             if all([
                 a.name == atom_name,
                 str(a.residue.serial) == str(res_id),
@@ -319,7 +395,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if len(atoms) > 1:
             # If multiple atoms found, check exact matches (no heteroatoms)
             atoms = [
-                a for a in complex_molecule.atoms
+                a for a in comp_mol.atoms
                 if all([
                     a.name == atom_name,
                     str(a.residue.serial) == str(res_id),
@@ -372,7 +448,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if ',' in atompath:
                 # Parse aromatic ring, and add list of atoms to struct_list
                 ring_atoms = cls.parse_ring_atoms(atompath, complexes)
-                # Get frame and conformer from first atom in ring
                 struct = InteractionStructure(ring_atoms)
             else:
                 # Parse single atom
@@ -386,7 +461,9 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             struct_list.append(struct)
         return struct_list
 
-    def parse_contacts_data(self, contacts_data, complexes, line_settings, selected_atoms_only=False, interacting_entities=None):
+    def parse_contacts_data(
+            self, contacts_data, complexes, line_settings, selected_atoms_only=False,
+            interacting_entities=None, existing_lines=None):
         """Parse .contacts file into list of Lines to be rendered in Nanome.
 
         contacts_data: Data returned by Chemical Interaction Service.
@@ -397,6 +474,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         :rtype: LineManager object containing new lines to be uploaded to Nanome workspace.
         """
         interacting_entities = interacting_entities or ['INTER', 'INTRA_SELECTION', 'SELECTION_WATER']
+        existing_lines = existing_lines or []
         form = LineSettingsForm(data=line_settings)
         form.validate()
         if form.errors:
@@ -407,7 +485,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if not hasattr(self, 'total_contacts_count'):
             self.total_contacts_count = len(contacts_data)
 
-        new_line_manager = LineManager()
+        new_lines = []
         self.menu.set_update_text("Updating Workspace...")
         # Update loading bar every 5% of contacts completed
         update_percentages = list(range(100, 0, -5))
@@ -422,11 +500,20 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Atom paths that current row is describing interactions between
             a1_data = row['bgn']
             a2_data = row['end']
-            interaction_types = row['contact']
+            contact_types = row['contact']
+            # Switch arpeggio interaction string into nanome InteractionKind enum
+            try:
+                interaction_kinds = [
+                    interaction_type_map[contact_type].name
+                    for contact_type in contact_types
+                    if contact_type in interaction_type_map.keys()
+                ]
+            except KeyError:
+                pass
 
             # If we dont have line settings for any of the interactions in the row, we can continue
             # Typically this filters out rows with only `proximal` interactions.
-            if not set(interaction_types).intersection(set(form.data.keys())):
+            if not set(interaction_kinds).intersection(set(form.data.keys())):
                 continue
 
             # If structure's relationship is not included, continue
@@ -443,7 +530,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             except AtomNotFoundException:
                 message = (
                     f"Failed to parse interactions between {atom1_path} and {atom2_path} "
-                    f"skipping {len(interaction_types)} interactions"
+                    f"skipping {len(contact_types)} interactions"
                 )
                 Logs.warning(message)
                 continue
@@ -463,17 +550,17 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 # Set `frame` and `conformer` attribute for InteractionStructure.
                 for comp in complexes:
                     atom_indices = [a.index for a in struct.atoms]
-                    relevant_atoms = [a.index for a in comp.atoms if a.index in atom_indices]
+                    relevant_atoms = [a.index for a in comp.current_molecule.atoms if a.index in atom_indices]
                     if relevant_atoms:
                         struct.frame = comp.current_frame
-                        struct.conformer = list(comp.molecules)[comp.current_frame].current_conformer
+                        struct.conformer = comp.current_conformer
             # Create new lines and save them in memory
             struct1, struct2 = struct_list
-            structpair_lines = self.create_new_lines(struct1, struct2, interaction_types, form.data)
-            new_line_manager.add_lines(structpair_lines)
-        return new_line_manager
+            structpair_lines = self.create_new_lines(struct1, struct2, interaction_kinds, form.data, existing_lines)
+            new_lines += structpair_lines
+        return new_lines
 
-    def create_new_lines(self, struct1, struct2, interaction_types, line_settings):
+    def create_new_lines(self, struct1, struct2, interaction_kinds, line_settings, existing_lines=None):
         """Parse rows of data from .contacts file into Line objects.
 
         struct1: InteractionStructure
@@ -481,225 +568,106 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         interaction_types: list of interaction types that exist between struct1 and struct2
         line_settings: Color and shape information for each type of Interaction.
         """
+        existing_lines = existing_lines or []
         new_lines = []
-        for interaction_type in interaction_types:
-            form_data = line_settings.get(interaction_type)
+        for interaction_kind in interaction_kinds:
+            form_data = line_settings.get(interaction_kind)
             if not form_data:
                 continue
 
             # See if we've already drawn this line
             line_exists = False
-            structpair_lines = self.line_manager.get_lines_for_structure_pair(struct1.index, struct2.index)
+            try:
+                structpair_lines = self.line_manager.get_lines_for_structure_pair(
+                    struct1, struct2, existing_lines)
+            except AttributeError:
+                continue
+
+            struct1_atom_index = int(struct1.index)
             for lin in structpair_lines:
+                struct1_is_atom1 = struct1_atom_index in lin.atom1_idx_arr
+                if struct1_is_atom1:
+                    struct1_conformer_in_frame = struct1.conformer == lin.atom1_conformation
+                    struct2_conformer_in_frame = struct2.conformer == lin.atom2_conformation
+                else:
+                    struct1_conformer_in_frame = struct1.conformer == lin.atom2_conformation
+                    struct2_conformer_in_frame = struct2.conformer == lin.atom1_conformation
                 if all([
-                    lin.frames.get(struct1.index) == struct1.frame,
-                    lin.frames.get(struct2.index) == struct2.frame,
-                    lin.conformers.get(struct1.index) == struct1.conformer,
-                    lin.conformers.get(struct2.index) == struct2.conformer,
-                        lin.interaction_type == interaction_type]):
+                    struct1_conformer_in_frame,
+                    struct2_conformer_in_frame,
+                        lin.kind == interaction_kind]):
                     line_exists = True
                     break
             if line_exists:
                 continue
 
-            form_data['interaction_type'] = interaction_type
+            interaction_kind = enums.InteractionKind[interaction_kind]
             # Draw line and add data about interaction type and frames.
-            line = self.draw_interaction_line(struct1, struct2, form_data)
+            line = self.line_manager.draw_interaction_line(struct1, struct2, interaction_kind, form_data)
             new_lines.append(line)
-
         return new_lines
 
-    @staticmethod
-    def draw_interaction_line(struct1, struct2, line_settings):
-        """Draw line connecting two structs.
-
-        :arg struct1: struct
-        :arg struct2: struct
-        :arg line_settings: Dict describing shape and color of line based on interaction_type
-        """
-        line = InteractionLine(struct1, struct2, **line_settings)
-
-        for struct, anchor in zip([struct1, struct2], line.anchors):
-            anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Atom
-            anchor.target = struct.line_anchor.index
-            # This nudges the line anchor to the center of the structure
-            anchor.local_offset = struct.calculate_local_offset()
-        return line
-
-    async def update_interaction_lines(self, interactions_data, complexes=None):
-        complexes = complexes or []
-        stream_type = nanome.api.streams.Stream.Type.shape_color.value
-
-        all_lines = self.line_manager.all_lines()
-        line_indices = [line.index for line in all_lines]
-        stream, _ = await self.create_writing_stream(line_indices, stream_type)
-        if not stream:
-            return
-
-        new_colors = []
-        in_frame_count = 0
-        out_of_frame_count = 0
-
-        for line in all_lines:
-            # Make sure that both atoms connected by line are in frame.
-            line_in_frame = self.line_in_frame(line, complexes)
-            if line_in_frame:
-                in_frame_count += 1
-            else:
-                out_of_frame_count += 1
-
-            # Parse forms, and add line data to stream
-            line_type = line.interaction_type
-            form_data = interactions_data[line_type]
-            hide_interaction = not form_data['visible'] or not line_in_frame
-            color = Color(*form_data['color'])
-
-            color.a = 0 if hide_interaction else 255
-            new_colors.extend(color.rgba)
-            line.color = color
-            self.line_manager.update_line(line)
-
-        # Logs.debug(f'in frame: {in_frame_count}')
-        # Logs.debug(f'out of frame: {out_of_frame_count}')
-        if stream:
-            stream.update(new_colors)
-
-        if self.show_distance_labels:
-            # Refresh label manager
-            self.label_manager.clear()
-            await self.render_distance_labels(complexes)
-
-    @classmethod
-    def line_in_frame(cls, line, complexes):
-        """Return boolean stating whether both structures connected by line are in frame.
-
-        :arg line: Line object. The line in question.
-        :arg complexes: List of complexes in workspace that can contain atoms.
-        """
-        line_atom_indices = [anchor.target for anchor in line.anchors]
-        struct1_key, struct2_key = line.structure_indices
-        atom_generators = []
-        for comp in complexes:
-            try:
-                current_mol = next(
-                    mol for i, mol in enumerate(comp.molecules)
-                    if i == comp.current_frame)
-            except StopIteration:
-                # In case of empty complex, its safe to continue
-                if sum(1 for _ in comp.molecules) == 0:
-                    continue
-                raise
-            atom_generators.append(current_mol.atoms)
-        current_atoms = itertools.chain(*atom_generators)
-        atoms_found = 0
-        for atom in current_atoms:
-            if atom.index not in line_atom_indices:
-                continue
-            struct_key = struct1_key if str(atom.index) in struct1_key else struct2_key
-            hash_matches = cls.check_struct_key(struct_key, atom)
-            if hash_matches:
-                atoms_found += 1
-            if atoms_found == 2:
-                break
-        line_in_frame = atoms_found == 2
-        return line_in_frame
-
-    @classmethod
-    def check_struct_key(cls, struct_key, atom):
-        # key_hash = struct_key.split('_')
-        # parse key_hash
-        atom_pos_strs = struct_key.split(',')
-        has_matches = False
-        for atom_pos_str in atom_pos_strs:
-            try:
-                atom_index, x, y, z = atom_pos_str.split('/')
-            except ValueError:
-                breakpoint()
-            if atom_index != str(atom.index):
-                continue
-            pos = Vector3(float(x), float(y), float(z))
-            if np.allclose(atom.position.unpack(), pos.unpack()):
-                has_matches = True
-                break
-        return has_matches
-
-    async def clear_visible_lines(self, complexes, send_notification=True):
-        """Clear all interaction lines that are currently visible."""
-        lines_to_destroy = []
-        labels_to_destroy = []
-
-        # Make sure we have deep complexes.
-        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
-        if shallow_complexes:
-            deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
-            for i, comp in enumerate(deep_complexes):
-                if complexes[i].index == comp.index:
-                    complexes[i] = comp
-
-        for struct1_key, struct2_key in self.line_manager.get_struct_pairs():
-            line_list = self.line_manager.get_lines_for_structure_pair(struct1_key, struct2_key)
-            line_count = len(line_list)
-            line_removed = False
-            for i in range(line_count - 1, -1, -1):
-                line = line_list[i]
-                if self.line_in_frame(line, complexes):
-                    lines_to_destroy.append(line)
-                    line_list.remove(line)
-                    line_removed = True
-            # Remove any labels that have been created corresponding to this structpair
-            if line_removed:
-                label = self.label_manager.remove_label_for_structpair(struct1_key, struct2_key)
-                if label:
-                    labels_to_destroy.append(label)
-
-        destroyed_line_count = len(lines_to_destroy)
-        Shape.destroy_multiple([*lines_to_destroy, *labels_to_destroy])
-
+    async def clear_lines_in_frame(self, send_notification=True):
+        """Clear all interaction lines in the current set of frames and conformers."""
+        ws = await self.request_workspace()
+        complexes = ws.complexes
+        all_lines = await self.line_manager.all_lines()
+        lines_to_delete = utils.get_lines_in_frame(all_lines, complexes)
+        if lines_to_delete:
+            self.line_manager.destroy_lines(lines_to_delete)
+        self.label_manager.clear()
+        destroyed_line_count = len(lines_to_delete)
         message = f'Deleted {destroyed_line_count} interactions'
+
         Logs.message(message)
         if send_notification:
             asyncio.create_task(self.send_async_notification(message))
 
     async def send_async_notification(self, message):
         """Send notification asynchronously."""
-        notifcation_type = enums.NotificationTypes.message
-        self.send_notification(notifcation_type, message)
+        notification_type = enums.NotificationTypes.message
+        self.send_notification(notification_type, message)
 
-    async def render_distance_labels(self, complexes):
-        # Make sure we have deep complexes.
-        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
-        if shallow_complexes:
-            deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
-            # Not sure how, but theres errors where a NoneType ends up in deep_complexes
-            # This is a quick fix for that.
-            deep_complexes = [comp for comp in deep_complexes if comp]
-            for i, comp in enumerate(deep_complexes):
-                if complexes[i].index == comp.index:
-                    complexes[i] = comp
-
+    async def render_distance_labels(self, complexes=None, lines=None):
+        Logs.message('Rendering Distance Labels')
+        self.label_manager.clear()
+        if not complexes:
+            ws = await self.request_workspace()
+            complexes = ws.complexes
         self.show_distance_labels = True
-        for struct1_index, struct2_index in self.line_manager.get_struct_pairs():
+        if not lines:
+            molecule_indices = [cmp.current_molecule.index for cmp in complexes]
+            all_lines = await self.line_manager.all_lines(molecules_idx=molecule_indices)
+            lines = utils.get_lines_in_frame(all_lines, complexes)
+        for line in lines:
             # If theres any visible lines between the two structs in structpair, add a label.
-            line_list = self.line_manager.get_lines_for_structure_pair(struct1_index, struct2_index)
-            for line in line_list:
-                if self.line_in_frame(line, complexes) and line.color.a > 0:
-                    label = Label()
-                    label.text = str(round(line.length, 2))
-                    label.font_size = 0.08
-                    label.anchors = line.anchors
-                    for anchor in label.anchors:
-                        anchor.viewer_offset = Vector3(0, 0, -.01)
-                    self.label_manager.add_label(label, struct1_index, struct2_index)
-                    break
-
+            struct1_index = int(line.atom1_idx_arr[0])
+            struct2_index = int(line.atom2_idx_arr[0])
+            if line.visible:
+                label = Label()
+                interaction_distance = utils.calculate_interaction_length(line, complexes)
+                label.text = str(round(interaction_distance, 2))
+                label.font_size = 0.06
+                anchor1 = Anchor()
+                anchor2 = Anchor()
+                anchor1.target = struct1_index
+                anchor2.target = struct2_index
+                anchor1.anchor_type = enums.ShapeAnchorType.Atom
+                anchor2.anchor_type = enums.ShapeAnchorType.Atom
+                viewer_offset = Vector3(0, 0, -.01)
+                anchor1.viewer_offset = viewer_offset
+                anchor2.viewer_offset = viewer_offset
+                label.anchors = [anchor1, anchor2]
+                self.label_manager.add_label(label, struct1_index, struct2_index)
         label_count = len(self.label_manager.all_labels())
-        Shape.upload_multiple(self.label_manager.all_labels())
-        Logs.message(f'Uploaded {label_count} distance labels')
+        if label_count > 0:
+            await Shape.upload_multiple(self.label_manager.all_labels())
+            Logs.message(f'Uploaded {label_count} distance labels')
 
     def clear_distance_labels(self):
         self.show_distance_labels = False
         label_count = len(self.label_manager.all_labels())
-        Shape.destroy_multiple(self.label_manager.all_labels())
+        self.label_manager.clear()
         Logs.message(f'Deleted {label_count} distance labels')
 
     @staticmethod
@@ -757,28 +725,42 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     async def on_complex_updated(self, updated_comp: Complex):
         """Callback for when a complex is updated."""
         # Get all updated complexes
-        cached_complexes = [cmp for cmp in self.__complex_cache.values() if cmp.index != updated_comp.index]
-        updated_comp_list = [updated_comp] + cached_complexes
+        Logs.debug('Starting complex updated callback')
+        start_time = time.time()
+        self.label_manager.clear()
 
-        # Redraw lines
-        interactions_data = self.menu.collect_interaction_data()
-        await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
-
+        updated_comp_list = []
         # Recalculate interactions if that setting is enabled.
         recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
-        if recalculate_enabled and hasattr(self, 'previous_run'):
-            await self.recalculate_interactions(updated_comp_list)
+        interactions_data = self.menu.collect_interaction_data()
+        if recalculate_enabled and hasattr(self, 'previous_run') and getattr(self, 'previous_run', False):
+            is_target_comp = updated_comp.index == self.previous_run['target_complex'].index
+            lig_comp_indices = [cmp.index for cmp in self.previous_run['ligand_complexes']]
+            is_ligand_comp = updated_comp.index in lig_comp_indices
+            if any([is_target_comp, is_ligand_comp]):
+                # Get updated complexes relevant to recalculation
+                # comp_indices = [updated_comp.index, *lig_comp_indices]
+                ws = await self.request_workspace()
+                updated_comp_list = ws.complexes
+                await self.recalculate_interactions(updated_comp_list)
+        if not updated_comp_list:
+            shallow_comps = await self.request_complex_list()
+            comp_indices = [cmp.index for cmp in shallow_comps]
+            updated_comp_list = await self.request_complexes(comp_indices)
+        await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        Logs.debug(f'Complex Update callback completed in {round(elapsed_time, 2)} seconds')
 
     async def recalculate_interactions(self, updated_comps: List[Complex]):
         """Recalculate interactions from the previous run."""
-        Logs.message("Recalculating previous run with updated structures.")
-        await self.send_async_notification('Recalculating interactions...')
         target_complex = self.previous_run['target_complex']
         ligand_residues = self.previous_run['ligand_residues']
         ligand_complexes = self.previous_run['ligand_complexes']
-        line_settings = self.previous_run['line_settings']
         selected_atoms_only = self.previous_run['selected_atoms_only']
         distance_labels = self.previous_run['distance_labels']
+        line_settings = self.menu.collect_interaction_data()
 
         updated_target_comp = next(
             cmp for cmp in updated_comps
@@ -788,14 +770,102 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         updated_lig_comps = [
             cmp for cmp in updated_comps if cmp.index in lig_comp_indices]
 
-        updated_residues = []
-        for comp in updated_lig_comps:
-            updated_residues.extend([
-                res for res in comp.residues
-                if res.index in [r.index for r in ligand_residues]
-            ])
+        target_has_changed = self.complex_has_changed(target_complex, updated_target_comp)
+        ligands_have_changed = any([
+            self.complex_has_changed(lig_comp, updated_lig_comp)
+            for lig_comp, updated_lig_comp in zip(ligand_complexes, updated_lig_comps)
+        ])
+        if not any([target_has_changed, ligands_have_changed]):
+            Logs.debug('No changes detected, skipping recalculation')
+            return
 
+        updated_residues = []
+        if selected_atoms_only:
+            # Get new list of selected residues
+            res_iter = itertools.chain(*[comp.current_molecule.residues for comp in updated_comps])
+            for res in res_iter:
+                if any([atom.selected for atom in res.atoms]):
+                    updated_residues.append(res)
+        else:
+            selected_res_indices = [res.index for res in ligand_residues]
+            res_iter = itertools.chain(*[comp.current_molecule.residues for comp in updated_comps])
+            updated_residues = [
+                res for res in res_iter if res.index in selected_res_indices
+            ]
+        if not updated_residues:
+            Logs.warning('No updated residues found, skipping recalculation')
+            self.previous_run = None
+            return
+
+        if self.currently_running_recalculate:
+            Logs.warning('Recalculation already running. Adding to queue')
+            # queue should always have 1 item
+            self.recalculate_queue = [(
+                updated_target_comp, updated_residues, line_settings,
+                selected_atoms_only, distance_labels
+            )]
+            return
+        self.currently_running_recalculate = True
+        await self.send_async_notification('Recalculating interactions...')
+        Logs.message("Recalculating previous run with updated structures.")
         await self.menu.run_calculation(
             updated_target_comp, updated_residues, line_settings,
             selected_atoms_only=selected_atoms_only,
             distance_labels=distance_labels)
+
+        while self.recalculate_queue:
+            Logs.debug('Recalculation queue found, running next recalculation')
+            next_recalculation = self.recalculate_queue.pop()
+            await self.menu.run_calculation(*next_recalculation)
+
+        self.currently_running_recalculate = False
+
+    @staticmethod
+    def complex_has_changed(old_comp, new_comp) -> bool:
+        old_frame_conformer = (old_comp.current_frame, old_comp.current_conformer)
+        new_frame_conformer = (new_comp.current_frame, new_comp.current_conformer)
+        if old_frame_conformer != new_frame_conformer:
+            # differet, therefore complex has changed
+            return True
+
+        comp_changed = False
+        old_atoms = old_comp.current_molecule.atoms
+        new_atoms = new_comp.current_molecule.atoms
+        for old_atm, new_atm in itertools.zip_longest(old_atoms, new_atoms):
+            atoms_exist = old_atm is not None and new_atm is not None
+            if atoms_exist:
+                indices_match = old_atm.index == new_atm.index
+                positions_match = old_atm.position.unpack() == new_atm.position.unpack()
+                symbols_match = old_atm.symbol == new_atm.symbol
+            if not atoms_exist or not indices_match or not positions_match or not symbols_match:
+                comp_changed = True
+                break
+        return comp_changed
+
+    async def update_interaction_lines(self, interactions_data, complexes=None):
+        await self._ensure_deep_complexes(complexes)
+        await self.line_manager.update_interaction_lines(interactions_data, complexes=complexes, plugin=self)
+        if self.show_distance_labels:
+            # Refresh label manager
+            await self.render_distance_labels(complexes)
+
+    def supports_persistent_interactions(self):
+        version_table = self._network._version_table
+        return version_table.get('GetInteractions', -1) > 0
+
+    async def _ensure_deep_complexes(self, complexes):
+        """If we don't have deep complexes, retrieve them."""
+        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
+        if shallow_complexes:
+            deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
+            deep_complexes = [comp for comp in deep_complexes if comp]
+            for i, comp in enumerate(deep_complexes):
+                if complexes[i].index == comp.index:
+                    complexes[i] = comp
+
+    async def _populate_complex_cache(self):
+        self._complex_cache = {}
+        ws = await self.request_workspace()
+        for comp in ws.complexes:
+            self._complex_cache[comp.index] = comp
+            comp.register_complex_updated_callback(self.on_complex_updated)
