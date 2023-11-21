@@ -13,7 +13,7 @@ htmlcov
 workspace.code-workspace
 .vscode
 
-docker
+docker/*
 !docker/Dockerfile
 !docker/build.sh
 !docker/deploy.sh

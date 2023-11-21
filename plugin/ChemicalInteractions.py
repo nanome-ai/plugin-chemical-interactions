@@ -836,7 +836,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if atoms_exist:
                 indices_match = old_atm.index == new_atm.index
                 positions_match = old_atm.position.unpack() == new_atm.position.unpack()
-            if not atoms_exist or not indices_match or not positions_match:
+                symbols_match = old_atm.symbol == new_atm.symbol
+            if not atoms_exist or not indices_match or not positions_match or not symbols_match:
                 comp_changed = True
                 break
         return comp_changed
