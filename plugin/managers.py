@@ -146,7 +146,7 @@ class InteractionLineManager:
         """Update all interaction lines in workspace according to provided colors and visibility settings."""
         get_kwargs = {}
         if complexes:
-            mol_indices = [cmp.current_molecule.index for cmp in complexes]
+            mol_indices = [cmp.current_molecule.index for cmp in complexes if cmp.current_molecule]
             get_kwargs['molecules_idx'] = mol_indices
         interactions = await self.all_lines(**get_kwargs)
         lines_to_update = []

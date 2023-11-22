@@ -221,8 +221,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         self.total_contacts_count = len(contacts_data)
         self.loading_bar_i = 0
 
-        relevant_mol_indices = [cmp.current_molecule.index for cmp in complexes]
-        all_lines_at_start = await self.line_manager.all_lines(molecules_idx=relevant_mol_indices)
+        relevant_mol_indices = [cmp.current_molecule.index for cmp in complexes if cmp.current_molecule]
+        if relevant_mol_indices:
+            all_lines_at_start = await self.line_manager.all_lines(molecules_idx=relevant_mol_indices)
+        else:
+            all_lines_at_start = []
         new_lines = []
         # Set up ThreadPoolExecutor to parse contacts data into InteractionLines.
         if contacts_data:
@@ -636,7 +639,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             complexes = ws.complexes
         self.show_distance_labels = True
         if not lines:
-            molecule_indices = [cmp.current_molecule.index for cmp in complexes]
+            molecule_indices = [
+                cmp.current_molecule.index
+                for cmp in complexes if cmp.current_molecule
+            ]
             all_lines = await self.line_manager.all_lines(molecules_idx=molecule_indices)
             lines = utils.get_lines_in_frame(all_lines, complexes)
         for line in lines:
