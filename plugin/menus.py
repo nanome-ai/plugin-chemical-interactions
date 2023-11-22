@@ -69,7 +69,9 @@ class ChemInteractionsMenu():
         self.btn_settings.register_pressed_callback(self.toggle_settings_menu)
 
     @async_callback
-    async def render(self, complexes=None, default_values=False, enable_menu=True):
+    async def render(self, complexes=None, default_values=False, enable_menu=None):
+        if enable_menu is None:
+            enable_menu = self._menu.enabled
         complexes = complexes or []
         self.complexes = complexes
         self.render_interaction_form()
