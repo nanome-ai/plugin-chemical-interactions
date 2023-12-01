@@ -749,7 +749,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         if not updated_comp_list:
             shallow_comps = await self.request_complex_list()
             comp_indices = [cmp.index for cmp in shallow_comps]
-            updated_comp_list = await self.request_complexes(comp_indices)
+            if comp_indices:
+                updated_comp_list = await self.request_complexes(comp_indices)
         await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
 
         end_time = time.time()
@@ -846,6 +847,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return comp_changed
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
+        complexes = complexes or []
         await self._ensure_deep_complexes(complexes)
         await self.line_manager.update_interaction_lines(interactions_data, complexes=complexes, plugin=self)
         if self.show_distance_labels:
