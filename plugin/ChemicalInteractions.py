@@ -731,7 +731,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         start_time = time.time()
         self.label_manager.clear()
 
-        updated_comp_list = []
+        ws = await self.request_workspace()
+        updated_comp_list = ws.complexes
         # Recalculate interactions if that setting is enabled.
         recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
         interactions_data = self.menu.collect_interaction_data()
@@ -740,16 +741,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             lig_comp_indices = [cmp.index for cmp in self.previous_run['ligand_complexes']]
             is_ligand_comp = updated_comp.index in lig_comp_indices
             if any([is_target_comp, is_ligand_comp]):
-                # Get updated complexes relevant to recalculation
-                # comp_indices = [updated_comp.index, *lig_comp_indices]
-                ws = await self.request_workspace()
-                updated_comp_list = ws.complexes
                 await self.recalculate_interactions(updated_comp_list)
-        if not updated_comp_list:
-            shallow_comps = await self.request_complex_list()
-            comp_indices = [cmp.index for cmp in shallow_comps]
-            if comp_indices:
-                updated_comp_list = await self.request_complexes(comp_indices)
         await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
 
         end_time = time.time()
