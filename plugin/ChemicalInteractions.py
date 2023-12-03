@@ -850,11 +850,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return version_table.get('GetInteractions', -1) > 0
 
     async def _ensure_deep_complexes(self, complexes):
-        """If we don't have deep complexes, retrieve them."""
+        """If we don't have deep complexes, retrieve them and insert into list."""
         shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
         if shallow_complexes:
             deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
-            deep_complexes = [comp for comp in deep_complexes if comp]
             for i, comp in enumerate(deep_complexes):
                 if complexes[i].index == comp.index:
                     complexes[i] = comp

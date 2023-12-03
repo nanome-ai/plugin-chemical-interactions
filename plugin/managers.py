@@ -228,8 +228,8 @@ class ShapesLineManager(StructurePairManager):
 
         all_lines = await self.all_lines()
         line_indices = [line.index for line in all_lines]
-        if not line_indices:
-            # No lines to update, return
+        if not complexes or not line_indices:
+            # No lines or complexes to update, return
             return
         if not getattr(self, '_stream', False):
             Logs.debug("Recreating Stream.")
