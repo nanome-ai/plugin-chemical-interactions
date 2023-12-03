@@ -144,9 +144,14 @@ class InteractionLineManager:
 
     async def update_interaction_lines(self, interactions_data, complexes=None, **kwargs):
         """Update all interaction lines in workspace according to provided colors and visibility settings."""
+        complexes = complexes or []
         get_kwargs = {}
         if complexes:
-            mol_indices = [cmp.current_molecule.index for cmp in complexes if cmp.current_molecule]
+            mol_indices = [
+                cmp.current_molecule.index
+                for cmp in complexes
+                if cmp.current_molecule is not None
+            ]
             get_kwargs['molecules_idx'] = mol_indices
         interactions = await self.all_lines(**get_kwargs)
         lines_to_update = []
@@ -225,11 +230,13 @@ class ShapesLineManager(StructurePairManager):
     async def update_interaction_lines(self, interactions_data, complexes=None, plugin=None):
         complexes = complexes or []
         stream_type = enums.StreamType.shape_color.value
-
+        if not complexes:
+            Logs.warning("No complexes to update, returning")
+            return
         all_lines = await self.all_lines()
         line_indices = [line.index for line in all_lines]
-        if not complexes or not line_indices:
-            # No lines or complexes to update, return
+        if not line_indices:
+            Logs.warning("No interaction lines to update, returning")
             return
         if not getattr(self, '_stream', False):
             Logs.debug("Recreating Stream.")
