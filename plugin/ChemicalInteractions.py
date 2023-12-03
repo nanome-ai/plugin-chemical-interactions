@@ -63,7 +63,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @async_callback
     async def on_complex_list_changed(self):
-        # await self._populate_complex_cache()
         complexes = await self.request_complex_list()
         for comp in complexes:
             comp.register_complex_updated_callback(self.on_complex_updated)
@@ -867,10 +866,3 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             for i, comp in enumerate(deep_complexes):
                 if complexes[i].index == comp.index:
                     complexes[i] = comp
-
-    async def _populate_complex_cache(self):
-        self._complex_cache = {}
-        ws = await self.request_workspace()
-        for comp in ws.complexes:
-            self._complex_cache[comp.index] = comp
-            comp.register_complex_updated_callback(self.on_complex_updated)
