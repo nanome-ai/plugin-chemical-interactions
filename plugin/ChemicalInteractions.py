@@ -63,7 +63,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
     @async_callback
     async def on_complex_list_changed(self):
-        # await self._populate_complex_cache()
         complexes = await self.request_complex_list()
         for comp in complexes:
             comp.register_complex_updated_callback(self.on_complex_updated)
@@ -732,7 +731,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         start_time = time.time()
         self.label_manager.clear()
 
-        updated_comp_list = []
+        ws = await self.request_workspace()
+        updated_comp_list = ws.complexes
         # Recalculate interactions if that setting is enabled.
         recalculate_enabled = self.settings_menu.get_settings()['recalculate_on_update']
         interactions_data = self.menu.collect_interaction_data()
@@ -741,15 +741,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             lig_comp_indices = [cmp.index for cmp in self.previous_run['ligand_complexes']]
             is_ligand_comp = updated_comp.index in lig_comp_indices
             if any([is_target_comp, is_ligand_comp]):
-                # Get updated complexes relevant to recalculation
-                # comp_indices = [updated_comp.index, *lig_comp_indices]
-                ws = await self.request_workspace()
-                updated_comp_list = ws.complexes
                 await self.recalculate_interactions(updated_comp_list)
-        if not updated_comp_list:
-            shallow_comps = await self.request_complex_list()
-            comp_indices = [cmp.index for cmp in shallow_comps]
-            updated_comp_list = await self.request_complexes(comp_indices)
         await self.update_interaction_lines(interactions_data, complexes=updated_comp_list)
 
         end_time = time.time()
@@ -846,6 +838,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return comp_changed
 
     async def update_interaction_lines(self, interactions_data, complexes=None):
+        complexes = complexes or []
         await self._ensure_deep_complexes(complexes)
         await self.line_manager.update_interaction_lines(interactions_data, complexes=complexes, plugin=self)
         if self.show_distance_labels:
@@ -857,18 +850,13 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         return version_table.get('GetInteractions', -1) > 0
 
     async def _ensure_deep_complexes(self, complexes):
-        """If we don't have deep complexes, retrieve them."""
-        shallow_complexes = [comp for comp in complexes if len(list(comp.molecules)) == 0]
+        """If we don't have deep complexes, retrieve them and insert into list."""
+        shallow_complexes = [
+            comp for comp in complexes
+            if isinstance(comp, Complex)
+            and len(list(comp.molecules)) == 0]
         if shallow_complexes:
             deep_complexes = await self.request_complexes([comp.index for comp in shallow_complexes])
-            deep_complexes = [comp for comp in deep_complexes if comp]
             for i, comp in enumerate(deep_complexes):
                 if complexes[i].index == comp.index:
                     complexes[i] = comp
-
-    async def _populate_complex_cache(self):
-        self._complex_cache = {}
-        ws = await self.request_workspace()
-        for comp in ws.complexes:
-            self._complex_cache[comp.index] = comp
-            comp.register_complex_updated_callback(self.on_complex_updated)
