@@ -55,7 +55,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         complexes = await self.request_complex_list()
         for comp in complexes:
             comp.register_complex_updated_callback(self.on_complex_updated)
-        await self.menu.render(complexes=complexes, default_values=True)
+        await self.menu.render(complexes=complexes, default_values=True, enable_menu=True)
         # Get any lines that already exist in the workspace
         current_lines = await self.line_manager.all_lines()
         if current_lines:
