@@ -8,7 +8,7 @@ import time
 import uuid
 import nanome
 from concurrent.futures import ThreadPoolExecutor
-from nanome.api.structure import Complex
+from nanome.api.structure import Complex, Molecule
 from nanome.api.shapes import Label, Shape, Anchor
 from nanome.api.interactions import Interaction
 from nanome.util import async_callback, enums, Logs, Process, Vector3, ComplexUtils
@@ -317,7 +317,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
     @classmethod
     def get_complex_selection_paths(cls, comp):
         selections = set()
-        for res in comp.current_molecule.residues:
+        current_mol = getattr(comp, 'current_molecule', Molecule())
+        for res in current_mol.residues:
             res_selections = cls.get_residue_selection_paths(res)
             if res_selections:
                 selections = selections.union(res_selections)
@@ -378,6 +379,8 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         chain_name, res_id, atom_name = atom_path.split('/')
         # Use the molecule corresponding to current frame
         comp_mol = comp.current_molecule
+        if not comp_mol:
+            return
         # Chain naming seems inconsistent, so we need to check the provided name,
         # as well as heteroatom variation
         atoms = [
@@ -549,7 +552,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 # Set `frame` and `conformer` attribute for InteractionStructure.
                 for comp in complexes:
                     atom_indices = [a.index for a in struct.atoms]
-                    relevant_atoms = [a.index for a in comp.current_molecule.atoms if a.index in atom_indices]
+
+                    current_mol = getattr(comp, 'current_molecule', Molecule())
+                    relevant_atoms = [
+                        a.index for a in current_mol.atoms
+                        if a.index in atom_indices
+                    ]
                     if relevant_atoms:
                         struct.frame = comp.current_frame
                         struct.conformer = comp.current_conformer
@@ -777,13 +785,21 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         updated_residues = []
         if selected_atoms_only:
             # Get new list of selected residues
-            res_iter = itertools.chain(*[comp.current_molecule.residues for comp in updated_comps])
+            res_iter = itertools.chain(*[
+                comp.current_molecule.residues
+                for comp in updated_comps
+                if comp.current_molecule
+            ])
             for res in res_iter:
                 if any([atom.selected for atom in res.atoms]):
                     updated_residues.append(res)
         else:
             selected_res_indices = [res.index for res in ligand_residues]
-            res_iter = itertools.chain(*[comp.current_molecule.residues for comp in updated_comps])
+            res_iter = itertools.chain(*[
+                comp.current_molecule.residues
+                for comp in updated_comps
+                if comp.current_molecule
+            ])
             updated_residues = [
                 res for res in res_iter if res.index in selected_res_indices
             ]

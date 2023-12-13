@@ -1,7 +1,7 @@
 from os import path
 
 import nanome
-from nanome.api.structure import Complex
+from nanome.api.structure import Complex, Molecule
 from nanome.api.structure.substructure import Substructure
 from nanome.api import ui
 from nanome.api.ui import Dropdown, DropdownItem, Button, Label
@@ -491,7 +491,7 @@ class ChemInteractionsMenu():
             item.complex = deep_complex
 
             # Find ligands nested inside of complex, and add them to dropdown.
-            mol = deep_complex.current_molecule
+            mol = getattr(deep_complex, 'current_molecule', Molecule())
             ligands = await mol.get_ligands()
             for ligand in ligands:
                 # make sure complex is stored on residue, we will need it later

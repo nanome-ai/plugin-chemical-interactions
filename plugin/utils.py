@@ -35,7 +35,7 @@ def extract_residues_from_complex(comp, residue_list, comp_name=None):
 
 def get_neighboring_atoms(target_reference: structure.Complex, selected_atoms: list, site_size=6):
     """Use KDTree to find target atoms within site_size radius of selected atoms."""
-    mol = target_reference.current_molecule
+    mol = getattr(target_reference, 'current_molecule', structure.Molecule())
     ligand_positions = [atom.position.unpack() for atom in selected_atoms]
     target_atoms = itertools.chain(*[ch.atoms for ch in mol.chains if not ch.name.startswith("H")])
     target_tree = KDTree([atom.position.unpack() for atom in target_atoms])
@@ -174,7 +174,7 @@ def line_in_frame(line: Union[Interaction, InteractionShapesLine], atom_iter):
 def get_lines_in_frame(line_list: List[Union[Interaction, InteractionShapesLine]], complexes):
     output = []
     Logs.debug("Starting lines in frame.")
-    current_mols = [comp.current_molecule for comp in complexes]
+    current_mols = [comp.current_molecule for comp in complexes if comp.current_molecule]
     start_time = time.time()
     for line in line_list:
         relevant_atom_indices = set(line.atom1_idx_arr + line.atom2_idx_arr)
