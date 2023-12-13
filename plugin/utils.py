@@ -174,7 +174,7 @@ def line_in_frame(line: Union[Interaction, InteractionShapesLine], atom_iter):
 def get_lines_in_frame(line_list: List[Union[Interaction, InteractionShapesLine]], complexes):
     output = []
     Logs.debug("Starting lines in frame.")
-    current_mols = [comp.current_molecule for comp in complexes if comp.current_molecule is not None]
+    current_mols = [comp.current_molecule for comp in complexes if comp.current_molecule]
     start_time = time.time()
     for line in line_list:
         relevant_atom_indices = set(line.atom1_idx_arr + line.atom2_idx_arr)
