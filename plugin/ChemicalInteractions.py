@@ -502,12 +502,12 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             # Atom paths that current row is describing interactions between
             a1_data = row['bgn']
             a2_data = row['end']
-            contact_types = row['contact']
-            # Switch arpeggio interaction string into nanome InteractionKind enum
+            arpegg_contact_types = row['contact']
+            # Switch arpeggio contact type string into nanome InteractionKind enum
             try:
                 interaction_kinds = [
                     interaction_type_map[contact_type].name
-                    for contact_type in contact_types
+                    for contact_type in arpegg_contact_types
                     if contact_type in interaction_type_map.keys()
                 ]
             except KeyError:
@@ -532,7 +532,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             except AtomNotFoundException:
                 message = (
                     f"Failed to parse interactions between {atom1_path} and {atom2_path} "
-                    f"skipping {len(contact_types)} interactions"
+                    f"skipping {len(arpegg_contact_types)} interactions"
                 )
                 Logs.warning(message)
                 continue
@@ -609,11 +609,11 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
                 continue
 
             interaction_kind = enums.InteractionKind[interaction_kind]
-            # Draw line and add data about interaction type and frames.
             if interaction_kind == enums.InteractionKind.All:
                 # Not sure how we're getting in a situation where we have an interaction kind of 'All'
                 Logs.warning('Interaction Kind is All, skipping')
                 continue
+            # Draw line and add data about interaction type and frames.
             line = self.line_manager.draw_interaction_line(struct1, struct2, interaction_kind, form_data)
             new_lines.append(line)
         return new_lines
