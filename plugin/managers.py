@@ -116,7 +116,7 @@ class InteractionLineManager:
         Interaction.upload_multiple(line_list)
 
     @staticmethod
-    def draw_interaction_line(struct1: InteractionStructure, struct2: InteractionStructure, kind: enums.InteractionKind, line_settings):
+    def draw_interaction_line(struct1: InteractionStructure, struct2: InteractionStructure, interaction_kind: enums.InteractionKind, line_settings):
         """Draw line connecting two structs.
 
         :arg struct1: struct
@@ -130,7 +130,6 @@ class InteractionLineManager:
         for struct2_index in struct2.index.split(','):
             struct2_indices.append(int(struct2_index))
 
-        interaction_kind = kind
         atom1_conformation = struct1.conformer
         atom2_conformation = struct2.conformer
         line = Interaction(
@@ -158,6 +157,10 @@ class InteractionLineManager:
         lines_to_update = []
         for line in interactions:
             interaction_type = line.kind.name
+            if interaction_type not in interactions_data:
+                # Avoids a KeyError we were getting.
+                Logs.warning(f'Interaction type {interaction_type} not found')
+                continue
             interaction_type_visible = interactions_data[interaction_type]['visible']
             if line.visible != interaction_type_visible:
                 line.visible = interaction_type_visible

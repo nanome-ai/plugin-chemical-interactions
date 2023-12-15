@@ -610,6 +610,10 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             interaction_kind = enums.InteractionKind[interaction_kind]
             # Draw line and add data about interaction type and frames.
+            if interaction_kind == enums.InteractionKind.All:
+                # Not sure how we're getting in a situation where we have an interaction kind of 'All'
+                Logs.warning('Interaction Kind is All, skipping')
+                continue
             line = self.line_manager.draw_interaction_line(struct1, struct2, interaction_kind, form_data)
             new_lines.append(line)
         return new_lines
