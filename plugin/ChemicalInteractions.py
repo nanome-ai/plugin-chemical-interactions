@@ -578,6 +578,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
         existing_lines = existing_lines or []
         new_lines = []
         for interaction_kind_str in interaction_kinds:
+            interaction_kind = enums.InteractionKind[interaction_kind_str]
             form_data = line_settings.get(interaction_kind_str)
             if not form_data:
                 continue
@@ -608,7 +609,6 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
             if line_exists:
                 continue
 
-            interaction_kind = enums.InteractionKind[interaction_kind_str]
             if interaction_kind == enums.InteractionKind.All:
                 # Not sure how we're getting in a situation where we have an interaction kind of 'All'
                 Logs.warning('Interaction Kind is All, skipping')
