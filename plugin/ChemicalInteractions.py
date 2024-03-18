@@ -411,7 +411,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             if len(atoms) > 1:
                 # Just pick the first one? :grimace:
-                Logs.warning(f'Too many Atoms found for {atom_path}')
+                Logs.debug(f'Too many Atoms found for {atom_path}')
                 atoms = atoms[:1]
         atom = atoms[0]
         return atom
@@ -611,7 +611,7 @@ class ChemicalInteractions(nanome.AsyncPluginInstance):
 
             if interaction_kind == enums.InteractionKind.All:
                 # Not sure how we're getting in a situation where we have an interaction kind of 'All'
-                Logs.warning('Interaction Kind is All, skipping')
+                Logs.debug('Interaction Kind is All, skipping')
                 continue
             # Draw line and add data about interaction type and frames.
             line = self.line_manager.draw_interaction_line(struct1, struct2, interaction_kind, form_data)
